@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Alfa Rent a Car
+
+Production-ready car rental management platform: a public customer-facing
+website plus an internal admin dashboard for managing vehicles, reservations,
+and customers.
+
+## Tech Stack
+
+| Layer      | Technology                                           |
+| ---------- | ---------------------------------------------------- |
+| Framework  | Next.js 15 (App Router), TypeScript                  |
+| UI         | Tailwind CSS, shadcn/ui, Framer Motion, lucide-react |
+| Forms      | React Hook Form + Zod                                |
+| Data       | Prisma ORM + PostgreSQL (Supabase in production)     |
+| Auth       | Auth.js (credentials, role-based)                    |
+| Images     | Cloudinary                                           |
+| Deployment | Vercel                                               |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment
+cp .env.example .env
+# Fill in DATABASE_URL, AUTH_SECRET, Cloudinary keys
+
+# 3. Set up the database
+npx prisma migrate dev
+npx prisma db seed
+
+# 4. Run the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+  app/
+    (website)/      # Public routes: home, /car, /car/[slug], booking, contact
+    (dashboard)/    # Authenticated admin routes: /admin/*
+    api/            # Route handlers (public APIs, webhooks)
+  components/
+    ui/             # shadcn/ui primitives
+    shared/         # Cross-cutting composites (header, footer, cards)
+    forms/          # Form components (RHF + Zod)
+  lib/
+    auth/           # Auth.js config, session helpers, RBAC guards
+    db/             # Prisma client singleton
+    cloudinary/     # Upload/delete helpers, signed upload params
+    validations/    # Zod schemas shared by client and server
+  hooks/            # Client-side React hooks
+  services/         # ALL business logic (vehicle, reservation, customer)
+  types/            # Shared TypeScript types
+  utils/            # Pure utility functions
+prisma/
+  schema.prisma     # Database schema
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Folder decisions
 
-## Learn More
+- **Route groups** `(website)` / `(dashboard)` separate the two apps without
+  affecting URLs, letting each have its own layout, fonts, and auth boundary.
+- **`services/`** holds every piece of business logic. Pages, server actions,
+  and route handlers stay thin: they validate input, call a service, and
+  format the response. This keeps logic unit-testable and prevents
+  duplication between the website and the dashboard.
+- **`lib/validations/`** centralizes Zod schemas so the same schema validates
+  a form on the client and the payload on the server — one source of truth.
+- **`lib/db/`** exports a single Prisma client instance to avoid connection
+  exhaustion in dev hot-reload and serverless environments.
+- **`components/ui/`** is owned by shadcn (generated); handwritten composites
+  live in `shared/` and `forms/` so upgrades never clobber custom code.
 
-To learn more about Next.js, take a look at the following resources:
+## Conventions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Server Components by default; `"use client"` only where interactivity
+  requires it.
+- Every external input is validated with Zod at the boundary.
+- All API responses use one envelope:
+  `{ success: true, data }` / `{ success: false, error: { message, code } }`
+- Mutations go through Server Actions; public read APIs through route
+  handlers.
+- No business logic in pages or components.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development Workflow
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — dev server (Turbopack)
+- `npm run build` — production build
+- `npm run lint` — ESLint
+- `npx prettier --write .` — format
+- Husky runs lint on pre-commit
+- Branch from `main`, conventional commit messages (`feat:`, `fix:`, `chore:`)

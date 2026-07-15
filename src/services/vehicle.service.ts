@@ -28,7 +28,16 @@ export async function getVehicles(
   filters: VehicleFilterInput,
   opts: { includeInactive?: boolean } = {}
 ): Promise<Paginated<VehicleWithImages>> {
-  const { page, perPage, category, transmission, minPrice, maxPrice } = filters;
+  const {
+    page,
+    perPage,
+    category,
+    transmission,
+    minPrice,
+    maxPrice,
+    from,
+    to,
+  } = filters;
 
   const where: Prisma.VehicleWhereInput = {
     ...(opts.includeInactive ? {} : { status: { not: "INACTIVE" as const } }),
@@ -40,6 +49,17 @@ export async function getVehicles(
         ...(maxPrice !== undefined && { lte: maxPrice }),
       },
     }),
+    ...(from &&
+      to &&
+      to > from && {
+        reservations: {
+          none: {
+            status: { in: ["CONFIRMED", "ACTIVE"] },
+            pickupDate: { lt: to },
+            returnDate: { gt: from },
+          },
+        },
+      }),
   };
 
   const [items, total] = await prisma.$transaction([

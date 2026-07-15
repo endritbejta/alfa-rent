@@ -12,6 +12,10 @@ export const vehicleFilterSchema = paginationSchema.extend({
   transmission: z.enum(Transmission).optional(),
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
+  // When both dates are present, results exclude vehicles with a
+  // blocking reservation overlapping the range.
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
 });
 
 export const createVehicleSchema = z.object({

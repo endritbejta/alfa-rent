@@ -1,0 +1,51 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Car,
+  CalendarDays,
+  ClipboardList,
+  Users,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const NAV = [
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/vehicles", label: "Vehicles", icon: Car },
+  { href: "/admin/reservations", label: "Reservations", icon: ClipboardList },
+  { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
+];
+
+export function AdminNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex-1 space-y-1 p-3">
+      {NAV.map(({ href, label, icon: Icon }) => {
+        const active = pathname.startsWith(href);
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              active
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
+                : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-white/5"
+            )}
+          >
+            {active && (
+              <span className="bg-sidebar-primary absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full" />
+            )}
+            <Icon className="h-4 w-4" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

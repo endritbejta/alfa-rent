@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,75 +46,119 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Brand band (charcoal surfaces shared by hero, sidebar, footer) */
+  --color-band: var(--band);
+  --color-band-foreground: var(--band-foreground);
+  --color-band-muted: var(--band-muted);
+  --color-band-border: var(--band-border);
+  --color-brand: var(--brand);
+
+  /* Status hues — vehicle + reservation lifecycle */
+  --color-status-available: var(--st-available);
+  --color-status-reserved: var(--st-reserved);
+  --color-status-rented: var(--st-rented);
+  --color-status-maint: var(--st-maint);
+  --color-status-inactive: var(--st-inactive);
 }
 
+/*
+ * Alfa Rent design tokens (design doc v1.0, approved 2026-07-15).
+ * Warm graphite neutrals with a ~2% red bias; Alfa red #DC2028 as the
+ * primary action color under a strict budget (one filled-red element
+ * per viewport); deeper crimson reserved for destructive actions.
+ */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #fcfbfb; /* N-25 */
+  --foreground: #161414; /* N-900 */
+  --card: #ffffff;
+  --card-foreground: #161414;
+  --popover: #ffffff;
+  --popover-foreground: #161414;
+  --primary: #dc2028; /* Alfa red 600 */
+  --primary-foreground: #ffffff;
+  --secondary: #f7f6f5; /* N-50 */
+  --secondary-foreground: #161414;
+  --muted: #f7f6f5;
+  --muted-foreground: #5b5655; /* N-600 */
+  --accent: #fef1f1; /* Red-50 */
+  --accent-foreground: #b8161f; /* Red-700 */
+  --destructive: #a81e22; /* crimson, deeper than brand */
+  --border: #e2dfde; /* N-200 */
+  --input: #e2dfde;
+  --ring: #dc2028;
+  --chart-1: #dc2028;
+  --chart-2: #6d28d9;
+  --chart-3: #2563eb;
+  --chart-4: #b45309;
+  --chart-5: #7d7877;
+  --radius: 0.875rem; /* cards 14px */
+  --sidebar: #0e0d0d; /* N-950 */
+  --sidebar-foreground: #efedec;
+  --sidebar-primary: #dc2028;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(220, 32, 40, 0.14);
+  --sidebar-accent-foreground: #f3b7ba;
+  --sidebar-border: #2a2727;
+  --sidebar-ring: #e23440;
+
+  --band: #0e0d0d;
+  --band-foreground: #f5f3f2;
+  --band-muted: #a5a09f;
+  --band-border: #2a2727;
+  --brand: #dc2028;
+
+  --st-available: #12805c;
+  --st-reserved: #2563eb;
+  --st-rented: #6d28d9;
+  --st-maint: #b45309;
+  --st-inactive: #7d7877;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0e0d0d;
+  --foreground: #f1efee;
+  --card: #161414;
+  --card-foreground: #f1efee;
+  --popover: #161414;
+  --popover-foreground: #f1efee;
+  --primary: #e8535c; /* desaturated red for charcoal grounds */
+  --primary-foreground: #ffffff;
+  --secondary: #1e1c1c;
+  --secondary-foreground: #f1efee;
+  --muted: #1e1c1c;
+  --muted-foreground: #a5a09f;
+  --accent: rgba(220, 32, 40, 0.14);
+  --accent-foreground: #f3b7ba;
+  --destructive: #e36065;
+  --border: #2e2a2a;
+  --input: #2e2a2a;
+  --ring: #e8535c;
+  --chart-1: #e8535c;
+  --chart-2: #a78bfa;
+  --chart-3: #6c9bf2;
+  --chart-4: #e8a33d;
+  --chart-5: #8a8584;
+  --sidebar: #080707;
+  --sidebar-foreground: #efedec;
+  --sidebar-primary: #e8535c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(220, 32, 40, 0.16);
+  --sidebar-accent-foreground: #f3b7ba;
+  --sidebar-border: #2a2727;
+  --sidebar-ring: #e23440;
+
+  --band: #080707;
+  --band-foreground: #f5f3f2;
+  --band-muted: #a5a09f;
+  --band-border: #2a2727;
+  --brand: #e8535c;
+
+  --st-available: #3dbe8b;
+  --st-reserved: #6c9bf2;
+  --st-rented: #a78bfa;
+  --st-maint: #e8a33d;
+  --st-inactive: #8a8584;
 }
 
 @layer base {
@@ -126,5 +170,26 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+  }
+  /* Alfa Globe eyebrow: red dash + letterspaced uppercase label */
+  .eyebrow {
+    @apply inline-flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply bg-brand h-0.5 w-7;
   }
 }

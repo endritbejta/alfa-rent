@@ -1,21 +1,41 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Cog, Fuel, Users } from "lucide-react";
 import type { VehicleWithImages } from "@/services/vehicle.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 
 /**
- * The flagship component from the design system: 16:10 image with year
- * chip + status, category eyebrow, display-weight name, pill spec chips,
- * price and one action in the footer. Shared by website and admin.
+ * Flagship card. `query` carries the hero's date/category selection through
+ * to the detail page so the customer never re-enters their dates.
  */
-export function VehicleCard({ vehicle }: { vehicle: VehicleWithImages }) {
+export function VehicleCard({
+  vehicle,
+  query,
+}: {
+  vehicle: VehicleWithImages;
+  query?: string;
+}) {
   const cover = vehicle.images[0];
+  const href = `/car/${vehicle.slug}${query ? `?${query}` : ""}`;
+
+  const pills = [
+    {
+      icon: Cog,
+      label: vehicle.transmission === "AUTOMATIC" ? "Automatic" : "Manual",
+    },
+    {
+      icon: Fuel,
+      label:
+        vehicle.fuelType.charAt(0) + vehicle.fuelType.slice(1).toLowerCase(),
+    },
+    { icon: Users, label: `${vehicle.seats} seats` },
+  ];
 
   return (
     <article className="bg-card group overflow-hidden rounded-xl border shadow-xs transition-shadow hover:shadow-md">
       <Link
-        href={`/car/${vehicle.slug}`}
+        href={href}
         className="relative block aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800"
       >
         {cover ? (
@@ -31,9 +51,6 @@ export function VehicleCard({ vehicle }: { vehicle: VehicleWithImages }) {
             {vehicle.brand}
           </span>
         )}
-        <span className="absolute top-3 left-3 rounded-full bg-black/65 px-2.5 py-0.5 text-xs font-semibold text-neutral-100 backdrop-blur-sm">
-          {vehicle.year}
-        </span>
         <span className="absolute top-3 right-3">
           <StatusBadge status={vehicle.status} />
         </span>
@@ -47,16 +64,15 @@ export function VehicleCard({ vehicle }: { vehicle: VehicleWithImages }) {
           {vehicle.brand} {vehicle.model}
         </h3>
         <div className="mt-2.5 mb-4 flex flex-wrap gap-1.5">
-          <span className="bg-secondary rounded-full border px-2.5 py-0.5 text-xs">
-            {vehicle.transmission === "AUTOMATIC" ? "Automatic" : "Manual"}
-          </span>
-          <span className="bg-secondary rounded-full border px-2.5 py-0.5 text-xs">
-            {vehicle.fuelType.charAt(0) +
-              vehicle.fuelType.slice(1).toLowerCase()}
-          </span>
-          <span className="bg-secondary rounded-full border px-2.5 py-0.5 text-xs">
-            {vehicle.seats} seats
-          </span>
+          {pills.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="border-brand/15 bg-brand/[0.06] text-foreground/80 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+            >
+              <Icon className="text-brand h-3.5 w-3.5" />
+              {label}
+            </span>
+          ))}
         </div>
         <div className="flex items-center justify-between border-t pt-4">
           <p className="font-display text-xl font-bold">
@@ -70,7 +86,8 @@ export function VehicleCard({ vehicle }: { vehicle: VehicleWithImages }) {
             size="sm"
             variant="outline"
             nativeButton={false}
-            render={<Link href={`/car/${vehicle.slug}`} />}
+            className="transition-transform duration-150 hover:scale-[1.04] active:scale-100"
+            render={<Link href={href} />}
           >
             Details
           </Button>

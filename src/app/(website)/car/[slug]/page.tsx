@@ -43,10 +43,13 @@ export async function generateMetadata({
 
 export default async function VehiclePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { slug } = await params;
+  const { from, to } = await searchParams;
   const vehicle = await loadVehicle(slug);
   const [cover, ...rest] = vehicle.images;
 
@@ -150,7 +153,12 @@ export default async function VehiclePage({
             <p className="text-muted-foreground mt-1 text-sm">
               Insurance included. Confirmed by our team within hours.
             </p>
-            <AvailabilityWidget vehicleId={vehicle.id} slug={vehicle.slug} />
+            <AvailabilityWidget
+              vehicleId={vehicle.id}
+              slug={vehicle.slug}
+              initialFrom={from}
+              initialTo={to}
+            />
           </div>
         </aside>
       </div>

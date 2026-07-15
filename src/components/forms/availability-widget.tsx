@@ -16,14 +16,20 @@ type Quote = { available: boolean; totalPrice: number | null };
 export function AvailabilityWidget({
   vehicleId,
   slug,
+  initialFrom,
+  initialTo,
 }: {
   vehicleId: string;
   slug: string;
+  initialFrom?: string;
+  initialTo?: string;
 }) {
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  // Prefilled from the hero/fleet selection carried through the URL, so a
+  // customer who already chose dates lands here with a live quote.
+  const [from, setFrom] = useState(initialFrom ?? "");
+  const [to, setTo] = useState(initialTo ?? "");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

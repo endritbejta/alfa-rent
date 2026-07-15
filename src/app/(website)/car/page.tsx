@@ -28,6 +28,13 @@ export default async function FleetPage({
       ? { from: filters.from, to: filters.to }
       : null;
 
+  // Carry the customer's date/category selection to the detail pages.
+  const forward = new URLSearchParams();
+  if (params.from) forward.set("from", params.from);
+  if (params.to) forward.set("to", params.to);
+  if (params.category) forward.set("category", params.category);
+  const query = forward.toString();
+
   return (
     <>
       <section className="bg-band text-band-foreground">
@@ -64,7 +71,7 @@ export default async function FleetPage({
         ) : (
           <div className="grid gap-6 pb-10 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} />
+              <VehicleCard key={vehicle.id} vehicle={vehicle} query={query} />
             ))}
           </div>
         )}

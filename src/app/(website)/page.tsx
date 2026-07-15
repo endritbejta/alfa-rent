@@ -12,6 +12,7 @@ import { getVehicles } from "@/services/vehicle.service";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { HeroSearch } from "@/components/forms/hero-search";
+import { HeroBackground } from "@/components/shared/hero-background";
 
 export const metadata: Metadata = {
   title: "Premium Car Rental in Kosovo",
@@ -95,8 +96,9 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero — charcoal band, availability-first search */}
-      <section className="bg-band text-band-foreground">
-        <div className="mx-auto max-w-6xl px-5 pt-20 pb-16 lg:pt-28">
+      <section className="bg-band text-band-foreground relative isolate overflow-hidden">
+        <HeroBackground />
+        <div className="relative z-10 mx-auto max-w-6xl px-5 pt-20 pb-16 lg:pt-28">
           <span className="eyebrow text-band-muted">
             Premium car rental — Kosovo
           </span>

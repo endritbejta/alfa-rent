@@ -3,8 +3,13 @@ import { format } from "date-fns";
 import { ReservationStatus } from "@prisma/client";
 import { requireUser } from "@/lib/auth/guards";
 import { getReservations } from "@/services/reservation.service";
+import { getReservationInsights } from "@/services/analytics.service";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { Panel } from "@/components/dashboard/panel";
+import { AreaChart } from "@/components/dashboard/area-chart";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -29,84 +34,159 @@ export default async function ReservationsPage({
     ? (status as ReservationStatus)
     : undefined;
 
-  const { items } = await getReservations({
-    status: statusFilter,
-    page: 1,
-    perPage: 50,
-  });
+  const [{ items }, insights] = await Promise.all([
+    getReservations({ status: statusFilter, page: 1, perPage: 50 }),
+    getReservationInsights(),
+  ]);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Reservations</h1>
+      <PageHeader
+        title="Reservations"
+        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today`}
+      />
 
-      <div className="flex flex-wrap gap-2 text-sm">
+      {/* Status summary — each card is also the filter */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Link
           href="/admin/reservations"
-          className={`rounded-full px-3 py-1 ${!statusFilter ? "bg-neutral-900 text-white" : "bg-neutral-200"}`}
+          className={cn(
+            "bg-card rounded-xl border p-4 transition-colors",
+            !statusFilter && "ring-brand ring-2"
+          )}
         >
-          All
+          <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
+            All
+          </p>
+          <p className="font-display mt-1 text-2xl font-bold tabular-nums">
+            {Object.values(insights.statusCounts).reduce((a, b) => a + b, 0)}
+          </p>
         </Link>
         {STATUSES.map((s) => (
           <Link
             key={s}
             href={`/admin/reservations?status=${s}`}
-            className={`rounded-full px-3 py-1 ${statusFilter === s ? "bg-neutral-900 text-white" : "bg-neutral-200"}`}
+            className={cn(
+              "bg-card rounded-xl border p-4 transition-colors",
+              statusFilter === s && "ring-brand ring-2"
+            )}
           >
-            {s}
+            <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
+              {s.toLowerCase()}
+            </p>
+            <p className="font-display mt-1 text-2xl font-bold tabular-nums">
+              {insights.statusCounts[s] ?? 0}
+            </p>
           </Link>
         ))}
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Customer</TableHead>
-            <TableHead>Vehicle</TableHead>
-            <TableHead>Dates</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      <Panel
+        title="Booking activity"
+        subtitle="Requests received, last 14 days"
+      >
+        <AreaChart data={insights.activitySeries} height={120} />
+      </Panel>
+
+      <Panel
+        title={
+          statusFilter
+            ? `${statusFilter.toLowerCase()} reservations`
+            : "All reservations"
+        }
+      >
+        {/* Mobile: cards */}
+        <ul className="space-y-3 md:hidden">
           {items.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={6}
-                className="text-muted-foreground text-center"
-              >
-                No reservations
-              </TableCell>
-            </TableRow>
+            <p className="text-muted-foreground py-6 text-center text-sm">
+              No reservations
+            </p>
           )}
           {items.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell>
-                <p className="font-medium">
-                  {r.customer.firstName} {r.customer.lastName}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  {r.customer.email}
-                </p>
-              </TableCell>
-              <TableCell>
-                {r.vehicle.brand} {r.vehicle.model}
-              </TableCell>
-              <TableCell>
-                {format(r.pickupDate, "dd MMM")} -{" "}
-                {format(r.returnDate, "dd MMM yyyy")}
-              </TableCell>
-              <TableCell>{Number(r.totalPrice).toFixed(2)} EUR</TableCell>
-              <TableCell>
+            <li key={r.id} className="rounded-lg border p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {r.customer.firstName} {r.customer.lastName}
+                  </p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {r.vehicle.brand} {r.vehicle.model}
+                  </p>
+                </div>
                 <StatusBadge status={r.status} />
-              </TableCell>
-              <TableCell className="text-right">
+              </div>
+              <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
+                <span>
+                  {format(r.pickupDate, "dd MMM")} -{" "}
+                  {format(r.returnDate, "dd MMM yyyy")}
+                </span>
+                <span className="text-foreground font-semibold tabular-nums">
+                  {Number(r.totalPrice).toFixed(2)} EUR
+                </span>
+              </div>
+              <div className="mt-3">
                 <StatusActions reservationId={r.id} status={r.status} />
-              </TableCell>
-            </TableRow>
+              </div>
+            </li>
           ))}
-        </TableBody>
-      </Table>
+        </ul>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-muted-foreground text-center"
+                  >
+                    No reservations
+                  </TableCell>
+                </TableRow>
+              )}
+              {items.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    <p className="font-medium">
+                      {r.customer.firstName} {r.customer.lastName}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {r.customer.email}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    {r.vehicle.brand} {r.vehicle.model}
+                  </TableCell>
+                  <TableCell>
+                    {format(r.pickupDate, "dd MMM")} -{" "}
+                    {format(r.returnDate, "dd MMM yyyy")}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {Number(r.totalPrice).toFixed(2)} EUR
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={r.status} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <StatusActions reservationId={r.id} status={r.status} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Panel>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Staff Login | Alfa Rent a Car",
+  title: "Staff Login",
   robots: { index: false },
 };
 

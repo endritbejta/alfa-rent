@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ClipboardList,
   Users,
+  ChartNoAxesColumn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,7 @@ const NAV = [
   { href: "/admin/reservations", label: "Reservations", icon: ClipboardList },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/admin/analytics", label: "Analytics", icon: ChartNoAxesColumn },
 ];
 
 export function AdminNav() {

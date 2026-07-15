@@ -660,7 +660,6 @@ async function main() {
   // --- reservations: ~2.5 months history + upcoming, non-overlapping per car ---
   const HISTORY_START = -75;
   const HISTORY_END = 25;
-  let created = 0;
 
   for (const vehicle of vehicles) {
     const price = vehicle.pricePerDay;
@@ -703,7 +702,6 @@ async function main() {
           createdAt: at10(now, Math.min(createdOffset, 0)),
         },
       });
-      created++;
 
       // Skip ahead past this rental plus a buffer; leave ~35% of cars idle now.
       cursor = returnOffset + int(1, 9);

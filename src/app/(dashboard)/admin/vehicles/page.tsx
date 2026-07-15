@@ -143,16 +143,10 @@ export default async function VehiclesPage() {
         )}
       </PageHeader>
 
-      <StatGrid>
+      <StatGrid className="lg:grid-cols-3">
         <StatCard label="Fleet size" value={activeFleet} />
         <StatCard label="Available" value={counts.AVAILABLE ?? 0} tone="good" />
         <StatCard label="Rented" value={counts.RENTED ?? 0} />
-        <StatCard
-          label="Maintenance"
-          value={counts.SERVICE ?? 0}
-          tone={counts.SERVICE ? "warn" : "default"}
-        />
-        <StatCard label="Retired" value={counts.INACTIVE ?? 0} />
       </StatGrid>
 
       <div className="grid gap-4 lg:grid-cols-3">

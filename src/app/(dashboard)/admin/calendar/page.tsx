@@ -20,16 +20,17 @@ import { getDashboardData } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Panel } from "@/components/dashboard/panel";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
+import { CalendarTimeline } from "@/components/dashboard/calendar-timeline";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const BAR_STYLES: Record<string, string> = {
-  PENDING: "bg-status-maint/80 text-white",
-  CONFIRMED: "bg-status-reserved/85 text-white",
-  ACTIVE: "bg-status-rented/85 text-white",
-};
+const LEGEND: { status: string; className: string }[] = [
+  { status: "Pending", className: "bg-status-maint/85" },
+  { status: "Confirmed", className: "bg-status-reserved/90" },
+  { status: "Active", className: "bg-status-rented/90" },
+];
 
 export default async function CalendarPage({
   searchParams,
@@ -69,6 +70,36 @@ export default async function CalendarPage({
     today >= rangeStart && today <= rangeEnd
       ? differenceInCalendarDays(today, rangeStart)
       : null;
+
+  // Flatten to plain data for the interactive client grid.
+  const dayLabels = Array.from({ length: days }, (_, i) =>
+    format(addDays(rangeStart, i), view === "week" ? "EEE dd" : "d")
+  );
+  const dayDates = Array.from({ length: days }, (_, i) =>
+    format(addDays(rangeStart, i), "yyyy-MM-dd")
+  );
+  const timelineRows = vehicles.map((vehicle) => ({
+    id: vehicle.id,
+    name: `${vehicle.brand} ${vehicle.model}`,
+    reservations: vehicle.reservations.map((r) => {
+      const from = max([r.pickupDate, rangeStart]);
+      const to = min([r.returnDate, rangeEnd]);
+      return {
+        id: r.id,
+        customerName: `${r.customer.firstName} ${r.customer.lastName}`,
+        start: differenceInCalendarDays(from, rangeStart),
+        span: Math.max(
+          1,
+          differenceInCalendarDays(to, from) + (to === r.returnDate ? 0 : 1)
+        ),
+        status: r.status as "PENDING" | "CONFIRMED" | "ACTIVE",
+      };
+    }),
+  }));
+  const vehicleOptions = vehicles.map((v) => ({
+    id: v.id,
+    name: `${v.brand} ${v.model}`,
+  }));
 
   return (
     <div className="space-y-6">
@@ -115,89 +146,23 @@ export default async function CalendarPage({
       </PageHeader>
 
       <div className="text-muted-foreground flex flex-wrap gap-4 text-xs">
-        {Object.entries(BAR_STYLES).map(([status, style]) => (
+        {LEGEND.map(({ status, className }) => (
           <span key={status} className="flex items-center gap-1.5">
-            <span className={`inline-block h-3 w-3 rounded ${style}`} />
-            {status.charAt(0) + status.slice(1).toLowerCase()}
+            <span className={`inline-block h-3 w-3 rounded ${className}`} />
+            {status}
           </span>
         ))}
       </div>
 
-      <div className="bg-card overflow-x-auto rounded-xl border shadow-xs">
-        <div className={view === "week" ? "min-w-[640px]" : "min-w-[900px]"}>
-          <div
-            className="text-muted-foreground grid border-b text-xs"
-            style={{
-              gridTemplateColumns: `9rem repeat(${days}, minmax(0, 1fr))`,
-            }}
-          >
-            <div className="border-r p-2 font-medium">Vehicle</div>
-            {Array.from({ length: days }, (_, i) => {
-              const day = addDays(rangeStart, i);
-              return (
-                <div
-                  key={i}
-                  className={cn(
-                    "border-r p-1 text-center last:border-r-0",
-                    todayIndex === i &&
-                      "bg-accent text-accent-foreground font-bold"
-                  )}
-                >
-                  {view === "week" ? format(day, "EEE dd") : format(day, "d")}
-                </div>
-              );
-            })}
-          </div>
-
-          {vehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              className="grid items-center border-b last:border-b-0"
-              style={{
-                gridTemplateColumns: `9rem repeat(${days}, minmax(0, 1fr))`,
-              }}
-            >
-              <div className="truncate border-r p-2 text-sm font-medium">
-                {vehicle.brand} {vehicle.model}
-              </div>
-              <div
-                className="relative col-span-full h-9"
-                style={{ gridColumn: `2 / span ${days}` }}
-              >
-                {todayIndex !== null && (
-                  <span
-                    className="bg-brand/30 absolute inset-y-0 w-px"
-                    style={{ left: `${((todayIndex + 0.5) / days) * 100}%` }}
-                  />
-                )}
-                {vehicle.reservations.map((r) => {
-                  const from = max([r.pickupDate, rangeStart]);
-                  const to = min([r.returnDate, rangeEnd]);
-                  const startDay = differenceInCalendarDays(from, rangeStart);
-                  const span = Math.max(
-                    1,
-                    differenceInCalendarDays(to, from) +
-                      (to === r.returnDate ? 0 : 1)
-                  );
-                  return (
-                    <div
-                      key={r.id}
-                      title={`${r.customer.firstName} ${r.customer.lastName}: ${format(r.pickupDate, "dd MMM")} - ${format(r.returnDate, "dd MMM")} (${r.status})`}
-                      className={`absolute top-1.5 h-6 truncate rounded px-1.5 text-xs leading-6 ${BAR_STYLES[r.status] ?? "bg-neutral-300"}`}
-                      style={{
-                        left: `${(startDay / days) * 100}%`,
-                        width: `${(span / days) * 100}%`,
-                      }}
-                    >
-                      {r.customer.firstName} {r.customer.lastName}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <CalendarTimeline
+        view={view}
+        days={days}
+        dayLabels={dayLabels}
+        dayDates={dayDates}
+        todayIndex={todayIndex}
+        rows={timelineRows}
+        vehicleOptions={vehicleOptions}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Panel title="Pickup schedule" subtitle="Next 7 days">

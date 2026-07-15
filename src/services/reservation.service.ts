@@ -10,6 +10,7 @@ import { upsertCustomerByEmail } from "@/services/customer.service";
 import type {
   AvailabilityInput,
   CreateBookingInput,
+  ManualReservationInput,
 } from "@/lib/validations/reservation";
 
 /** Statuses that occupy the vehicle for a date range. */
@@ -99,6 +100,56 @@ export async function createReservation(
         ),
         notes: input.notes,
         status: "PENDING",
+      },
+    });
+  });
+}
+
+/**
+ * Staff-created reservation with a chosen status. Customer and reservation
+ * are written in one transaction so a double-booking rejection (the DB
+ * exclusion constraint, for CONFIRMED/ACTIVE) rolls back the walk-in
+ * customer instead of orphaning it.
+ */
+export async function createManualReservation(
+  input: ManualReservationInput
+): Promise<Reservation> {
+  const parts = input.customerName.trim().split(/\s+/);
+  const firstName = parts[0];
+  const lastName = parts.slice(1).join(" ") || "-";
+
+  return prisma.$transaction(async (tx) => {
+    const vehicle = await tx.vehicle.findUnique({
+      where: { id: input.vehicleId },
+      select: { pricePerDay: true, status: true },
+    });
+    if (!vehicle) throw new NotFoundError("Vehicle");
+    if (vehicle.status === "INACTIVE") {
+      throw new ConflictError("Vehicle is not available for booking");
+    }
+
+    const customer = await tx.customer.create({
+      data: {
+        firstName,
+        lastName,
+        email: `walkin.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@alfarent.local`,
+        phone: "-",
+      },
+    });
+
+    return tx.reservation.create({
+      data: {
+        vehicleId: input.vehicleId,
+        customerId: customer.id,
+        pickupDate: input.pickupDate,
+        returnDate: input.returnDate,
+        status: input.status,
+        totalPrice: calculateTotalPrice(
+          vehicle.pricePerDay,
+          input.pickupDate,
+          input.returnDate
+        ),
+        notes: input.notes,
       },
     });
   });

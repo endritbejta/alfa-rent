@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { deleteAllVehicleImages } from "@/services/image.service";
 import type {
   CreateVehicleInput,
   UpdateVehicleInput,
@@ -24,12 +25,13 @@ function slugify(brand: string, model: string, year: number): string {
 }
 
 export async function getVehicles(
-  filters: VehicleFilterInput
+  filters: VehicleFilterInput,
+  opts: { includeInactive?: boolean } = {}
 ): Promise<Paginated<VehicleWithImages>> {
   const { page, perPage, category, transmission, minPrice, maxPrice } = filters;
 
   const where: Prisma.VehicleWhereInput = {
-    status: { not: "INACTIVE" },
+    ...(opts.includeInactive ? {} : { status: { not: "INACTIVE" as const } }),
     ...(category && { category }),
     ...(transmission && { transmission }),
     ...((minPrice !== undefined || maxPrice !== undefined) && {
@@ -129,5 +131,8 @@ export async function deleteVehicle(id: string): Promise<void> {
     });
     return;
   }
+  // Hard delete: clear Cloudinary assets first — the DB cascade only
+  // removes the rows, not the hosted files.
+  await deleteAllVehicleImages(id);
   await prisma.vehicle.delete({ where: { id } });
 }

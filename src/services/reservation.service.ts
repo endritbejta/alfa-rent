@@ -165,3 +165,30 @@ export async function updateReservationStatus(
 export async function cancelReservation(id: string): Promise<Reservation> {
   return updateReservationStatus(id, "CANCELLED");
 }
+
+/** Vehicles with their open reservations overlapping a date window. */
+export async function getCalendarReservations(from: Date, to: Date) {
+  return prisma.vehicle.findMany({
+    where: { status: { not: "INACTIVE" } },
+    orderBy: [{ brand: "asc" }, { model: "asc" }],
+    select: {
+      id: true,
+      brand: true,
+      model: true,
+      reservations: {
+        where: {
+          status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
+          pickupDate: { lte: to },
+          returnDate: { gte: from },
+        },
+        select: {
+          id: true,
+          pickupDate: true,
+          returnDate: true,
+          status: true,
+          customer: { select: { firstName: true, lastName: true } },
+        },
+      },
+    },
+  });
+}

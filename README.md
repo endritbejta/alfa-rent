@@ -8,7 +8,7 @@ and customers.
 
 | Layer      | Technology                                           |
 | ---------- | ---------------------------------------------------- |
-| Framework  | Next.js 15 (App Router), TypeScript                  |
+| Framework  | Next.js 16 (App Router), TypeScript                  |
 | UI         | Tailwind CSS, shadcn/ui, Framer Motion, lucide-react |
 | Forms      | React Hook Form + Zod                                |
 | Data       | Prisma ORM + PostgreSQL (Supabase in production)     |
@@ -26,9 +26,10 @@ npm install
 cp .env.example .env
 # Fill in DATABASE_URL, AUTH_SECRET, Cloudinary keys
 
-# 3. Set up the database
+# 3. Set up the database (requires a running PostgreSQL, e.g. `brew services start postgresql`)
+createdb alfa_rent   # once
 npx prisma migrate dev
-npx prisma db seed
+npx prisma db seed   # 10 vehicles, 2 users, sample reservations
 
 # 4. Run the dev server
 npm run dev

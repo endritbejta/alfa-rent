@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RENTED
+  SERVICE
+  INACTIVE
+}
+
+enum VehicleCategory {
+  ECONOMY
+  COMPACT
+  SEDAN
+  SUV
+  LUXURY
+  VAN
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  ELECTRIC
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(EMPLOYEE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Vehicle {
+  id           String          @id @default(cuid())
+  slug         String          @unique
+  brand        String
+  model        String
+  year         Int
+  category     VehicleCategory
+  transmission Transmission
+  fuelType     FuelType
+  seats        Int
+  pricePerDay  Decimal         @db.Decimal(10, 2)
+  description  String
+  status       VehicleStatus   @default(AVAILABLE)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  images       VehicleImage[]
+  reservations Reservation[]
+
+  @@index([status])
+  @@index([category])
+  @@map("vehicles")
+}
+
+model VehicleImage {
+  id        String   @id @default(cuid())
+  vehicleId String
+  url       String
+  publicId  String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_images")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  phone     String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations Reservation[]
+
+  @@map("customers")
+}
+
+model Reservation {
+  id         String            @id @default(cuid())
+  vehicleId  String
+  customerId String
+  pickupDate DateTime
+  returnDate DateTime
+  status     ReservationStatus @default(PENDING)
+  totalPrice Decimal           @db.Decimal(10, 2)
+  notes      String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([vehicleId, pickupDate, returnDate])
+  @@index([customerId])
+  @@index([status])
+  @@map("reservations")
+}

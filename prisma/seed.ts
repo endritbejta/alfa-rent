@@ -1,162 +1,560 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import {
+  PrismaClient,
+  Prisma,
+  type VehicleCategory,
+  type Transmission,
+  type FuelType,
+  type ReservationStatus,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const day = 24 * 60 * 60 * 1000;
-const at10 = (daysFromNow: number) => {
-  const d = new Date(Date.now() + daysFromNow * day);
+const DAY = 24 * 60 * 60 * 1000;
+
+/** Deterministic RNG (mulberry32) so re-seeding produces the same data. */
+function rng(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = rng(20260715);
+const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rand() * arr.length)];
+const int = (min: number, max: number) =>
+  Math.floor(rand() * (max - min + 1)) + min;
+
+const at10 = (base: Date, offsetDays: number) => {
+  const d = new Date(base.getTime() + offsetDays * DAY);
   d.setHours(10, 0, 0, 0);
   return d;
 };
 
-const vehicles: Prisma.VehicleCreateInput[] = [
+type ModelSpec = {
+  brand: string;
+  model: string;
+  category: VehicleCategory;
+  transmission: Transmission;
+  fuelType: FuelType;
+  seats: number;
+  price: number;
+  blurb: string;
+};
+
+// Curated fleet catalogue — 44 distinct models across all categories.
+const CATALOGUE: ModelSpec[] = [
   {
-    slug: "vw-golf-8-2023",
-    brand: "Volkswagen",
-    model: "Golf 8",
-    year: 2023,
-    category: "COMPACT",
-    transmission: "MANUAL",
-    fuelType: "DIESEL",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(35),
-    description:
-      "The benchmark compact hatchback. Efficient 2.0 TDI engine, comfortable for city driving and long trips alike.",
-    status: "AVAILABLE",
-  },
-  {
-    slug: "vw-passat-2022",
-    brand: "Volkswagen",
-    model: "Passat",
-    year: 2022,
-    category: "SEDAN",
-    transmission: "AUTOMATIC",
-    fuelType: "DIESEL",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(45),
-    description:
-      "Spacious business sedan with DSG automatic, adaptive cruise control, and a large boot for luggage.",
-    status: "AVAILABLE",
-  },
-  {
-    slug: "skoda-octavia-2023",
-    brand: "Skoda",
-    model: "Octavia",
-    year: 2023,
-    category: "SEDAN",
-    transmission: "MANUAL",
-    fuelType: "PETROL",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(38),
-    description:
-      "Practical and reliable family sedan with exceptional boot space and low fuel consumption.",
-    status: "AVAILABLE",
-  },
-  {
-    slug: "audi-a4-2023",
-    brand: "Audi",
-    model: "A4",
-    year: 2023,
-    category: "SEDAN",
-    transmission: "AUTOMATIC",
-    fuelType: "DIESEL",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(60),
-    description:
-      "Premium sedan with quattro all-wheel drive, virtual cockpit, and refined highway manners.",
-    status: "AVAILABLE",
-  },
-  {
-    slug: "mercedes-e-class-2024",
-    brand: "Mercedes-Benz",
-    model: "E-Class",
-    year: 2024,
-    category: "LUXURY",
-    transmission: "AUTOMATIC",
-    fuelType: "DIESEL",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(95),
-    description:
-      "Flagship executive comfort: massage seats, ambient lighting, and the latest MBUX system. Ideal for business travel and weddings.",
-    status: "AVAILABLE",
-  },
-  {
-    slug: "bmw-x5-2023",
-    brand: "BMW",
-    model: "X5",
-    year: 2023,
-    category: "LUXURY",
-    transmission: "AUTOMATIC",
-    fuelType: "DIESEL",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(110),
-    description:
-      "Commanding luxury SUV with xDrive, panoramic roof, and effortless power for any terrain.",
-    status: "RENTED",
-  },
-  {
-    slug: "toyota-rav4-hybrid-2023",
-    brand: "Toyota",
-    model: "RAV4 Hybrid",
-    year: 2023,
-    category: "SUV",
-    transmission: "AUTOMATIC",
-    fuelType: "HYBRID",
-    seats: 5,
-    pricePerDay: new Prisma.Decimal(55),
-    description:
-      "Self-charging hybrid SUV with all-wheel drive and outstanding fuel economy in city traffic.",
-    status: "AVAILABLE",
-  },
-  {
-    slug: "renault-clio-2022",
     brand: "Renault",
     model: "Clio",
-    year: 2022,
     category: "ECONOMY",
     transmission: "MANUAL",
     fuelType: "PETROL",
     seats: 5,
-    pricePerDay: new Prisma.Decimal(25),
-    description:
-      "Our most affordable option. Nimble, easy to park, and cheap to run — perfect for city stays.",
-    status: "AVAILABLE",
+    price: 25,
+    blurb: "Nimble, easy to park, and cheap to run — perfect for city stays.",
   },
   {
-    slug: "vw-tiguan-2023",
+    brand: "Volkswagen",
+    model: "Polo",
+    category: "ECONOMY",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 27,
+    blurb: "Compact German build quality with a surprisingly roomy cabin.",
+  },
+  {
+    brand: "Toyota",
+    model: "Yaris",
+    category: "ECONOMY",
+    transmission: "AUTOMATIC",
+    fuelType: "HYBRID",
+    seats: 5,
+    price: 30,
+    blurb: "Self-charging hybrid supermini with outstanding city fuel economy.",
+  },
+  {
+    brand: "Hyundai",
+    model: "i20",
+    category: "ECONOMY",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 26,
+    blurb: "Well-equipped and comfortable for its class, with a long warranty.",
+  },
+  {
+    brand: "Kia",
+    model: "Rio",
+    category: "ECONOMY",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 26,
+    blurb: "Practical and dependable, ideal for short trips around town.",
+  },
+  {
+    brand: "Dacia",
+    model: "Sandero",
+    category: "ECONOMY",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 22,
+    blurb: "The value champion — simple, spacious, and easy on the wallet.",
+  },
+  {
+    brand: "Opel",
+    model: "Corsa",
+    category: "ECONOMY",
+    transmission: "MANUAL",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 28,
+    blurb: "Efficient diesel supermini that eats motorway miles for breakfast.",
+  },
+  {
+    brand: "Peugeot",
+    model: "208",
+    category: "ECONOMY",
+    transmission: "AUTOMATIC",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 29,
+    blurb: "Stylish French hatchback with the distinctive i-Cockpit interior.",
+  },
+
+  {
+    brand: "Volkswagen",
+    model: "Golf 8",
+    category: "COMPACT",
+    transmission: "MANUAL",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 35,
+    blurb:
+      "The benchmark compact hatchback — refined, efficient, endlessly capable.",
+  },
+  {
+    brand: "Ford",
+    model: "Focus",
+    category: "COMPACT",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 33,
+    blurb:
+      "Sharp handling and a comfortable ride make this a driver's favourite.",
+  },
+  {
+    brand: "Audi",
+    model: "A3",
+    category: "COMPACT",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 48,
+    blurb: "Premium compact with a classy cabin and smooth S tronic gearbox.",
+  },
+  {
+    brand: "Mercedes-Benz",
+    model: "A-Class",
+    category: "COMPACT",
+    transmission: "AUTOMATIC",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 50,
+    blurb: "Upmarket hatchback with the latest MBUX infotainment system.",
+  },
+  {
+    brand: "BMW",
+    model: "1 Series",
+    category: "COMPACT",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 49,
+    blurb: "Compact hatch with genuine premium feel and eager performance.",
+  },
+  {
+    brand: "Seat",
+    model: "Leon",
+    category: "COMPACT",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 34,
+    blurb: "Golf underpinnings with a sportier edge and keen pricing.",
+  },
+
+  {
+    brand: "Volkswagen",
+    model: "Passat",
+    category: "SEDAN",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 45,
+    blurb: "Spacious business sedan with adaptive cruise and a large boot.",
+  },
+  {
+    brand: "Skoda",
+    model: "Octavia",
+    category: "SEDAN",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 38,
+    blurb:
+      "Exceptional boot space and low running costs — the practical choice.",
+  },
+  {
+    brand: "Audi",
+    model: "A4",
+    category: "SEDAN",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 60,
+    blurb: "Premium sedan with quattro grip, virtual cockpit, refined manners.",
+  },
+  {
+    brand: "BMW",
+    model: "3 Series",
+    category: "SEDAN",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 62,
+    blurb:
+      "The definitive sports sedan — precise, quick, and beautifully built.",
+  },
+  {
+    brand: "Mercedes-Benz",
+    model: "C-Class",
+    category: "SEDAN",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 63,
+    blurb: "Baby S-Class comfort with a serene ride and elegant cabin.",
+  },
+  {
+    brand: "Skoda",
+    model: "Superb",
+    category: "SEDAN",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 46,
+    blurb: "Limousine-grade rear legroom in a sensibly priced package.",
+  },
+  {
+    brand: "Toyota",
+    model: "Camry",
+    category: "SEDAN",
+    transmission: "AUTOMATIC",
+    fuelType: "HYBRID",
+    seats: 5,
+    price: 52,
+    blurb: "Whisper-quiet hybrid sedan built to cover huge distances reliably.",
+  },
+  {
+    brand: "Mazda",
+    model: "6",
+    category: "SEDAN",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 44,
+    blurb: "Handsome and rewarding to drive with an upscale interior.",
+  },
+
+  {
+    brand: "Toyota",
+    model: "RAV4 Hybrid",
+    category: "SUV",
+    transmission: "AUTOMATIC",
+    fuelType: "HYBRID",
+    seats: 5,
+    price: 55,
+    blurb: "Self-charging hybrid SUV with all-wheel drive and great economy.",
+  },
+  {
     brand: "Volkswagen",
     model: "Tiguan",
-    year: 2023,
     category: "SUV",
     transmission: "AUTOMATIC",
     fuelType: "DIESEL",
     seats: 5,
-    pricePerDay: new Prisma.Decimal(50),
-    description:
-      "Versatile family SUV with 4Motion all-wheel drive, generous rear legroom, and a full safety suite.",
-    status: "SERVICE",
+    price: 50,
+    blurb: "Versatile family SUV with 4Motion grip and a full safety suite.",
   },
   {
-    slug: "mercedes-v-class-2022",
+    brand: "Nissan",
+    model: "Qashqai",
+    category: "SUV",
+    transmission: "MANUAL",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 42,
+    blurb:
+      "The original crossover — practical, comfortable, easy to live with.",
+  },
+  {
+    brand: "Hyundai",
+    model: "Tucson",
+    category: "SUV",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 46,
+    blurb: "Bold styling, generous kit, and a smooth automatic gearbox.",
+  },
+  {
+    brand: "Kia",
+    model: "Sportage",
+    category: "SUV",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 45,
+    blurb: "Well-rounded family SUV with a long warranty and roomy cabin.",
+  },
+  {
+    brand: "Ford",
+    model: "Kuga",
+    category: "SUV",
+    transmission: "AUTOMATIC",
+    fuelType: "HYBRID",
+    seats: 5,
+    price: 48,
+    blurb: "Plug-in-ready SUV that blends efficiency with a comfortable ride.",
+  },
+  {
+    brand: "Mazda",
+    model: "CX-5",
+    category: "SUV",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 49,
+    blurb: "Premium-feeling SUV that's genuinely enjoyable on a winding road.",
+  },
+  {
+    brand: "Peugeot",
+    model: "3008",
+    category: "SUV",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 47,
+    blurb: "Striking design and a futuristic cockpit set this crossover apart.",
+  },
+
+  {
+    brand: "Mercedes-Benz",
+    model: "E-Class",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 95,
+    blurb: "Flagship executive comfort — massage seats, ambient light, MBUX.",
+  },
+  {
+    brand: "BMW",
+    model: "5 Series",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 92,
+    blurb: "The thinking driver's executive saloon — composed and quick.",
+  },
+  {
+    brand: "Audi",
+    model: "A6",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 90,
+    blurb: "Understated luxury with quattro drive and a tech-laden cabin.",
+  },
+  {
+    brand: "Mercedes-Benz",
+    model: "S-Class",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 150,
+    blurb: "The ultimate statement of automotive luxury and technology.",
+  },
+  {
+    brand: "BMW",
+    model: "X5",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 110,
+    blurb: "Commanding luxury SUV with xDrive and effortless power.",
+  },
+  {
+    brand: "Audi",
+    model: "Q7",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 7,
+    price: 120,
+    blurb: "Seven-seat luxury SUV with limousine refinement and space.",
+  },
+  {
+    brand: "Porsche",
+    model: "Cayenne",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "PETROL",
+    seats: 5,
+    price: 180,
+    blurb: "Sports-car dynamics wrapped in a practical luxury SUV body.",
+  },
+  {
+    brand: "Land Rover",
+    model: "Range Rover Sport",
+    category: "LUXURY",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 5,
+    price: 165,
+    blurb: "Peerless off-road ability paired with first-class on-road comfort.",
+  },
+
+  {
     brand: "Mercedes-Benz",
     model: "V-Class",
-    year: 2022,
     category: "VAN",
     transmission: "AUTOMATIC",
     fuelType: "DIESEL",
     seats: 8,
-    pricePerDay: new Prisma.Decimal(120),
-    description:
-      "Eight-seat luxury van for group travel and airport transfers. Twin sliding doors and conference seating.",
-    status: "AVAILABLE",
+    price: 120,
+    blurb: "Eight-seat luxury van for group travel and airport transfers.",
+  },
+  {
+    brand: "Volkswagen",
+    model: "Multivan",
+    category: "VAN",
+    transmission: "AUTOMATIC",
+    fuelType: "DIESEL",
+    seats: 7,
+    price: 105,
+    blurb: "Flexible seven-seater with configurable seating for any trip.",
+  },
+  {
+    brand: "Ford",
+    model: "Transit Custom",
+    category: "VAN",
+    transmission: "MANUAL",
+    fuelType: "DIESEL",
+    seats: 9,
+    price: 95,
+    blurb: "Nine-seat workhorse for large groups and heavy luggage.",
+  },
+  {
+    brand: "Renault",
+    model: "Trafic",
+    category: "VAN",
+    transmission: "MANUAL",
+    fuelType: "DIESEL",
+    seats: 9,
+    price: 90,
+    blurb: "Dependable people-mover with plenty of room for the whole team.",
+  },
+  {
+    brand: "Opel",
+    model: "Vivaro",
+    category: "VAN",
+    transmission: "MANUAL",
+    fuelType: "DIESEL",
+    seats: 8,
+    price: 88,
+    blurb: "Comfortable eight-seat van, easy to drive despite its size.",
   },
 ];
 
-async function main() {
-  console.log("Seeding database...");
+const FIRST_NAMES = [
+  "Arta",
+  "Blerim",
+  "Donika",
+  "Endrit",
+  "Fatjona",
+  "Gezim",
+  "Hana",
+  "Ilir",
+  "Jeta",
+  "Kushtrim",
+  "Liridona",
+  "Mentor",
+  "Nora",
+  "Oltion",
+  "Petrit",
+  "Qendresa",
+  "Rinor",
+  "Shpresa",
+  "Trim",
+  "Uran",
+  "Vlora",
+  "Ylber",
+  "Zana",
+  "Agon",
+  "Besa",
+  "Dritan",
+  "Elira",
+  "Flamur",
+  "Gentiana",
+  "Hekuran",
+];
+const LAST_NAMES = [
+  "Krasniqi",
+  "Gashi",
+  "Berisha",
+  "Hoxha",
+  "Shala",
+  "Kelmendi",
+  "Bytyqi",
+  "Morina",
+  "Rexhepi",
+  "Zeqiri",
+  "Dervishi",
+  "Ahmeti",
+  "Bajrami",
+  "Kastrati",
+  "Luzha",
+  "Nimani",
+  "Osmani",
+  "Prekazi",
+  "Sylejmani",
+  "Thaqi",
+];
 
-  // Idempotent: wipe in FK-safe order so re-running the seed is safe in dev.
+function slugify(brand: string, model: string, year: number, suffix?: number) {
+  const base = `${brand}-${model}-${year}${suffix ? `-${suffix}` : ""}`;
+  return base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+async function main() {
+  console.log("Seeding database (rich dataset)...");
+
   await prisma.reservation.deleteMany();
   await prisma.vehicleImage.deleteMany();
   await prisma.vehicle.deleteMany();
@@ -164,119 +562,187 @@ async function main() {
   await prisma.user.deleteMany();
 
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
-  await prisma.user.create({
-    data: {
-      name: "Admin",
-      email: "admin@alfarent.com",
-      password: await bcrypt.hash(adminPassword, 12),
-      role: "ADMIN",
-    },
-  });
-  await prisma.user.create({
-    data: {
-      name: "Employee",
-      email: "employee@alfarent.com",
-      password: await bcrypt.hash(adminPassword, 12),
-      role: "EMPLOYEE",
-    },
+  const hash = await bcrypt.hash(adminPassword, 12);
+  await prisma.user.createMany({
+    data: [
+      {
+        name: "Admin",
+        email: "admin@alfarent.com",
+        password: hash,
+        role: "ADMIN",
+      },
+      {
+        name: "Employee",
+        email: "employee@alfarent.com",
+        password: hash,
+        role: "EMPLOYEE",
+      },
+    ],
   });
 
-  const created: Awaited<ReturnType<typeof prisma.vehicle.create>>[] = [];
-  for (const v of vehicles) {
-    created.push(await prisma.vehicle.create({ data: v }));
+  // --- 50 vehicles: whole catalogue plus 6 duplicate models in a new year ---
+  const specs: (ModelSpec & { year: number })[] = CATALOGUE.map((s) => ({
+    ...s,
+    year: int(2021, 2025),
+  }));
+  const populars = CATALOGUE.filter((s) =>
+    [
+      "Golf 8",
+      "Passat",
+      "RAV4 Hybrid",
+      "E-Class",
+      "Octavia",
+      "Tiguan",
+    ].includes(s.model)
+  );
+  for (const s of populars) {
+    specs.push({ ...s, year: int(2021, 2025) });
   }
-  const bySlug = (slug: string) => {
-    const v = created.find((c) => c.slug === slug);
-    if (!v) throw new Error(`Seed vehicle not found: ${slug}`);
-    return v;
-  };
 
-  const [arta, blerim, donika] = await Promise.all([
-    prisma.customer.create({
-      data: {
-        firstName: "Arta",
-        lastName: "Krasniqi",
-        email: "arta.krasniqi@example.com",
-        phone: "+383 44 123 456",
-      },
-    }),
-    prisma.customer.create({
-      data: {
-        firstName: "Blerim",
-        lastName: "Gashi",
-        email: "blerim.gashi@example.com",
-        phone: "+383 45 987 654",
-        notes: "Repeat customer, prefers automatic transmission.",
-      },
-    }),
-    prisma.customer.create({
-      data: {
-        firstName: "Donika",
-        lastName: "Berisha",
-        email: "donika.berisha@example.com",
-        phone: "+383 49 555 111",
-      },
-    }),
-  ]);
+  const usedSlugs = new Set<string>();
+  const now = new Date();
 
-  const rentalDays = (from: Date, to: Date) =>
-    Math.round((to.getTime() - from.getTime()) / day);
-  const reserve = (
-    slug: string,
-    customerId: string,
-    from: Date,
-    to: Date,
-    status: "PENDING" | "CONFIRMED" | "ACTIVE" | "COMPLETED" | "CANCELLED",
-    notes?: string
-  ) => {
-    const vehicle = bySlug(slug);
-    return prisma.reservation.create({
-      data: {
-        vehicleId: vehicle.id,
-        customerId,
-        pickupDate: from,
-        returnDate: to,
-        status,
-        totalPrice: vehicle.pricePerDay.mul(rentalDays(from, to)),
-        notes,
-      },
-    });
-  };
+  const vehicles = [];
+  for (const spec of specs) {
+    let slug = slugify(spec.brand, spec.model, spec.year);
+    let n = 2;
+    while (usedSlugs.has(slug))
+      slug = slugify(spec.brand, spec.model, spec.year, n++);
+    usedSlugs.add(slug);
+    // Price jitter so identical models aren't priced identically.
+    const price = spec.price + int(-3, 5);
+    vehicles.push(
+      await prisma.vehicle.create({
+        data: {
+          slug,
+          brand: spec.brand,
+          model: spec.model,
+          year: spec.year,
+          category: spec.category,
+          transmission: spec.transmission,
+          fuelType: spec.fuelType,
+          seats: spec.seats,
+          pricePerDay: new Prisma.Decimal(price),
+          description: spec.blurb,
+          status: "AVAILABLE",
+          createdAt: at10(now, -int(30, 400)),
+        },
+      })
+    );
+  }
 
-  // Non-overlapping per vehicle for CONFIRMED/ACTIVE — the DB exclusion
-  // constraint rejects double-bookings.
-  await reserve("bmw-x5-2023", arta.id, at10(-2), at10(3), "ACTIVE");
-  await reserve(
-    "mercedes-e-class-2024",
-    blerim.id,
-    at10(5),
-    at10(9),
-    "CONFIRMED"
-  );
-  await reserve(
-    "vw-golf-8-2023",
-    donika.id,
-    at10(2),
-    at10(6),
-    "PENDING",
-    "Asked about airport pickup."
-  );
-  await reserve("audi-a4-2023", blerim.id, at10(-20), at10(-15), "COMPLETED");
-  await reserve("renault-clio-2022", arta.id, at10(-10), at10(-8), "COMPLETED");
-  await reserve(
-    "toyota-rav4-hybrid-2023",
-    donika.id,
-    at10(1),
-    at10(4),
-    "CANCELLED",
-    "Cancelled by customer, trip postponed."
-  );
+  // --- customers ---
+  const customers = [];
+  const usedEmails = new Set<string>();
+  const customerCount = 34;
+  for (let i = 0; i < customerCount; i++) {
+    const first = pick(FIRST_NAMES);
+    const last = pick(LAST_NAMES);
+    let email = `${first}.${last}@example.com`.toLowerCase();
+    let n = 2;
+    while (usedEmails.has(email))
+      email = `${first}.${last}${n++}@example.com`.toLowerCase();
+    usedEmails.add(email);
+    customers.push(
+      await prisma.customer.create({
+        data: {
+          firstName: first,
+          lastName: last,
+          email,
+          phone: `+383 4${int(3, 9)} ${int(100, 999)} ${int(100, 999)}`,
+          notes: rand() < 0.2 ? "Repeat customer, prefers automatic." : null,
+          createdAt: at10(now, -int(5, 200)),
+        },
+      })
+    );
+  }
+
+  // --- reservations: ~2.5 months history + upcoming, non-overlapping per car ---
+  const HISTORY_START = -75;
+  const HISTORY_END = 25;
+  let created = 0;
+
+  for (const vehicle of vehicles) {
+    const price = vehicle.pricePerDay;
+    let cursor = HISTORY_START + int(0, 8);
+
+    while (cursor < HISTORY_END) {
+      // Occupancy varies by category — luxury/vans sit idle more.
+      const gap = int(1, 7);
+      const duration = int(2, 8);
+      const pickupOffset = cursor + gap;
+      const returnOffset = pickupOffset + duration;
+      if (returnOffset > HISTORY_END) break;
+
+      const pickupDate = at10(now, pickupOffset);
+      const returnDate = at10(now, returnOffset);
+      const customer = pick(customers);
+      const days = returnOffset - pickupOffset;
+
+      let status: ReservationStatus;
+      if (returnOffset < 0) {
+        status = rand() < 0.12 ? "CANCELLED" : "COMPLETED";
+      } else if (pickupOffset <= 0 && returnOffset >= 0) {
+        status = "ACTIVE";
+      } else {
+        const r = rand();
+        status = r < 0.25 ? "PENDING" : r < 0.9 ? "CONFIRMED" : "CANCELLED";
+      }
+
+      // Booking created a few days before pickup (clamped to not exceed now).
+      const createdOffset = Math.min(pickupOffset - int(1, 12), -0);
+      await prisma.reservation.create({
+        data: {
+          vehicleId: vehicle.id,
+          customerId: customer.id,
+          pickupDate,
+          returnDate,
+          status,
+          totalPrice: price.mul(days),
+          notes: rand() < 0.15 ? "Airport pickup requested." : null,
+          createdAt: at10(now, Math.min(createdOffset, 0)),
+        },
+      });
+      created++;
+
+      // Skip ahead past this rental plus a buffer; leave ~35% of cars idle now.
+      cursor = returnOffset + int(1, 9);
+      if (rand() < 0.3) break; // some vehicles get few rentals
+    }
+  }
+
+  // --- vehicle status reflects reality: active rental => RENTED ---
+  const activeNow = await prisma.reservation.findMany({
+    where: { status: "ACTIVE" },
+    select: { vehicleId: true },
+  });
+  const rentedIds = new Set(activeNow.map((r) => r.vehicleId));
+  for (const vehicle of vehicles) {
+    let status: (typeof vehicle)["status"] = "AVAILABLE";
+    if (rentedIds.has(vehicle.id)) status = "RENTED";
+    else {
+      const r = rand();
+      if (r < 0.08) status = "SERVICE";
+      else if (r < 0.12) status = "INACTIVE";
+    }
+    if (status !== "AVAILABLE") {
+      await prisma.vehicle.update({
+        where: { id: vehicle.id },
+        data: { status },
+      });
+    }
+  }
 
   const counts = {
     users: await prisma.user.count(),
     vehicles: await prisma.vehicle.count(),
     customers: await prisma.customer.count(),
     reservations: await prisma.reservation.count(),
+    active: await prisma.reservation.count({ where: { status: "ACTIVE" } }),
+    completed: await prisma.reservation.count({
+      where: { status: "COMPLETED" },
+    }),
+    pending: await prisma.reservation.count({ where: { status: "PENDING" } }),
   };
   console.log("Seed complete:", counts);
 }

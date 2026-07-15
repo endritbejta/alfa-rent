@@ -1,13 +1,16 @@
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth/config";
 
 /**
- * Default-deny for the admin surface. Phase 4 replaces this with an
- * Auth.js session check; until then no dashboard route is reachable,
- * so partially built admin pages can never ship unprotected.
+ * Session gate for the admin surface. Uses the edge-safe config (JWT
+ * check only, no database); unauthenticated requests are redirected to
+ * /login by the authorized() callback. Role-level enforcement happens
+ * in the server-side guards, not here — the middleware is a coarse
+ * perimeter, not the authorization system.
  */
-export function middleware() {
-  return new NextResponse(null, { status: 404 });
-}
+const { auth } = NextAuth(authConfig);
+
+export default auth;
 
 export const config = {
   matcher: ["/admin/:path*"],

@@ -7,7 +7,6 @@ export default async function NewVehiclePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Add vehicle</h1>
       <VehicleForm action={createVehicleAction} />
     </div>
   );

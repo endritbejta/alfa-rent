@@ -3,7 +3,11 @@ import { getVehicleById } from "@/services/vehicle.service";
 import { getVehicleFleetProfile } from "@/services/fleet.service";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { RepairsPanel } from "./repairs";
-import { deleteVehicleImageAction, updateVehicleAction } from "../../actions";
+import {
+  deleteVehicleAction,
+  deleteVehicleImageAction,
+  updateVehicleAction,
+} from "../../actions";
 
 export default async function EditVehiclePage({
   params,
@@ -18,16 +22,15 @@ export default async function EditVehiclePage({
   ]);
 
   const updateWithId = updateVehicleAction.bind(null, id);
+  const deleteWithId = deleteVehicleAction.bind(null, id);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">
-        Edit {vehicle.brand} {vehicle.model}
-      </h1>
       <VehicleForm
         action={updateWithId}
         vehicle={vehicle}
         onDeleteImage={deleteVehicleImageAction}
+        onDeleteVehicle={deleteWithId}
       />
 
       <RepairsPanel

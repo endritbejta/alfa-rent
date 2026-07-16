@@ -6,7 +6,9 @@ import type {
   CreateVehicleInput,
   UpdateVehicleInput,
   VehicleFilterInput,
+  RegistrationFilter,
 } from "@/lib/validations/vehicle";
+import type { VehicleStatus } from "@prisma/client";
 import type { Paginated } from "@/types/api";
 
 const vehicleWithImages = Prisma.validator<Prisma.VehicleDefaultArgs>()({
@@ -24,9 +26,35 @@ function slugify(brand: string, model: string, year: number): string {
     .replace(/(^-|-$)/g, "");
 }
 
+/** Turn a registration filter into a date predicate. */
+function registrationWhere(
+  registration: RegistrationFilter | undefined,
+  warningDays = 30
+): Prisma.VehicleWhereInput {
+  if (!registration) return {};
+  const now = new Date();
+  const horizon = new Date(now.getTime() + warningDays * 24 * 60 * 60 * 1000);
+  switch (registration) {
+    case "expired":
+      return { registrationExpiry: { lt: now } };
+    case "due":
+      return { registrationExpiry: { gte: now, lte: horizon } };
+    case "valid":
+      return { registrationExpiry: { gt: horizon } };
+    case "missing":
+      return { registrationExpiry: null };
+  }
+}
+
 export async function getVehicles(
   filters: VehicleFilterInput,
-  opts: { includeInactive?: boolean } = {}
+  opts: {
+    includeInactive?: boolean;
+    brand?: string;
+    /** Admin-only: the public listing must never filter by these. */
+    status?: VehicleStatus;
+    registration?: RegistrationFilter;
+  } = {}
 ): Promise<Paginated<VehicleWithImages>> {
   const {
     page,
@@ -40,7 +68,13 @@ export async function getVehicles(
   } = filters;
 
   const where: Prisma.VehicleWhereInput = {
-    ...(opts.includeInactive ? {} : { status: { not: "INACTIVE" as const } }),
+    ...(opts.status
+      ? { status: opts.status }
+      : opts.includeInactive
+        ? {}
+        : { status: { not: "INACTIVE" as const } }),
+    ...(opts.brand && { brand: { equals: opts.brand, mode: "insensitive" } }),
+    ...registrationWhere(opts.registration),
     ...(category && { category }),
     ...(transmission && { transmission }),
     ...((minPrice !== undefined || maxPrice !== undefined) && {
@@ -155,4 +189,14 @@ export async function deleteVehicle(id: string): Promise<void> {
   // removes the rows, not the hosted files.
   await deleteAllVehicleImages(id);
   await prisma.vehicle.delete({ where: { id } });
+}
+
+/** Distinct brands in the fleet, for the admin filter dropdown. */
+export async function getVehicleBrands(): Promise<string[]> {
+  const rows = await prisma.vehicle.findMany({
+    distinct: ["brand"],
+    orderBy: { brand: "asc" },
+    select: { brand: true },
+  });
+  return rows.map((r) => r.brand);
 }

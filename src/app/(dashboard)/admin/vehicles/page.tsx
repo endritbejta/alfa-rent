@@ -3,8 +3,10 @@ import Image from "next/image";
 import { requireUser } from "@/lib/auth/guards";
 import {
   getVehicles,
+  getVehicleBrands,
   type VehicleWithImages,
 } from "@/services/vehicle.service";
+import { adminVehicleFilterSchema } from "@/lib/validations/vehicle";
 import { getFleetInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
@@ -12,6 +14,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { BarList } from "@/components/dashboard/bar-list";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
 import { VehicleGrid } from "./vehicle-grid";
+import { VehicleFilters } from "./vehicle-filters";
 import { RecentlyAdded } from "./recently-added";
 import { registrationState } from "@/services/fleet.service";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -118,13 +121,28 @@ function VehicleTable({
   );
 }
 
-export default async function VehiclesPage() {
+export default async function VehiclesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN";
 
-  const [{ items }, insights] = await Promise.all([
-    getVehicles({ page: 1, perPage: 50 }, { includeInactive: true }),
+  const params = await searchParams;
+  const parsed = adminVehicleFilterSchema.safeParse({ ...params, perPage: 60 });
+  const filters = parsed.success ? parsed.data : { page: 1, perPage: 60 };
+
+  const [{ items, total }, insights, brands] = await Promise.all([
+    getVehicles(filters, {
+      includeInactive: true,
+      brand: "brand" in filters ? filters.brand : undefined,
+      status: "status" in filters ? filters.status : undefined,
+      registration:
+        "registration" in filters ? filters.registration : undefined,
+    }),
     getFleetInsights(),
+    getVehicleBrands(),
   ]);
 
   const counts = insights.statusCounts;
@@ -165,33 +183,44 @@ export default async function VehiclesPage() {
         </Panel>
       </div>
 
-      <ViewSwitcher
-        grid={
-          <VehicleGrid
-            items={items.map((v) => {
-              const reg = registrationState(v.registrationExpiry);
-              return {
-                id: v.id,
-                brand: v.brand,
-                model: v.model,
-                plate: v.plate,
-                year: v.year,
-                category: v.category,
-                transmission: v.transmission,
-                fuelType: v.fuelType,
-                seats: v.seats,
-                pricePerDay: String(v.pricePerDay),
-                status: v.status,
-                image: v.images[0]?.url ?? null,
-                registrationDue: reg.state === "due",
-                registrationExpired: reg.state === "expired",
-              };
-            })}
-          />
-        }
-        list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
-        compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}
-      />
+      <VehicleFilters brands={brands} total={total} />
+
+      {items.length === 0 ? (
+        <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
+          <p className="font-display text-lg font-bold">No matching vehicles</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Try clearing a filter to widen the search.
+          </p>
+        </div>
+      ) : (
+        <ViewSwitcher
+          grid={
+            <VehicleGrid
+              items={items.map((v) => {
+                const reg = registrationState(v.registrationExpiry);
+                return {
+                  id: v.id,
+                  brand: v.brand,
+                  model: v.model,
+                  plate: v.plate,
+                  year: v.year,
+                  category: v.category,
+                  transmission: v.transmission,
+                  fuelType: v.fuelType,
+                  seats: v.seats,
+                  pricePerDay: String(v.pricePerDay),
+                  status: v.status,
+                  image: v.images[0]?.url ?? null,
+                  registrationDue: reg.state === "due",
+                  registrationExpired: reg.state === "expired",
+                };
+              })}
+            />
+          }
+          list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
+          compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}
+        />
+      )}
     </div>
   );
 }

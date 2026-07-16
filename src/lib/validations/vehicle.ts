@@ -18,6 +18,26 @@ export const vehicleFilterSchema = paginationSchema.extend({
   to: z.coerce.date().optional(),
 });
 
+/**
+ * Admin-only fleet filters. Kept separate from the public schema so a
+ * visitor cannot craft a URL that surfaces retired or off-road vehicles.
+ */
+export const registrationFilters = [
+  "valid",
+  "due",
+  "expired",
+  "missing",
+] as const;
+export type RegistrationFilter = (typeof registrationFilters)[number];
+
+export const adminVehicleFilterSchema = vehicleFilterSchema.extend({
+  brand: z.string().trim().min(1).max(50).optional(),
+  status: z.enum(VehicleStatus).optional(),
+  registration: z.enum(registrationFilters).optional(),
+});
+
+export type AdminVehicleFilterInput = z.infer<typeof adminVehicleFilterSchema>;
+
 export const createVehicleSchema = z.object({
   brand: z.string().trim().min(1).max(50),
   model: z.string().trim().min(1).max(80),

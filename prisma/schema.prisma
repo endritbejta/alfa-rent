@@ -82,10 +82,14 @@ model Vehicle {
   /// so the expiry drives fleet-wide warnings.
   registrationDate   DateTime?
   registrationExpiry DateTime?
+  /// What the last registration renewal cost — feeds the cost overview.
+  registrationCost   Decimal?  @db.Decimal(10, 2)
   /// Routine servicing, tracked separately from repairs: a service is
   /// upkeep, a repair is an unplanned cost.
   lastServiceDate    DateTime?
   nextServiceDate    DateTime?
+  /// What the last routine service cost (upkeep, not a repair).
+  serviceCost        Decimal?  @db.Decimal(10, 2)
   serviceNotes       String?
 
   createdAt    DateTime        @default(now())

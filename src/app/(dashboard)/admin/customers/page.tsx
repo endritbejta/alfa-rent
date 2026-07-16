@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { requireUser } from "@/lib/auth/guards";
 import { getCustomers } from "@/services/customer.service";
 import { getCustomerInsights } from "@/services/analytics.service";
@@ -7,14 +6,7 @@ import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
 import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { CustomerList } from "./customer-list";
 
 export const dynamic = "force-dynamic";
 
@@ -67,51 +59,8 @@ export default async function CustomersPage() {
         </Panel>
       </div>
 
-      <Panel title="All customers">
-        {/* Mobile: cards */}
-        <ul className="divide-y md:hidden">
-          {items.map((customer) => (
-            <li key={customer.id} className="py-3">
-              <p className="text-sm font-semibold">
-                {customer.firstName} {customer.lastName}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                {customer.email} - {customer.phone}
-              </p>
-            </li>
-          ))}
-        </ul>
-        {/* Desktop: table */}
-        <div className="hidden md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Since</TableHead>
-                <TableHead>Notes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell className="font-medium">
-                    {customer.firstName} {customer.lastName}
-                  </TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell>
-                    {format(customer.createdAt, "dd MMM yyyy")}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-56 truncate">
-                    {customer.notes ?? ""}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      <Panel title="All customers" subtitle="Click a customer for full profile">
+        <CustomerList items={items} />
       </Panel>
     </div>
   );

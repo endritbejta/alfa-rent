@@ -98,6 +98,78 @@ export async function getVehicleFleetProfile(vehicleId: string) {
   };
 }
 
+/**
+ * Full drawer payload for a vehicle: identity, gallery, legal status,
+ * upkeep, and the financial profile that answers "is this car still worth
+ * keeping?". Registration and service costs are separate lines from
+ * repairs so upkeep never masquerades as breakage.
+ */
+export async function getVehicleDetail(vehicleId: string) {
+  const now = new Date();
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id: vehicleId },
+    include: {
+      images: { orderBy: { sortOrder: "asc" } },
+      repairs: { orderBy: { date: "desc" } },
+      reservations: {
+        where: {
+          status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
+        },
+        orderBy: { pickupDate: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          status: true,
+          pickupDate: true,
+          returnDate: true,
+          totalPrice: true,
+          customer: { select: { firstName: true, lastName: true } },
+        },
+      },
+    },
+  });
+  if (!vehicle) throw new NotFoundError("Vehicle");
+
+  const yearStart = startOfYear(now);
+  const sum = (rows: { cost: Prisma.Decimal }[]) =>
+    rows.reduce((t, r) => t + Number(r.cost), 0);
+
+  const repairsTotal = sum(vehicle.repairs);
+  const repairsYear = sum(vehicle.repairs.filter((r) => r.date >= yearStart));
+  const registrationCost = Number(vehicle.registrationCost ?? 0);
+  const serviceCost = Number(vehicle.serviceCost ?? 0);
+  const totalCost = repairsTotal + registrationCost + serviceCost;
+
+  // Months on the books, floored at 1 so a new arrival isn't divided by zero.
+  const monthsOwned = Math.max(
+    1,
+    Math.round(
+      (now.getTime() - vehicle.createdAt.getTime()) / (30 * 24 * 60 * 60 * 1000)
+    )
+  );
+
+  const earned = vehicle.reservations
+    .filter((r) => r.status === "ACTIVE" || r.status === "COMPLETED")
+    .reduce((t, r) => t + Number(r.totalPrice), 0);
+
+  return {
+    vehicle,
+    registration: registrationState(vehicle.registrationExpiry, now),
+    costs: {
+      registration: registrationCost,
+      service: serviceCost,
+      repairs: repairsTotal,
+      repairsThisYear: repairsYear,
+      total: totalCost,
+      perYear: (totalCost / monthsOwned) * 12,
+      perMonth: totalCost / monthsOwned,
+      repairCount: vehicle.repairs.length,
+      earned,
+      net: earned - totalCost,
+    },
+  };
+}
+
 /** Vehicles whose registration has expired or expires within the window. */
 export async function getRegistrationAlerts(days = REGISTRATION_WARNING_DAYS) {
   const now = new Date();

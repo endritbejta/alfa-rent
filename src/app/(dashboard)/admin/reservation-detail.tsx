@@ -4,63 +4,139 @@ import { createContext, useCallback, useContext, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { Mail, Phone, Car, CalendarRange, Receipt } from "lucide-react";
-import { getReservationDetailAction } from "./detail-actions";
-import type { ReservationDetail } from "./detail-actions";
+import {
+  getReservationDetailAction,
+  getVehicleDetailAction,
+  getCustomerDetailAction,
+  type ReservationDetail,
+  type VehicleDetail,
+  type CustomerDetail,
+} from "./detail-actions";
 import { DetailDrawer } from "@/components/dashboard/detail-drawer";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./reservations/status-actions";
+import { VehicleDetailBody } from "./vehicle-detail-body";
+import { CustomerDetailBody } from "./customer-detail-body";
+import { SectionTitle, Row, DrawerSkeleton } from "./detail-primitives";
 import { vehicleLabel } from "@/utils/vehicle";
 
-type Ctx = { openReservation: (id: string) => void };
-const DetailContext = createContext<Ctx>({ openReservation: () => {} });
+type Loaded =
+  | { kind: "reservation"; data: ReservationDetail }
+  | { kind: "vehicle"; data: VehicleDetail }
+  | { kind: "customer"; data: CustomerDetail };
 
-/** Any widget can call this to open the shared reservation drawer. */
+type Ctx = {
+  openReservation: (id: string) => void;
+  openVehicle: (id: string) => void;
+  openCustomer: (id: string) => void;
+};
+
+const DetailContext = createContext<Ctx>({
+  openReservation: () => {},
+  openVehicle: () => {},
+  openCustomer: () => {},
+});
+
+/**
+ * One drawer for the whole admin. Widgets call open*(id) and the payload
+ * is fetched on demand, so summary lists stay light and no screen has to
+ * navigate away to show detail.
+ */
 export const useReservationDetail = () => useContext(DetailContext);
+export const useDetailDrawer = () => useContext(DetailContext);
 
 export function ReservationDetailProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [detail, setDetail] = useState<ReservationDetail | null>(null);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const openReservation = useCallback(async (id: string) => {
-    setOpen(true);
-    setLoading(true);
-    const result = await getReservationDetailAction(id);
-    setDetail("error" in result ? null : result.data);
-    setLoading(false);
-  }, []);
+  const load = useCallback(
+    async <T,>(
+      kind: Loaded["kind"],
+      fetcher: () => Promise<{ data: T } | { error: string }>
+    ) => {
+      setOpen(true);
+      setLoading(true);
+      setError(null);
+      setLoaded(null);
+      const result = await fetcher();
+      if ("error" in result) setError(result.error);
+      else setLoaded({ kind, data: result.data } as Loaded);
+      setLoading(false);
+    },
+    []
+  );
+
+  const openReservation = useCallback(
+    (id: string) => {
+      void load("reservation", () => getReservationDetailAction(id));
+    },
+    [load]
+  );
+  const openVehicle = useCallback(
+    (id: string) => {
+      void load("vehicle", () => getVehicleDetailAction(id));
+    },
+    [load]
+  );
+  const openCustomer = useCallback(
+    (id: string) => {
+      void load("customer", () => getCustomerDetailAction(id));
+    },
+    [load]
+  );
+
+  const title =
+    loaded?.kind === "reservation"
+      ? `${loaded.data.customer.firstName} ${loaded.data.customer.lastName}`
+      : loaded?.kind === "vehicle"
+        ? `${loaded.data.vehicle.brand} ${loaded.data.vehicle.model}`
+        : loaded?.kind === "customer"
+          ? `${loaded.data.firstName} ${loaded.data.lastName}`
+          : "Details";
+
+  const subtitle =
+    loaded?.kind === "reservation"
+      ? vehicleLabel(loaded.data.vehicle)
+      : loaded?.kind === "vehicle"
+        ? (loaded.data.vehicle.plate ?? String(loaded.data.vehicle.year))
+        : loaded?.kind === "customer"
+          ? loaded.data.email
+          : undefined;
 
   return (
-    <DetailContext.Provider value={{ openReservation }}>
+    <DetailContext.Provider
+      value={{ openReservation, openVehicle, openCustomer }}
+    >
       {children}
       <DetailDrawer
         open={open}
         onClose={() => setOpen(false)}
-        title={
-          detail
-            ? `${detail.customer.firstName} ${detail.customer.lastName}`
-            : "Reservation"
-        }
-        subtitle={detail ? vehicleLabel(detail.vehicle) : undefined}
+        title={title}
+        subtitle={subtitle}
       >
-        {loading && !detail && <DrawerSkeleton />}
-        {detail && <ReservationBody detail={detail} />}
+        {loading && <DrawerSkeleton />}
+        {error && (
+          <p role="alert" className="text-destructive text-sm">
+            {error}
+          </p>
+        )}
+        {loaded?.kind === "reservation" && (
+          <ReservationBody detail={loaded.data} />
+        )}
+        {loaded?.kind === "vehicle" && (
+          <VehicleDetailBody detail={loaded.data} />
+        )}
+        {loaded?.kind === "customer" && (
+          <CustomerDetailBody detail={loaded.data} />
+        )}
       </DetailDrawer>
     </DetailContext.Provider>
-  );
-}
-
-function DrawerSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-secondary h-16 animate-pulse rounded-lg" />
-      ))}
-    </div>
   );
 }
 
@@ -75,7 +151,6 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
 
   return (
     <div className="space-y-6">
-      {/* Vehicle */}
       <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-900">
         {cover ? (
           <Image
@@ -95,7 +170,6 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
         </span>
       </div>
 
-      {/* This reservation */}
       <section>
         <SectionTitle icon={CalendarRange}>This reservation</SectionTitle>
         <div className="space-y-2 text-sm">
@@ -132,7 +206,6 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
         </div>
       </section>
 
-      {/* Customer */}
       <section>
         <SectionTitle icon={Mail}>Customer</SectionTitle>
         <div className="space-y-2 text-sm">
@@ -148,9 +221,6 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
               {detail.customer.phone}
             </span>
           </Row>
-          <Row label="Customer since">
-            {format(detail.customer.createdAt, "MMM yyyy")}
-          </Row>
           <Row label="Lifetime spend">
             <span className="font-semibold">{spend.toFixed(2)} EUR</span>
           </Row>
@@ -162,22 +232,12 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
         </div>
       </section>
 
-      {/* Vehicle facts */}
       <section>
         <SectionTitle icon={Car}>Vehicle</SectionTitle>
         <div className="space-y-2 text-sm">
           <Row label="Category">
             {detail.vehicle.category.charAt(0) +
               detail.vehicle.category.slice(1).toLowerCase()}
-          </Row>
-          <Row label="Specs">
-            {detail.vehicle.transmission === "AUTOMATIC"
-              ? "Automatic"
-              : "Manual"}{" "}
-            -{" "}
-            {detail.vehicle.fuelType.charAt(0) +
-              detail.vehicle.fuelType.slice(1).toLowerCase()}{" "}
-            - {detail.vehicle.seats} seats
           </Row>
           <Row label="Day rate">{eur(detail.vehicle.pricePerDay)}</Row>
           {detail.vehicle.registrationExpiry && (
@@ -188,7 +248,6 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
         </div>
       </section>
 
-      {/* History */}
       <section>
         <SectionTitle icon={Receipt}>
           Reservation history ({history.length})
@@ -211,36 +270,6 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
           ))}
         </ul>
       </section>
-    </div>
-  );
-}
-
-function SectionTitle({
-  icon: Icon,
-  children,
-}: {
-  icon: React.ElementType;
-  children: React.ReactNode;
-}) {
-  return (
-    <h3 className="text-muted-foreground mb-2.5 flex items-center gap-1.5 text-[11px] font-bold tracking-[0.1em] uppercase">
-      <Icon className="text-brand h-3.5 w-3.5" />
-      {children}
-    </h3>
-  );
-}
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-muted-foreground shrink-0 text-xs">{label}</span>
-      <span className="min-w-0 text-right">{children}</span>
     </div>
   );
 }

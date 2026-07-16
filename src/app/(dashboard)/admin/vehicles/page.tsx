@@ -12,7 +12,8 @@ import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
 import { Panel } from "@/components/dashboard/panel";
 import { BarList } from "@/components/dashboard/bar-list";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
-import { VehicleCard } from "@/components/shared/vehicle-card";
+import { VehicleGrid } from "./vehicle-grid";
+import { registrationState } from "@/services/fleet.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DeleteVehicleButton } from "./delete-vehicle-button";
 import { Button } from "@/components/ui/button";
@@ -179,11 +180,27 @@ export default async function VehiclesPage() {
 
       <ViewSwitcher
         grid={
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {items.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} />
-            ))}
-          </div>
+          <VehicleGrid
+            items={items.map((v) => {
+              const reg = registrationState(v.registrationExpiry);
+              return {
+                id: v.id,
+                brand: v.brand,
+                model: v.model,
+                plate: v.plate,
+                year: v.year,
+                category: v.category,
+                transmission: v.transmission,
+                fuelType: v.fuelType,
+                seats: v.seats,
+                pricePerDay: String(v.pricePerDay),
+                status: v.status,
+                image: v.images[0]?.url ?? null,
+                registrationDue: reg.state === "due",
+                registrationExpired: reg.state === "expired",
+              };
+            })}
+          />
         }
         list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
         compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}

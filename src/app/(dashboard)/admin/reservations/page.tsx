@@ -9,6 +9,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
+import { PendingRequestCard } from "./pending-request-card";
 import { cn } from "@/lib/utils";
 import { vehicleLabel } from "@/utils/vehicle";
 import {
@@ -89,103 +90,133 @@ export default async function ReservationsPage({
         ))}
       </div>
 
-      <Panel
-        title={
-          statusFilter
-            ? `${statusFilter.toLowerCase()} reservations`
-            : "All reservations"
-        }
-      >
-        {/* Mobile: cards */}
-        <ul className="space-y-3 md:hidden">
-          {items.length === 0 && (
-            <p className="text-muted-foreground py-6 text-center text-sm">
-              No reservations
+      {/* Pending is a queue of decisions, so it renders as modules. */}
+      {statusFilter === "PENDING" ? (
+        items.length === 0 ? (
+          <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
+            <p className="font-display text-lg font-bold">Nothing waiting</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Every request has been reviewed. Enjoy the quiet.
             </p>
-          )}
-          {items.map((r) => (
-            <li key={r.id} className="rounded-lg border p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">
-                    {r.customer.firstName} {r.customer.lastName}
-                  </p>
-                  <p className="text-muted-foreground truncate text-xs">
-                    {vehicleLabel(r.vehicle)}
-                  </p>
-                </div>
-                <StatusBadge status={r.status} />
-              </div>
-              <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
-                <span>
-                  {format(r.pickupDate, "dd MMM")} -{" "}
-                  {format(r.returnDate, "dd MMM yyyy")}
-                </span>
-                <span className="text-foreground font-semibold tabular-nums">
-                  {Number(r.totalPrice).toFixed(2)} EUR
-                </span>
-              </div>
-              <div className="mt-3">
-                <StatusActions reservationId={r.id} status={r.status} />
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        {/* Desktop: table */}
-        <div className="hidden md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-muted-foreground text-center"
-                  >
-                    No reservations
-                  </TableCell>
-                </TableRow>
-              )}
-              {items.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <p className="font-medium">
+          </div>
+        ) : (
+          <div className="grid gap-3 xl:grid-cols-2">
+            {items.map((r) => (
+              <PendingRequestCard
+                key={r.id}
+                request={{
+                  id: r.id,
+                  pickupDate: r.pickupDate,
+                  returnDate: r.returnDate,
+                  totalPrice: String(r.totalPrice),
+                  createdAt: r.createdAt,
+                  notes: r.notes,
+                  vehicle: r.vehicle,
+                  customer: r.customer,
+                }}
+              />
+            ))}
+          </div>
+        )
+      ) : (
+        <Panel
+          title={
+            statusFilter
+              ? `${statusFilter.toLowerCase()} reservations`
+              : "All reservations"
+          }
+        >
+          {/* Mobile: cards */}
+          <ul className="space-y-3 md:hidden">
+            {items.length === 0 && (
+              <p className="text-muted-foreground py-6 text-center text-sm">
+                No reservations
+              </p>
+            )}
+            {items.map((r) => (
+              <li key={r.id} className="rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
                       {r.customer.firstName} {r.customer.lastName}
                     </p>
-                    <p className="text-muted-foreground text-sm">
-                      {r.customer.email}
+                    <p className="text-muted-foreground truncate text-xs">
+                      {vehicleLabel(r.vehicle)}
                     </p>
-                  </TableCell>
-                  <TableCell>{vehicleLabel(r.vehicle)}</TableCell>
-                  <TableCell>
+                  </div>
+                  <StatusBadge status={r.status} />
+                </div>
+                <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
+                  <span>
                     {format(r.pickupDate, "dd MMM")} -{" "}
                     {format(r.returnDate, "dd MMM yyyy")}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  </span>
+                  <span className="text-foreground font-semibold tabular-nums">
                     {Number(r.totalPrice).toFixed(2)} EUR
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={r.status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <StatusActions reservationId={r.id} status={r.status} />
-                  </TableCell>
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <StatusActions reservationId={r.id} status={r.status} />
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Desktop: table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Dates</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </Panel>
+              </TableHeader>
+              <TableBody>
+                {items.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-muted-foreground text-center"
+                    >
+                      No reservations
+                    </TableCell>
+                  </TableRow>
+                )}
+                {items.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <p className="font-medium">
+                        {r.customer.firstName} {r.customer.lastName}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {r.customer.email}
+                      </p>
+                    </TableCell>
+                    <TableCell>{vehicleLabel(r.vehicle)}</TableCell>
+                    <TableCell>
+                      {format(r.pickupDate, "dd MMM")} -{" "}
+                      {format(r.returnDate, "dd MMM yyyy")}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {Number(r.totalPrice).toFixed(2)} EUR
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={r.status} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <StatusActions reservationId={r.id} status={r.status} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Panel>
+      )}
 
       <Panel
         title="Booking activity"

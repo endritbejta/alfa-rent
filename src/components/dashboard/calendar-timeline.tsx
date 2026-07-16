@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { format, parseISO } from "date-fns";
 import { Plus, X } from "lucide-react";
 import { createManualReservationAction } from "@/app/(dashboard)/admin/calendar/actions";
+import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -337,26 +339,23 @@ function BookingModal({
             />
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-semibold">Start</span>
-              <input
-                type="date"
-                className={field}
-                value={form.from}
-                onChange={(e) => set("from", e.target.value)}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-semibold">End</span>
-              <input
-                type="date"
-                className={field}
-                min={form.from}
-                value={form.to}
-                onChange={(e) => set("to", e.target.value)}
-              />
-            </label>
+          <div>
+            <span className="mb-1.5 block text-xs font-semibold">Dates</span>
+            <DateRangePicker
+              tone="light"
+              labels={{ from: "Start", to: "End" }}
+              value={{
+                from: form.from ? parseISO(form.from) : undefined,
+                to: form.to ? parseISO(form.to) : undefined,
+              }}
+              onChange={(range) =>
+                setForm((f) => ({
+                  ...f,
+                  from: range?.from ? format(range.from, "yyyy-MM-dd") : "",
+                  to: range?.to ? format(range.to, "yyyy-MM-dd") : "",
+                }))
+              }
+            />
           </div>
 
           <div>

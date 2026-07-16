@@ -37,7 +37,7 @@ export function HeroSearch() {
       onSubmit={submit}
       className="mt-10 flex w-full flex-col gap-3 rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10 backdrop-blur-sm md:flex-row md:items-stretch"
     >
-      <DateRangePicker value={range} onChange={setRange} />
+      <DateRangePicker value={range} onChange={setRange} minDate={today} />
 
       <label className="block md:w-56">
         <span className="text-band-muted mb-1.5 block text-[11px] font-semibold tracking-wide uppercase">

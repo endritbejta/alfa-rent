@@ -170,7 +170,9 @@ export async function getReservations(filters: {
     prisma.reservation.findMany({
       where,
       include: {
-        vehicle: { select: { brand: true, model: true, slug: true } },
+        vehicle: {
+          select: { brand: true, model: true, plate: true, slug: true },
+        },
         customer: { select: { firstName: true, lastName: true, email: true } },
       },
       orderBy: { pickupDate: "desc" },
@@ -217,6 +219,23 @@ export async function cancelReservation(id: string): Promise<Reservation> {
   return updateReservationStatus(id, "CANCELLED");
 }
 
+/**
+ * Earliest pickup and latest return among open reservations — the span the
+ * continuous calendar renders, so scrolling covers exactly the months that
+ * hold work rather than an arbitrary infinite range.
+ */
+export async function getReservationDateBounds() {
+  const bounds = await prisma.reservation.aggregate({
+    _min: { pickupDate: true },
+    _max: { returnDate: true },
+    where: { status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] } },
+  });
+  return {
+    min: bounds._min.pickupDate ?? null,
+    max: bounds._max.returnDate ?? null,
+  };
+}
+
 /** Vehicles with their open reservations overlapping a date window. */
 export async function getCalendarReservations(from: Date, to: Date) {
   return prisma.vehicle.findMany({
@@ -226,6 +245,8 @@ export async function getCalendarReservations(from: Date, to: Date) {
       id: true,
       brand: true,
       model: true,
+      plate: true,
+      year: true,
       reservations: {
         where: {
           status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },

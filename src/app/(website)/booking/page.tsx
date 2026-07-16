@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getVehicles } from "@/services/vehicle.service";
 import { BookingForm } from "@/components/forms/booking-form";
+import { vehicleLabel } from "@/utils/vehicle";
 
 export const metadata: Metadata = {
   title: "Book a Vehicle",
@@ -37,7 +38,7 @@ export default async function BookingPage({
           vehicles={vehicles.map((v) => ({
             id: v.id,
             slug: v.slug,
-            label: `${v.brand} ${v.model} (${v.year}) — ${Number(v.pricePerDay)} EUR/day`,
+            label: `${vehicleLabel(v)} — ${Number(v.pricePerDay)} EUR/day`,
           }))}
           preselectedSlug={preselectedSlug}
           initialFrom={from}

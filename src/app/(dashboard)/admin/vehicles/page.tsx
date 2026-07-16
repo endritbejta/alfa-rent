@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { DeleteVehicleButton } from "./delete-vehicle-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { vehicleLabel } from "@/utils/vehicle";
 import {
   Table,
   TableBody,
@@ -74,12 +75,12 @@ function VehicleTable({
                 <p className="font-medium">
                   {vehicle.brand} {vehicle.model}
                 </p>
-                {!dense && (
-                  <p className="text-muted-foreground text-sm">
-                    {vehicle.year} - {vehicle.transmission} - {vehicle.seats}{" "}
-                    seats
-                  </p>
-                )}
+                <p className="text-muted-foreground text-xs">
+                  <span className="font-mono">
+                    {vehicle.plate ?? String(vehicle.year)}
+                  </span>
+                  {!dense && ` - ${vehicle.year} - ${vehicle.seats} seats`}
+                </p>
               </TableCell>
               <TableCell className={cn(dense && "py-2")}>
                 {vehicle.category}
@@ -166,9 +167,7 @@ export default async function VehiclesPage() {
                 key={v.id}
                 className="flex items-center justify-between py-2.5 text-sm"
               >
-                <span className="font-medium">
-                  {v.brand} {v.model}
-                </span>
+                <span className="font-medium">{vehicleLabel(v)}</span>
                 <span className="text-muted-foreground text-xs">
                   {format(v.createdAt, "dd MMM yyyy")}
                 </span>

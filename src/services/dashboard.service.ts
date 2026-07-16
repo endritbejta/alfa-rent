@@ -21,7 +21,7 @@ export async function getDashboardStats() {
       take: 6,
       orderBy: { createdAt: "desc" },
       include: {
-        vehicle: { select: { brand: true, model: true } },
+        vehicle: { select: { brand: true, model: true, plate: true } },
         customer: { select: { firstName: true, lastName: true } },
       },
     }),

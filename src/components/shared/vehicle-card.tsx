@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Cog, Fuel, Users } from "lucide-react";
+import { ArrowRight, Cog, Fuel, Users } from "lucide-react";
 import type { VehicleWithImages } from "@/services/vehicle.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -60,9 +60,16 @@ export function VehicleCard({
         <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">
           {vehicle.category.toLowerCase()}
         </p>
-        <h3 className="font-display mt-0.5 text-lg font-bold">
-          {vehicle.brand} {vehicle.model}
-        </h3>
+        <div className="mt-0.5 flex items-baseline justify-between gap-2">
+          <h3 className="font-display text-lg font-bold">
+            {vehicle.brand} {vehicle.model}
+          </h3>
+          {vehicle.plate && (
+            <span className="text-muted-foreground shrink-0 font-mono text-[11px] tracking-wide">
+              {vehicle.plate}
+            </span>
+          )}
+        </div>
         <div className="mt-2.5 mb-4 flex flex-wrap gap-1.5">
           {pills.map(({ icon: Icon, label }) => (
             <span
@@ -84,12 +91,12 @@ export function VehicleCard({
           </p>
           <Button
             size="sm"
-            variant="outline"
             nativeButton={false}
-            className="transition-transform duration-150 hover:scale-[1.04] active:scale-100"
+            className="bg-foreground text-background hover:bg-foreground/85 px-4 shadow-sm transition-transform duration-150 hover:scale-[1.04] active:scale-100"
             render={<Link href={href} />}
           >
             Details
+            <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>

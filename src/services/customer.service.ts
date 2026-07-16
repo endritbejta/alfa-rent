@@ -58,7 +58,9 @@ export async function getCustomerById(id: string) {
       reservations: {
         orderBy: { pickupDate: "desc" },
         include: {
-          vehicle: { select: { brand: true, model: true, slug: true } },
+          vehicle: {
+            select: { brand: true, model: true, plate: true, slug: true },
+          },
         },
       },
     },

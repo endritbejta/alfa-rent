@@ -1,13 +1,16 @@
 import {
   addDays,
+  addMonths,
   format,
   startOfDay,
   startOfMonth,
   startOfWeek,
+  startOfYear,
   subMonths,
   subDays,
 } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
+import { vehicleLabel } from "@/utils/vehicle";
 
 export type SeriesPoint = { label: string; value: number };
 
@@ -90,7 +93,7 @@ export async function getDashboardData() {
       orderBy: { pickupDate: "asc" },
       take: 5,
       include: {
-        vehicle: { select: { brand: true, model: true } },
+        vehicle: { select: { brand: true, model: true, plate: true } },
         customer: { select: { firstName: true, lastName: true } },
       },
     }),
@@ -102,7 +105,7 @@ export async function getDashboardData() {
       orderBy: { returnDate: "asc" },
       take: 5,
       include: {
-        vehicle: { select: { brand: true, model: true } },
+        vehicle: { select: { brand: true, model: true, plate: true } },
         customer: { select: { firstName: true, lastName: true } },
       },
     }),
@@ -110,7 +113,7 @@ export async function getDashboardData() {
       take: 6,
       orderBy: { createdAt: "desc" },
       include: {
-        vehicle: { select: { brand: true, model: true } },
+        vehicle: { select: { brand: true, model: true, plate: true } },
         customer: { select: { firstName: true, lastName: true } },
       },
     }),
@@ -200,7 +203,14 @@ export async function getFleetInsights() {
       prisma.vehicle.findMany({
         take: 3,
         orderBy: { createdAt: "desc" },
-        select: { id: true, brand: true, model: true, createdAt: true },
+        select: {
+          id: true,
+          brand: true,
+          model: true,
+          plate: true,
+          year: true,
+          createdAt: true,
+        },
       }),
     ]);
 
@@ -208,12 +218,12 @@ export async function getFleetInsights() {
   const topVehicles = topVehicleIds.length
     ? await prisma.vehicle.findMany({
         where: { id: { in: topVehicleIds } },
-        select: { id: true, brand: true, model: true },
+        select: { id: true, brand: true, model: true, plate: true, year: true },
       })
     : [];
   const nameOf = (id: string) => {
     const v = topVehicles.find((t) => t.id === id);
-    return v ? `${v.brand} ${v.model}` : "Removed vehicle";
+    return v ? vehicleLabel(v) : "Removed vehicle";
   };
 
   return {
@@ -293,17 +303,76 @@ function monthlySeriesFromDates(
   });
 }
 
-export async function getAnalytics() {
+export type Period = "week" | "month" | "year";
+
+/** Bucket definition per reporting period: how far back, and how to slice. */
+const PERIODS: Record<
+  Period,
+  {
+    label: string;
+    buckets: number;
+    step: (d: Date, n: number) => Date;
+    start: (d: Date) => Date;
+    format: string;
+  }
+> = {
+  week: {
+    label: "Last 12 weeks",
+    buckets: 12,
+    step: (d, n) => addDays(d, n * 7),
+    start: (d) => startOfWeek(d, { weekStartsOn: 1 }),
+    format: "dd MMM",
+  },
+  month: {
+    label: "Last 12 months",
+    buckets: 12,
+    step: (d, n) => addMonths(d, n),
+    start: startOfMonth,
+    format: "MMM",
+  },
+  year: {
+    label: "Last 5 years",
+    buckets: 5,
+    step: (d, n) => addMonths(d, n * 12),
+    start: startOfYear,
+    format: "yyyy",
+  },
+};
+
+function bucketSeries(
+  rows: { createdAt: Date; totalPrice: unknown; status: string }[],
+  period: Period,
+  pick: (row: { totalPrice: unknown; status: string }) => number
+): SeriesPoint[] {
+  const cfg = PERIODS[period];
+  const anchor = cfg.start(new Date());
+  return Array.from({ length: cfg.buckets }, (_, i) => {
+    const from = cfg.step(anchor, i - (cfg.buckets - 1));
+    const to = cfg.step(anchor, i - (cfg.buckets - 2));
+    const value = rows
+      .filter((r) => r.createdAt >= from && r.createdAt < to)
+      .reduce((sum, r) => sum + pick(r), 0);
+    return { label: format(from, cfg.format), value: Math.round(value) };
+  });
+}
+
+export async function getAnalytics(period: Period = "month") {
   const now = new Date();
+  const cfg = PERIODS[period];
+  // Window the whole page to the selected period, KPIs included.
+  const since = cfg.step(cfg.start(now), -(cfg.buckets - 1));
+
   const [rows, fleet, cancelled, totalReservations] = await prisma.$transaction(
     [
       prisma.reservation.findMany({
-        where: { createdAt: { gte: subMonths(now, 12) } },
+        where: { createdAt: { gte: since } },
         select: { createdAt: true, totalPrice: true, status: true },
       }),
       prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
-      prisma.reservation.count({ where: { status: "CANCELLED" } }),
-      prisma.reservation.count(),
+      prisma.reservation.count({
+        where: { status: "CANCELLED", createdAt: { gte: since } },
+      }),
+      prisma.reservation.count({ where: { createdAt: { gte: since } } }),
     ]
   );
 
@@ -313,12 +382,13 @@ export async function getAnalytics() {
   ]);
 
   return {
-    revenueByMonth: monthlySeries(rows, 12, (r) =>
+    periodLabel: cfg.label,
+    revenueByMonth: bucketSeries(rows, period, (r) =>
       (REVENUE_STATUSES as readonly string[]).includes(r.status)
         ? Number(r.totalPrice)
         : 0
     ),
-    bookingsByMonth: monthlySeries(rows, 12, () => 1),
+    bookingsByMonth: bucketSeries(rows, period, () => 1),
     cancellationRate: totalReservations
       ? Math.round((cancelled / totalReservations) * 100)
       : 0,

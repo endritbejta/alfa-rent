@@ -600,7 +600,19 @@ async function main() {
   }
 
   const usedSlugs = new Set<string>();
+  const usedPlates = new Set<string>();
   const now = new Date();
+
+  // Kosovo-style registration plates, e.g. 01-234-AB.
+  const LETTERS = "ABCDEFGHIJKLMNOPRSTUVXYZ";
+  const nextPlate = () => {
+    let plate = "";
+    do {
+      plate = `0${int(1, 5)}-${int(100, 999)}-${pick([...LETTERS])}${pick([...LETTERS])}`;
+    } while (usedPlates.has(plate));
+    usedPlates.add(plate);
+    return plate;
+  };
 
   const vehicles = [];
   for (const spec of specs) {
@@ -615,6 +627,7 @@ async function main() {
       await prisma.vehicle.create({
         data: {
           slug,
+          plate: nextPlate(),
           brand: spec.brand,
           model: spec.model,
           year: spec.year,

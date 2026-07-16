@@ -1,12 +1,13 @@
 import { format } from "date-fns";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { vehicleLabel } from "@/utils/vehicle";
 
 type ScheduleItem = {
   id: string;
   pickupDate: Date;
   returnDate: Date;
-  vehicle: { brand: string; model: string };
+  vehicle: { brand: string; model: string; plate?: string | null };
   customer: { firstName: string; lastName: string };
 };
 
@@ -46,7 +47,7 @@ export function ScheduleList({
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">
-                {item.vehicle.brand} {item.vehicle.model}
+                {vehicleLabel(item.vehicle)}
               </p>
               <p className="text-muted-foreground truncate text-xs">
                 {item.customer.firstName} {item.customer.lastName}

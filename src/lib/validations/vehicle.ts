@@ -21,6 +21,12 @@ export const vehicleFilterSchema = paginationSchema.extend({
 export const createVehicleSchema = z.object({
   brand: z.string().trim().min(1).max(50),
   model: z.string().trim().min(1).max(80),
+  plate: z
+    .string()
+    .trim()
+    .max(15)
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : undefined)),
   year: z
     .number()
     .int()

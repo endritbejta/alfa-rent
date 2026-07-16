@@ -66,6 +66,9 @@ model Vehicle {
   slug         String          @unique
   brand        String
   model        String
+  /// Registration plate — the identifier staff use to tell two identical
+  /// cars apart. Optional so pre-existing rows stay valid.
+  plate        String?         @unique
   year         Int
   category     VehicleCategory
   transmission Transmission

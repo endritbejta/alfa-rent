@@ -8,6 +8,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { vehicleLabel } from "@/utils/vehicle";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -147,9 +148,7 @@ export default async function DashboardPage() {
                   <TableCell>
                     {r.customer.firstName} {r.customer.lastName}
                   </TableCell>
-                  <TableCell>
-                    {r.vehicle.brand} {r.vehicle.model}
-                  </TableCell>
+                  <TableCell>{vehicleLabel(r.vehicle)}</TableCell>
                   <TableCell>
                     {format(r.pickupDate, "dd MMM")} -{" "}
                     {format(r.returnDate, "dd MMM")}

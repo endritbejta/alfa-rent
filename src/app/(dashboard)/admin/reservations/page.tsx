@@ -10,6 +10,7 @@ import { AreaChart } from "@/components/dashboard/area-chart";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
 import { cn } from "@/lib/utils";
+import { vehicleLabel } from "@/utils/vehicle";
 import {
   Table,
   TableBody,
@@ -39,11 +40,18 @@ export default async function ReservationsPage({
     getReservationInsights(),
   ]);
 
+  // "Open work" = anything still on staff's plate, not lifetime history.
+  const openCount =
+    (insights.statusCounts.PENDING ?? 0) +
+    (insights.statusCounts.CONFIRMED ?? 0) +
+    (insights.statusCounts.ACTIVE ?? 0);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Reservations"
-        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today`}
+        count={openCount}
+        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${openCount} need attention`}
       />
 
       {/* Status summary — each card is also the filter */}
@@ -82,13 +90,6 @@ export default async function ReservationsPage({
       </div>
 
       <Panel
-        title="Booking activity"
-        subtitle="Requests received, last 14 days"
-      >
-        <AreaChart data={insights.activitySeries} height={120} />
-      </Panel>
-
-      <Panel
         title={
           statusFilter
             ? `${statusFilter.toLowerCase()} reservations`
@@ -110,7 +111,7 @@ export default async function ReservationsPage({
                     {r.customer.firstName} {r.customer.lastName}
                   </p>
                   <p className="text-muted-foreground truncate text-xs">
-                    {r.vehicle.brand} {r.vehicle.model}
+                    {vehicleLabel(r.vehicle)}
                   </p>
                 </div>
                 <StatusBadge status={r.status} />
@@ -165,9 +166,7 @@ export default async function ReservationsPage({
                       {r.customer.email}
                     </p>
                   </TableCell>
-                  <TableCell>
-                    {r.vehicle.brand} {r.vehicle.model}
-                  </TableCell>
+                  <TableCell>{vehicleLabel(r.vehicle)}</TableCell>
                   <TableCell>
                     {format(r.pickupDate, "dd MMM")} -{" "}
                     {format(r.returnDate, "dd MMM yyyy")}
@@ -186,6 +185,13 @@ export default async function ReservationsPage({
             </TableBody>
           </Table>
         </div>
+      </Panel>
+
+      <Panel
+        title="Booking activity"
+        subtitle="Requests received, last 14 days"
+      >
+        <AreaChart data={insights.activitySeries} height={64} />
       </Panel>
     </div>
   );

@@ -23,6 +23,7 @@ function parseVehicleFields(formData: FormData) {
   return {
     brand: formData.get("brand"),
     model: formData.get("model"),
+    plate: formData.get("plate") || undefined,
     year: Number(formData.get("year")),
     category: formData.get("category"),
     transmission: formData.get("transmission"),

@@ -63,6 +63,16 @@ export function VehicleForm({ action, vehicle, onDeleteImage }: Props) {
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="plate">Registration plate</Label>
+          <Input
+            id="plate"
+            name="plate"
+            defaultValue={vehicle?.plate ?? ""}
+            placeholder="01-234-AB"
+            className="uppercase"
+          />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="year">Year</Label>
           <Input
             id="year"

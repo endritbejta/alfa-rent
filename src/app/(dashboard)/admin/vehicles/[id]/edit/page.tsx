@@ -1,6 +1,8 @@
 import { requireRole } from "@/lib/auth/guards";
 import { getVehicleById } from "@/services/vehicle.service";
+import { getVehicleFleetProfile } from "@/services/fleet.service";
 import { VehicleForm } from "@/components/forms/vehicle-form";
+import { RepairsPanel } from "./repairs";
 import { deleteVehicleImageAction, updateVehicleAction } from "../../actions";
 
 export default async function EditVehiclePage({
@@ -10,7 +12,10 @@ export default async function EditVehiclePage({
 }) {
   await requireRole("ADMIN");
   const { id } = await params;
-  const vehicle = await getVehicleById(id);
+  const [vehicle, profile] = await Promise.all([
+    getVehicleById(id),
+    getVehicleFleetProfile(id),
+  ]);
 
   const updateWithId = updateVehicleAction.bind(null, id);
 
@@ -23,6 +28,19 @@ export default async function EditVehiclePage({
         action={updateWithId}
         vehicle={vehicle}
         onDeleteImage={deleteVehicleImageAction}
+      />
+
+      <RepairsPanel
+        vehicleId={id}
+        repairs={profile.repairs.map((r) => ({
+          id: r.id,
+          date: r.date,
+          cost: String(r.cost),
+          description: r.description,
+          notes: r.notes,
+          reference: r.reference,
+        }))}
+        stats={profile.stats}
       />
     </div>
   );

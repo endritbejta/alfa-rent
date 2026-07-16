@@ -7,17 +7,9 @@ import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
 import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { vehicleLabel } from "@/utils/vehicle";
+
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { RecentReservations } from "./recent-reservations";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +93,7 @@ export default async function DashboardPage() {
 
       <Panel
         title="Recent reservations"
+        subtitle="Click a row for full detail"
         action={
           <Link
             href="/admin/reservations"
@@ -110,60 +103,17 @@ export default async function DashboardPage() {
           </Link>
         }
       >
-        {/* Mobile: card list */}
-        <ul className="divide-y md:hidden">
-          {recentReservations.map((r) => (
-            <li
-              key={r.id}
-              className="flex items-center justify-between gap-3 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">
-                  {r.customer.firstName} {r.customer.lastName}
-                </p>
-                <p className="text-muted-foreground truncate text-xs">
-                  {r.vehicle.brand} {r.vehicle.model} -{" "}
-                  {format(r.pickupDate, "dd MMM")}
-                </p>
-              </div>
-              <StatusBadge status={r.status} />
-            </li>
-          ))}
-        </ul>
-        {/* Desktop: table */}
-        <div className="hidden md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentReservations.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    {r.customer.firstName} {r.customer.lastName}
-                  </TableCell>
-                  <TableCell>{vehicleLabel(r.vehicle)}</TableCell>
-                  <TableCell>
-                    {format(r.pickupDate, "dd MMM")} -{" "}
-                    {format(r.returnDate, "dd MMM")}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {Number(r.totalPrice).toFixed(2)} EUR
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={r.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <RecentReservations
+          items={recentReservations.map((r) => ({
+            id: r.id,
+            pickupDate: r.pickupDate,
+            returnDate: r.returnDate,
+            totalPrice: String(r.totalPrice),
+            status: r.status,
+            vehicle: r.vehicle,
+            customer: r.customer,
+          }))}
+        />
       </Panel>
     </div>
   );

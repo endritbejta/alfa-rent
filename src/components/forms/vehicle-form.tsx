@@ -21,6 +21,10 @@ type Props = {
   onDeleteImage?: (imageId: string) => Promise<ActionResult>;
 };
 
+/** Prisma dates -> yyyy-MM-dd for native date inputs. */
+const toDateInput = (d: Date | null | undefined) =>
+  d ? new Date(d).toISOString().slice(0, 10) : "";
+
 const selectClass =
   "border-input h-9 w-full rounded-md border bg-transparent px-3 text-sm";
 
@@ -169,6 +173,60 @@ export function VehicleForm({ action, vehicle, onDeleteImage }: Props) {
           />
         </div>
       </div>
+
+      <fieldset className="space-y-4 rounded-xl border p-4">
+        <legend className="px-2 text-xs font-bold tracking-[0.1em] uppercase">
+          Registration &amp; service
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="registrationDate">Registered on</Label>
+            <Input
+              id="registrationDate"
+              name="registrationDate"
+              type="date"
+              defaultValue={toDateInput(vehicle?.registrationDate)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="registrationExpiry">Registration expires</Label>
+            <Input
+              id="registrationExpiry"
+              name="registrationExpiry"
+              type="date"
+              defaultValue={toDateInput(vehicle?.registrationExpiry)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastServiceDate">Last service</Label>
+            <Input
+              id="lastServiceDate"
+              name="lastServiceDate"
+              type="date"
+              defaultValue={toDateInput(vehicle?.lastServiceDate)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="nextServiceDate">Next service due</Label>
+            <Input
+              id="nextServiceDate"
+              name="nextServiceDate"
+              type="date"
+              defaultValue={toDateInput(vehicle?.nextServiceDate)}
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="serviceNotes">Service notes</Label>
+          <Textarea
+            id="serviceNotes"
+            name="serviceNotes"
+            rows={2}
+            defaultValue={vehicle?.serviceNotes ?? ""}
+            placeholder="Oil and filters replaced, brake fluid due next time"
+          />
+        </div>
+      </fieldset>
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>

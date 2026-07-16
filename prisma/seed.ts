@@ -555,6 +555,7 @@ function slugify(brand: string, model: string, year: number, suffix?: number) {
 async function main() {
   console.log("Seeding database (rich dataset)...");
 
+  await prisma.repair.deleteMany();
   await prisma.reservation.deleteMany();
   await prisma.vehicleImage.deleteMany();
   await prisma.vehicle.deleteMany();
@@ -639,9 +640,47 @@ async function main() {
           description: spec.blurb,
           status: "AVAILABLE",
           createdAt: at10(now, -int(30, 400)),
+          // Registration: mostly valid, a few due soon, one or two expired.
+          registrationDate: at10(now, -int(200, 700)),
+          registrationExpiry: at10(
+            now,
+            pick([-12, 9, 21, 45, 120, 200, 260, 300])
+          ),
+          lastServiceDate: at10(now, -int(20, 220)),
+          nextServiceDate: at10(now, int(20, 200)),
+          serviceNotes:
+            rand() < 0.3 ? "Oil and filters replaced at last service." : null,
         },
       })
     );
+  }
+
+  // --- repairs: unplanned costs, a few vehicles are money pits ---
+  const REPAIRS = [
+    ["Brake pads and discs replaced", 180, 340],
+    ["Front tyre replacement", 120, 260],
+    ["Suspension arm replaced", 200, 480],
+    ["Clutch replacement", 450, 900],
+    ["Bodywork after parking damage", 150, 700],
+    ["Alternator replaced", 220, 420],
+    ["Windscreen replacement", 130, 300],
+    ["Engine sensor fault", 90, 260],
+  ];
+  for (const vehicle of vehicles) {
+    const repairCount = rand() < 0.25 ? int(3, 6) : int(0, 2);
+    for (let i = 0; i < repairCount; i++) {
+      const [description, low, high] = pick(REPAIRS);
+      await prisma.repair.create({
+        data: {
+          vehicleId: vehicle.id,
+          date: at10(now, -int(1, 330)),
+          cost: new Prisma.Decimal(int(low as number, high as number)),
+          description: description as string,
+          notes: rand() < 0.3 ? "Parts sourced locally." : null,
+          reference: rand() < 0.5 ? `INV-${int(1000, 9999)}` : null,
+        },
+      });
+    }
   }
 
   // --- customers ---
@@ -749,6 +788,7 @@ async function main() {
     vehicles: await prisma.vehicle.count(),
     customers: await prisma.customer.count(),
     reservations: await prisma.reservation.count(),
+    repairs: await prisma.repair.count(),
     active: await prisma.reservation.count({ where: { status: "ACTIVE" } }),
     completed: await prisma.reservation.count({
       where: { status: "COMPLETED" },

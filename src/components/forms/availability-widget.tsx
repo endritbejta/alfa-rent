@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { differenceInCalendarDays } from "date-fns";
+import {
+  differenceInCalendarDays,
+  format,
+  parseISO,
+  startOfToday,
+} from "date-fns";
+import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
 
@@ -25,7 +31,6 @@ export function AvailabilityWidget({
   initialTo?: string;
 }) {
   const router = useRouter();
-  const today = new Date().toISOString().slice(0, 10);
   // Prefilled from the hero/fleet selection carried through the URL, so a
   // customer who already chose dates lands here with a live quote.
   const [from, setFrom] = useState(initialFrom ?? "");
@@ -78,32 +83,19 @@ export function AvailabilityWidget({
 
   return (
     <div className="mt-5 space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-semibold uppercase">
-            Pickup
-          </span>
-          <input
-            type="date"
-            min={today}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="border-input focus:ring-ring h-10 w-full rounded-lg border bg-transparent px-3 text-sm outline-none focus:ring-2"
-          />
-        </label>
-        <label className="block">
-          <span className="text-muted-foreground mb-1 block text-xs font-semibold uppercase">
-            Return
-          </span>
-          <input
-            type="date"
-            min={from || today}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="border-input focus:ring-ring h-10 w-full rounded-lg border bg-transparent px-3 text-sm outline-none focus:ring-2"
-          />
-        </label>
-      </div>
+      {/* The same range picker the admin uses — one calendar system. */}
+      <DateRangePicker
+        tone="light"
+        minDate={startOfToday()}
+        value={{
+          from: from ? parseISO(from) : undefined,
+          to: to ? parseISO(to) : undefined,
+        }}
+        onChange={(range) => {
+          setFrom(range?.from ? format(range.from, "yyyy-MM-dd") : "");
+          setTo(range?.to ? format(range.to, "yyyy-MM-dd") : "");
+        }}
+      />
 
       {loading && (
         <p className="text-muted-foreground text-sm">

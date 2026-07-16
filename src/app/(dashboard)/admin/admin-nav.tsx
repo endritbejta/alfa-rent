@@ -21,7 +21,7 @@ const NAV = [
   { href: "/admin/analytics", label: "Analytics", icon: ChartNoAxesColumn },
 ];
 
-export function AdminNav() {
+export function AdminNav({ pendingCount = 0 }: { pendingCount?: number }) {
   const pathname = usePathname();
 
   return (
@@ -44,7 +44,12 @@ export function AdminNav() {
               <span className="bg-sidebar-primary absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full" />
             )}
             <Icon className="h-4 w-4" />
-            {label}
+            <span className="flex-1">{label}</span>
+            {href === "/admin/reservations" && pendingCount > 0 && (
+              <span className="bg-brand rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                {pendingCount}
+              </span>
+            )}
           </Link>
         );
       })}

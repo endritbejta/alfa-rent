@@ -77,15 +77,47 @@ model Vehicle {
   pricePerDay  Decimal         @db.Decimal(10, 2)
   description  String
   status       VehicleStatus   @default(AVAILABLE)
+
+  /// Legal compliance: the registration must be renewed before it expires,
+  /// so the expiry drives fleet-wide warnings.
+  registrationDate   DateTime?
+  registrationExpiry DateTime?
+  /// Routine servicing, tracked separately from repairs: a service is
+  /// upkeep, a repair is an unplanned cost.
+  lastServiceDate    DateTime?
+  nextServiceDate    DateTime?
+  serviceNotes       String?
+
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
   images       VehicleImage[]
   reservations Reservation[]
+  repairs      Repair[]
 
   @@index([status])
   @@index([category])
+  @@index([registrationExpiry])
   @@map("vehicles")
+}
+
+/// An unplanned cost against a vehicle (accident, brakes, engine...).
+/// Regular servicing is deliberately NOT recorded here so the yearly
+/// repair spend per vehicle stays a true picture of what went wrong.
+model Repair {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  date        DateTime
+  cost        Decimal  @db.Decimal(10, 2)
+  description String
+  notes       String?
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, date])
+  @@map("repairs")
 }
 
 model VehicleImage {

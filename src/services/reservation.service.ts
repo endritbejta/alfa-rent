@@ -220,6 +220,58 @@ export async function cancelReservation(id: string): Promise<Reservation> {
 }
 
 /**
+ * Everything the detail drawer shows: the reservation plus enough of the
+ * customer's and vehicle's context that staff never have to navigate away.
+ */
+export async function getReservationDetail(id: string) {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id },
+    include: {
+      vehicle: {
+        select: {
+          id: true,
+          brand: true,
+          model: true,
+          plate: true,
+          year: true,
+          category: true,
+          transmission: true,
+          fuelType: true,
+          seats: true,
+          pricePerDay: true,
+          status: true,
+          registrationExpiry: true,
+          images: { take: 1, orderBy: { sortOrder: "asc" } },
+        },
+      },
+      customer: {
+        include: {
+          reservations: {
+            orderBy: { pickupDate: "desc" },
+            take: 20,
+            select: {
+              id: true,
+              status: true,
+              pickupDate: true,
+              returnDate: true,
+              totalPrice: true,
+              vehicle: { select: { brand: true, model: true, plate: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!reservation) throw new NotFoundError("Reservation");
+  return reservation;
+}
+
+/** Requests awaiting a staff decision — surfaced across the admin. */
+export async function getPendingCount(): Promise<number> {
+  return prisma.reservation.count({ where: { status: "PENDING" } });
+}
+
+/**
  * Earliest pickup and latest return among open reservations — the span the
  * continuous calendar renders, so scrolling covers exactly the months that
  * hold work rather than an arbitrary infinite range.

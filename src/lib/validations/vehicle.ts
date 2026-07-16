@@ -39,6 +39,11 @@ export const createVehicleSchema = z.object({
   pricePerDay: z.number().positive().max(10000),
   description: z.string().trim().min(10).max(2000),
   status: z.enum(VehicleStatus).default("AVAILABLE"),
+  registrationDate: z.coerce.date().optional(),
+  registrationExpiry: z.coerce.date().optional(),
+  lastServiceDate: z.coerce.date().optional(),
+  nextServiceDate: z.coerce.date().optional(),
+  serviceNotes: z.string().trim().max(1000).optional(),
 });
 
 export const updateVehicleSchema = createVehicleSchema.partial();

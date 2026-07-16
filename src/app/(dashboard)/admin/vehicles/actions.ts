@@ -14,6 +14,8 @@ import {
   updateVehicle,
 } from "@/services/vehicle.service";
 import { addVehicleImages, deleteVehicleImage } from "@/services/image.service";
+import { addRepair, deleteRepair } from "@/services/fleet.service";
+import { repairSchema } from "@/lib/validations/repair";
 
 export type ActionResult = { error: string } | undefined;
 
@@ -32,6 +34,11 @@ function parseVehicleFields(formData: FormData) {
     pricePerDay: Number(formData.get("pricePerDay")),
     description: formData.get("description"),
     status: formData.get("status") ?? undefined,
+    registrationDate: formData.get("registrationDate") || undefined,
+    registrationExpiry: formData.get("registrationExpiry") || undefined,
+    lastServiceDate: formData.get("lastServiceDate") || undefined,
+    nextServiceDate: formData.get("nextServiceDate") || undefined,
+    serviceNotes: formData.get("serviceNotes") || undefined,
   };
 }
 
@@ -97,5 +104,41 @@ export async function deleteVehicleImageAction(
     return { error: normalizeError(error).body.error.message };
   }
   revalidatePath("/admin/vehicles");
+  return undefined;
+}
+
+export async function addRepairAction(
+  vehicleId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  await requireRole("ADMIN");
+  try {
+    const input = repairSchema.parse({
+      date: formData.get("date"),
+      cost: formData.get("cost"),
+      description: formData.get("description"),
+      notes: formData.get("notes") || undefined,
+      reference: formData.get("reference") || undefined,
+    });
+    await addRepair(vehicleId, input);
+  } catch (error) {
+    return { error: normalizeError(error).body.error.message };
+  }
+  revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
+  revalidatePath("/admin/vehicles");
+  return undefined;
+}
+
+export async function deleteRepairAction(
+  vehicleId: string,
+  repairId: string
+): Promise<ActionResult> {
+  await requireRole("ADMIN");
+  try {
+    await deleteRepair(repairId);
+  } catch (error) {
+    return { error: normalizeError(error).body.error.message };
+  }
+  revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
   return undefined;
 }

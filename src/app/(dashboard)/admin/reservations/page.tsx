@@ -41,9 +41,10 @@ export default async function ReservationsPage({
     getReservationInsights(),
   ]);
 
-  // "Open work" = anything still on staff's plate, not lifetime history.
-  const openCount =
-    (insights.statusCounts.PENDING ?? 0) +
+  // The red badge means one thing everywhere: requests awaiting a decision.
+  // Confirmed and active rentals are in flight, not waiting on staff.
+  const pendingCount = insights.statusCounts.PENDING ?? 0;
+  const inFlight =
     (insights.statusCounts.CONFIRMED ?? 0) +
     (insights.statusCounts.ACTIVE ?? 0);
 
@@ -51,8 +52,8 @@ export default async function ReservationsPage({
     <div className="space-y-6">
       <PageHeader
         title="Reservations"
-        count={openCount}
-        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${openCount} need attention`}
+        count={pendingCount || undefined}
+        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${inFlight} rental${inFlight === 1 ? "" : "s"} in flight`}
       />
 
       {/* Status summary — each card is also the filter */}

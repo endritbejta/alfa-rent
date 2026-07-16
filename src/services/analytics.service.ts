@@ -93,7 +93,12 @@ export async function getDashboardData() {
       },
       orderBy: { pickupDate: "asc" },
       take: 5,
-      include: {
+      // `select`, not `include`: these rows are handed to a client
+      // component, and Prisma Decimal cannot cross that boundary.
+      select: {
+        id: true,
+        pickupDate: true,
+        returnDate: true,
         vehicle: { select: { brand: true, model: true, plate: true } },
         customer: { select: { firstName: true, lastName: true } },
       },
@@ -105,7 +110,10 @@ export async function getDashboardData() {
       },
       orderBy: { returnDate: "asc" },
       take: 5,
-      include: {
+      select: {
+        id: true,
+        pickupDate: true,
+        returnDate: true,
         vehicle: { select: { brand: true, model: true, plate: true } },
         customer: { select: { firstName: true, lastName: true } },
       },

@@ -166,7 +166,7 @@ export function RepairsPanel({
               {error}
             </p>
           )}
-          <Button type="submit" size="sm" disabled={pending}>
+          <Button type="submit" size="sm" variant="success" disabled={pending}>
             {pending ? "Saving..." : "Save repair"}
           </Button>
         </form>

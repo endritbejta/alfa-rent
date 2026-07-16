@@ -9,7 +9,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
-import { PendingRequestCard } from "./pending-request-card";
+import { PendingQueue } from "./pending-queue";
 import { cn } from "@/lib/utils";
 import { vehicleLabel } from "@/utils/vehicle";
 import {
@@ -92,32 +92,18 @@ export default async function ReservationsPage({
 
       {/* Pending is a queue of decisions, so it renders as modules. */}
       {statusFilter === "PENDING" ? (
-        items.length === 0 ? (
-          <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
-            <p className="font-display text-lg font-bold">Nothing waiting</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Every request has been reviewed. Enjoy the quiet.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3 xl:grid-cols-2">
-            {items.map((r) => (
-              <PendingRequestCard
-                key={r.id}
-                request={{
-                  id: r.id,
-                  pickupDate: r.pickupDate,
-                  returnDate: r.returnDate,
-                  totalPrice: String(r.totalPrice),
-                  createdAt: r.createdAt,
-                  notes: r.notes,
-                  vehicle: r.vehicle,
-                  customer: r.customer,
-                }}
-              />
-            ))}
-          </div>
-        )
+        <PendingQueue
+          requests={items.map((r) => ({
+            id: r.id,
+            pickupDate: r.pickupDate,
+            returnDate: r.returnDate,
+            totalPrice: String(r.totalPrice),
+            createdAt: r.createdAt,
+            notes: r.notes,
+            vehicle: r.vehicle,
+            customer: r.customer,
+          }))}
+        />
       ) : (
         <Panel
           title={

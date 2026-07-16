@@ -291,7 +291,7 @@ export function VehicleForm({ action, vehicle, onDeleteImage }: Props) {
         </p>
       )}
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" variant="success" disabled={pending}>
         {pending ? "Saving..." : vehicle ? "Save changes" : "Create vehicle"}
       </Button>
     </form>

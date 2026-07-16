@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Cog, Fuel, Users } from "lucide-react";
-import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
 import { StatusBadge } from "@/components/shared/status-badge";
 
 type Item = {
@@ -22,18 +22,18 @@ type Item = {
   registrationExpired: boolean;
 };
 
-/** Admin fleet grid — each card opens the vehicle drawer. */
+/**
+ * Admin fleet grid. Staff open a vehicle to manage it, so a card goes
+ * straight to the edit page rather than a read-only drawer.
+ */
 export function VehicleGrid({ items }: { items: Item[] }) {
-  const { openVehicle } = useDetailDrawer();
-
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {items.map((v) => (
-        <button
+        <Link
           key={v.id}
-          type="button"
-          onClick={() => openVehicle(v.id)}
-          className="bg-card hover:border-brand/30 group cursor-pointer overflow-hidden rounded-xl border text-left shadow-xs transition-all hover:shadow-md"
+          href={`/admin/vehicles/${v.id}/edit`}
+          className="bg-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-xs transition-all hover:shadow-md"
         >
           <div className="relative aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800">
             {v.image ? (
@@ -106,7 +106,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
               </span>
             </p>
           </div>
-        </button>
+        </Link>
       ))}
     </div>
   );

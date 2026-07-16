@@ -25,9 +25,12 @@ const NEXT_ACTIONS: Partial<
 export function StatusActions({
   reservationId,
   status,
+  onSuccess,
 }: {
   reservationId: string;
   status: ReservationStatus;
+  /** Fired once the transition lands — drawers use it to dismiss. */
+  onSuccess?: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -42,7 +45,7 @@ export function StatusActions({
           <Button
             key={action.to}
             size="sm"
-            variant={action.destructive ? "destructive" : "outline"}
+            variant={action.destructive ? "destructive" : "success"}
             disabled={pending}
             onClick={() => {
               setError(null);
@@ -51,7 +54,11 @@ export function StatusActions({
                   reservationId,
                   action.to
                 );
-                if (result?.error) setError(result.error);
+                if (result?.error) {
+                  setError(result.error);
+                  return;
+                }
+                onSuccess?.();
               });
             }}
           >

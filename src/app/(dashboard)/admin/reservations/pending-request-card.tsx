@@ -9,6 +9,7 @@ import { CalendarRange, Clock, Mail, Phone, Car } from "lucide-react";
 import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/utils/vehicle";
+import { cn } from "@/lib/utils";
 
 export type PendingRequest = {
   id: string;
@@ -26,21 +27,38 @@ export type PendingRequest = {
  * module carrying the whole case — who, which car, when, how much, how long
  * it has waited — so staff can act without opening anything else.
  */
-export function PendingRequestCard({ request }: { request: PendingRequest }) {
+export function PendingRequestCard({
+  request,
+  emphasis = false,
+}: {
+  request: PendingRequest;
+  /** One-column layout gets the roomier, higher-contrast treatment. */
+  emphasis?: boolean;
+}) {
   const { openReservation } = useDetailDrawer();
   const days = differenceInCalendarDays(request.returnDate, request.pickupDate);
   const waiting = formatDistanceToNow(request.createdAt, { addSuffix: false });
   const stale = differenceInCalendarDays(new Date(), request.createdAt) >= 2;
 
   return (
-    <article className="bg-card hover:border-brand/30 rounded-xl border p-4 shadow-xs transition-colors sm:p-5">
+    <article
+      className={cn(
+        "bg-card hover:border-brand/40 rounded-xl border transition-all",
+        emphasis ? "p-5 shadow-sm sm:p-6" : "p-4 shadow-xs sm:p-5"
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
           onClick={() => openReservation(request.id)}
           className="min-w-0 cursor-pointer text-left"
         >
-          <p className="font-display truncate text-base font-bold hover:underline">
+          <p
+            className={cn(
+              "font-display truncate font-bold hover:underline",
+              emphasis ? "text-lg" : "text-base"
+            )}
+          >
             {request.customer.firstName} {request.customer.lastName}
           </p>
           <p className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
@@ -61,7 +79,12 @@ export function PendingRequestCard({ request }: { request: PendingRequest }) {
         </span>
       </div>
 
-      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl
+        className={cn(
+          "grid grid-cols-2 gap-3 sm:grid-cols-4",
+          emphasis ? "mt-5" : "mt-4"
+        )}
+      >
         <Fact
           icon={Car}
           label="Vehicle"
@@ -82,7 +105,12 @@ export function PendingRequestCard({ request }: { request: PendingRequest }) {
           <dt className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
             Total
           </dt>
-          <dd className="font-display mt-0.5 text-lg font-bold tabular-nums">
+          <dd
+            className={cn(
+              "font-display mt-0.5 font-bold tabular-nums",
+              emphasis ? "text-xl" : "text-lg"
+            )}
+          >
             {Number(request.totalPrice).toFixed(2)} EUR
           </dd>
         </div>

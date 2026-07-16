@@ -10,6 +10,7 @@ import { ScheduleList } from "@/components/dashboard/schedule-list";
 
 import { Button } from "@/components/ui/button";
 import { RecentReservations } from "./recent-reservations";
+import { PendingQueue } from "../reservations/pending-queue";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
     upcomingPickups,
     upcomingReturns,
     recentReservations,
+    pendingRequests,
   } = await getDashboardData();
 
   return (
@@ -50,6 +52,21 @@ export default async function DashboardPage() {
           Add vehicle
         </Button>
       </PageHeader>
+
+      {/* Today's decisions come before today's numbers. */}
+      <PendingQueue
+        compact
+        requests={pendingRequests.map((r) => ({
+          id: r.id,
+          pickupDate: r.pickupDate,
+          returnDate: r.returnDate,
+          totalPrice: String(r.totalPrice),
+          createdAt: r.createdAt,
+          notes: r.notes,
+          vehicle: r.vehicle,
+          customer: r.customer,
+        }))}
+      />
 
       <StatGrid>
         <StatCard

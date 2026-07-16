@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { format } from "date-fns";
 import { requireUser } from "@/lib/auth/guards";
 import {
   getVehicles,
@@ -13,12 +12,12 @@ import { Panel } from "@/components/dashboard/panel";
 import { BarList } from "@/components/dashboard/bar-list";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
 import { VehicleGrid } from "./vehicle-grid";
+import { RecentlyAdded } from "./recently-added";
 import { registrationState } from "@/services/fleet.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DeleteVehicleButton } from "./delete-vehicle-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { vehicleLabel } from "@/utils/vehicle";
 import {
   Table,
   TableBody,
@@ -162,19 +161,7 @@ export default async function VehiclesPage() {
           />
         </Panel>
         <Panel title="Recently added" subtitle="Latest fleet additions">
-          <ul className="divide-y">
-            {insights.recentlyAdded.map((v) => (
-              <li
-                key={v.id}
-                className="flex items-center justify-between py-2.5 text-sm"
-              >
-                <span className="font-medium">{vehicleLabel(v)}</span>
-                <span className="text-muted-foreground text-xs">
-                  {format(v.createdAt, "dd MMM yyyy")}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <RecentlyAdded items={insights.recentlyAdded} />
         </Panel>
       </div>
 

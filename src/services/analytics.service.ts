@@ -64,6 +64,7 @@ export async function getDashboardData() {
     upcomingPickups,
     upcomingReturns,
     recentReservations,
+    pendingRequests,
     revenueRows,
   ] = await prisma.$transaction([
     prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
@@ -117,6 +118,17 @@ export async function getDashboardData() {
         customer: { select: { firstName: true, lastName: true } },
       },
     }),
+    // The queue that should be cleared before the day's numbers matter.
+    prisma.reservation.findMany({
+      where: { status: "PENDING" },
+      orderBy: { createdAt: "asc" },
+      include: {
+        vehicle: { select: { brand: true, model: true, plate: true } },
+        customer: {
+          select: { firstName: true, lastName: true, email: true },
+        },
+      },
+    }),
     prisma.reservation.findMany({
       where: { createdAt: { gte: subMonths(now, 6) } },
       select: { createdAt: true, totalPrice: true, status: true },
@@ -144,6 +156,7 @@ export async function getDashboardData() {
     upcomingPickups,
     upcomingReturns,
     recentReservations,
+    pendingRequests,
   };
 }
 

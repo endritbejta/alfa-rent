@@ -53,6 +53,8 @@
   --color-band-muted: var(--band-muted);
   --color-band-border: var(--band-border);
   --color-brand: var(--brand);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
 
   /* Status hues — vehicle + reservation lifecycle */
   --color-status-available: var(--st-available);
@@ -107,6 +109,10 @@
   --band-muted: #a5a09f;
   --band-border: #2a2727;
   --brand: #dc2028;
+  /* Confirmation green — semantic, deliberately not the brand accent, so
+     "this is the safe forward action" reads differently from "this is Alfa". */
+  --success: #0f7a4a;
+  --success-foreground: #ffffff;
 
   --st-available: #12805c;
   --st-reserved: #2563eb;
@@ -153,6 +159,8 @@
   --band-muted: #a5a09f;
   --band-border: #2a2727;
   --brand: #e8535c;
+  --success: #1aa36a;
+  --success-foreground: #ffffff;
 
   --st-available: #3dbe8b;
   --st-reserved: #6c9bf2;
@@ -191,5 +199,65 @@
   .eyebrow::before {
     content: "";
     @apply bg-brand h-0.5 w-7;
+  }
+}
+
+/* Drawer motion: one axis per breakpoint. Applied via `animation`, which a
+   responsive variant fully overrides — unlike composing two slide-in
+   utilities, where translateX and translateY both survive and read as a
+   diagonal. */
+@keyframes drawer-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes drawer-out-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes drawer-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes drawer-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-drawer],
+  [data-drawer-overlay] {
+    animation-duration: 0.01ms !important;
   }
 }

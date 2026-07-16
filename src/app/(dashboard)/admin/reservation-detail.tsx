@@ -127,7 +127,7 @@ export function ReservationDetailProvider({
           </p>
         )}
         {loaded?.kind === "reservation" && (
-          <ReservationBody detail={loaded.data} />
+          <ReservationBody detail={loaded.data} onDone={() => setOpen(false)} />
         )}
         {loaded?.kind === "vehicle" && (
           <VehicleDetailBody detail={loaded.data} />
@@ -142,7 +142,14 @@ export function ReservationDetailProvider({
 
 const eur = (v: unknown) => `${Number(v).toFixed(2)} EUR`;
 
-function ReservationBody({ detail }: { detail: ReservationDetail }) {
+function ReservationBody({
+  detail,
+  onDone,
+}: {
+  detail: ReservationDetail;
+  /** Completing a task here should feel finished — the drawer dismisses. */
+  onDone: () => void;
+}) {
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
   const spend = history
@@ -202,7 +209,11 @@ function ReservationBody({ detail }: { detail: ReservationDetail }) {
           )}
         </div>
         <div className="mt-3">
-          <StatusActions reservationId={detail.id} status={detail.status} />
+          <StatusActions
+            reservationId={detail.id}
+            status={detail.status}
+            onSuccess={onDone}
+          />
         </div>
       </section>
 

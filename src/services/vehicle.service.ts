@@ -19,6 +19,41 @@ export type VehicleWithImages = Prisma.VehicleGetPayload<
   typeof vehicleWithImages
 >;
 
+/**
+ * What an anonymous visitor is allowed to see.
+ *
+ * An explicit allowlist, not `include`: with `include`, every column added
+ * to the model would be published automatically — which is exactly how
+ * registration and service costs ended up on the public API. Adding a
+ * column here now has to be a deliberate act.
+ */
+const publicVehicleSelect = Prisma.validator<Prisma.VehicleSelectScalar>()({
+  id: true,
+  slug: true,
+  brand: true,
+  model: true,
+  year: true,
+  category: true,
+  transmission: true,
+  fuelType: true,
+  seats: true,
+  pricePerDay: true,
+  description: true,
+  status: true,
+});
+
+const publicVehicleArgs = Prisma.validator<Prisma.VehicleDefaultArgs>()({
+  select: {
+    ...publicVehicleSelect,
+    images: { orderBy: { sortOrder: "asc" as const }, select: { url: true } },
+  },
+});
+
+export type PublicVehicle = Prisma.VehicleGetPayload<typeof publicVehicleArgs>;
+
+/** The allowlist, exposed so a test can assert nothing sensitive creeps in. */
+export const publicVehicleFields = Object.keys(publicVehicleSelect);
+
 function slugify(brand: string, model: string, year: number): string {
   return `${brand}-${model}-${year}`
     .toLowerCase()
@@ -46,28 +81,21 @@ function registrationWhere(
   }
 }
 
-export async function getVehicles(
-  filters: VehicleFilterInput,
-  opts: {
-    includeInactive?: boolean;
-    brand?: string;
-    /** Admin-only: the public listing must never filter by these. */
-    status?: VehicleStatus;
-    registration?: RegistrationFilter;
-  } = {}
-): Promise<Paginated<VehicleWithImages>> {
-  const {
-    page,
-    perPage,
-    category,
-    transmission,
-    minPrice,
-    maxPrice,
-    from,
-    to,
-  } = filters;
+type VehicleReadOpts = {
+  includeInactive?: boolean;
+  brand?: string;
+  /** Admin-only: the public listing must never filter by these. */
+  status?: VehicleStatus;
+  registration?: RegistrationFilter;
+};
 
-  const where: Prisma.VehicleWhereInput = {
+/** Shared by the admin and public reads so their filtering cannot drift. */
+function buildVehicleWhere(
+  filters: VehicleFilterInput,
+  opts: VehicleReadOpts
+): Prisma.VehicleWhereInput {
+  const { category, transmission, minPrice, maxPrice, from, to } = filters;
+  return {
     ...(opts.status
       ? { status: opts.status }
       : opts.includeInactive
@@ -95,6 +123,14 @@ export async function getVehicles(
         },
       }),
   };
+}
+
+export async function getVehicles(
+  filters: VehicleFilterInput,
+  opts: VehicleReadOpts = {}
+): Promise<Paginated<VehicleWithImages>> {
+  const { page, perPage } = filters;
+  const where = buildVehicleWhere(filters, opts);
 
   const [items, total] = await prisma.$transaction([
     prisma.vehicle.findMany({
@@ -189,6 +225,36 @@ export async function deleteVehicle(id: string): Promise<void> {
   // removes the rows, not the hosted files.
   await deleteAllVehicleImages(id);
   await prisma.vehicle.delete({ where: { id } });
+}
+
+/**
+ * Public listing. Same filters as the admin read, but a narrow payload and
+ * no access to retired or off-road vehicles.
+ */
+export async function getPublicVehicles(
+  filters: VehicleFilterInput
+): Promise<Paginated<PublicVehicle>> {
+  const { page, perPage } = filters;
+  const where = buildVehicleWhere(filters, {});
+
+  const [items, total] = await prisma.$transaction([
+    prisma.vehicle.findMany({
+      where,
+      ...publicVehicleArgs,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+    }),
+    prisma.vehicle.count({ where }),
+  ]);
+
+  return {
+    items,
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  };
 }
 
 /** Distinct brands in the fleet, for the admin filter dropdown. */

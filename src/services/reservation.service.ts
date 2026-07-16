@@ -6,7 +6,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { calculateTotalPrice } from "@/utils/pricing";
-import { upsertCustomerByEmail } from "@/services/customer.service";
+import { findOrCreateCustomerByEmail } from "@/services/customer.service";
 import type {
   AvailabilityInput,
   CreateBookingInput,
@@ -75,7 +75,7 @@ export async function createReservation(
     throw new ConflictError("Vehicle is already booked for the selected dates");
   }
 
-  const customer = await upsertCustomerByEmail(input.customer);
+  const customer = await findOrCreateCustomerByEmail(input.customer);
 
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({

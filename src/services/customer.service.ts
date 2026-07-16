@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { NotFoundError } from "@/lib/errors";
 import type { Customer } from "@prisma/client";
@@ -12,22 +13,36 @@ export type CustomerInput = {
 };
 
 /**
- * Public bookings identify customers by email: a returning customer is
- * updated with their latest contact details instead of duplicated.
+ * Attach a public booking to a customer, creating one only if the email is
+ * new.
+ *
+ * Deliberately does NOT update an existing record. This runs unauthenticated:
+ * anyone who guesses a customer's email could otherwise rewrite the name and
+ * phone number staff call to confirm a rental. A returning customer whose
+ * details have genuinely changed is corrected by staff in the admin, where
+ * there is an identity to trust.
  */
-export async function upsertCustomerByEmail(
+export async function findOrCreateCustomerByEmail(
   input: CustomerInput
 ): Promise<Customer> {
   const email = input.email.toLowerCase();
-  return prisma.customer.upsert({
-    where: { email },
-    create: { ...input, email },
-    update: {
-      firstName: input.firstName,
-      lastName: input.lastName,
-      phone: input.phone,
-    },
-  });
+  const existing = await prisma.customer.findUnique({ where: { email } });
+  if (existing) return existing;
+
+  try {
+    return await prisma.customer.create({ data: { ...input, email } });
+  } catch (error) {
+    // Two bookings for a new email can race between the read and the write;
+    // the unique index settles it, and the loser just reads the winner's row.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const raced = await prisma.customer.findUnique({ where: { email } });
+      if (raced) return raced;
+    }
+    throw error;
+  }
 }
 
 export async function getCustomers({

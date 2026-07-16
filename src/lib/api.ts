@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizeError } from "@/lib/errors";
+import { normalizeError, TooManyRequestsError } from "@/lib/errors";
 import type { ApiSuccess } from "@/types/api";
 
 export function ok<T>(
@@ -22,7 +22,13 @@ export function withErrorHandling<Args extends unknown[]>(
       return await handler(...args);
     } catch (error) {
       const { status, body } = normalizeError(error);
-      return NextResponse.json(body, { status });
+      // A 429 without Retry-After tells a client nothing about when to
+      // come back, so well-behaved ones hammer anyway.
+      const headers =
+        error instanceof TooManyRequestsError
+          ? { "Retry-After": String(error.retryAfter) }
+          : undefined;
+      return NextResponse.json(body, { status, headers });
     }
   };
 }

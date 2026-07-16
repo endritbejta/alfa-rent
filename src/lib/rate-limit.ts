@@ -1,0 +1,85 @@
+import { prisma } from "@/lib/db/prisma";
+
+export type RateLimitResult = {
+  allowed: boolean;
+  remaining: number;
+  /** Seconds until the window resets — surfaced as Retry-After. */
+  retryAfter: number;
+};
+
+/**
+ * Fixed-window rate limiting backed by Postgres.
+ *
+ * Postgres rather than a cache because it is already shared by every
+ * serverless instance, and an in-memory counter would reset on cold start
+ * and count separately per instance — worse than useless, since it would
+ * look like protection while providing none. A dedicated cache would cost
+ * less per check; at this traffic one indexed upsert is not the bottleneck.
+ *
+ * The count is incremented in a single statement: reading then writing
+ * would let two simultaneous attempts both observe the old value and both
+ * pass, which is exactly the case a limiter exists to stop.
+ */
+export async function consumeRateLimit(
+  key: string,
+  limit: number,
+  windowSeconds: number
+): Promise<RateLimitResult> {
+  const rows = await prisma.$queryRaw<{ count: number; expiresAt: Date }[]>`
+    INSERT INTO rate_limits ("key", "count", "expiresAt")
+    VALUES (${key}, 1, now() + make_interval(secs => ${windowSeconds}))
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE
+        WHEN rate_limits."expiresAt" < now() THEN 1
+        ELSE rate_limits."count" + 1
+      END,
+      "expiresAt" = CASE
+        WHEN rate_limits."expiresAt" < now()
+          THEN now() + make_interval(secs => ${windowSeconds})
+        ELSE rate_limits."expiresAt"
+      END
+    RETURNING "count", "expiresAt"
+  `;
+
+  const row = rows[0];
+  if (!row) {
+    // Never fail closed on a limiter fault — losing the counter must not
+    // take the booking form down with it.
+    return { allowed: true, remaining: limit, retryAfter: 0 };
+  }
+
+  const retryAfter = Math.max(
+    0,
+    Math.ceil((row.expiresAt.getTime() - Date.now()) / 1000)
+  );
+
+  return {
+    allowed: row.count <= limit,
+    remaining: Math.max(0, limit - row.count),
+    retryAfter,
+  };
+}
+
+/**
+ * Best-effort client identity. Vercel sets x-forwarded-for; the left-most
+ * entry is the client, the rest are proxies. A spoofed header only ever
+ * splits an attacker's own bucket, never someone else's.
+ */
+export function clientIp(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]!.trim();
+  return headers.get("x-real-ip") ?? "unknown";
+}
+
+/** Clears a window, e.g. once a sign-in finally succeeds. */
+export async function resetRateLimit(key: string): Promise<void> {
+  await prisma.rateLimit.deleteMany({ where: { key } });
+}
+
+/** Drops expired windows. Cheap enough to run opportunistically. */
+export async function sweepRateLimits(): Promise<number> {
+  const { count } = await prisma.rateLimit.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+  return count;
+}

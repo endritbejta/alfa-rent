@@ -173,3 +173,15 @@ model Reservation {
   @@index([status])
   @@map("reservations")
 }
+
+/// Fixed-window counters for abuse control. Kept in Postgres rather than a
+/// separate cache because it is already shared by every serverless instance
+/// — one fewer vendor to run, at the cost of a write per attempt.
+model RateLimit {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limits")
+}

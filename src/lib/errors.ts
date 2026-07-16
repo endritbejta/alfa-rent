@@ -43,6 +43,16 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor(
+    message = "Too many requests. Please wait a moment and try again.",
+    /** Seconds until the caller may retry — mirrored into Retry-After. */
+    public readonly retryAfter = 60
+  ) {
+    super(message, "RATE_LIMITED", 429);
+  }
+}
+
 /**
  * Map any thrown value to a response-ready shape. The generic fallback
  * deliberately hides internals: raw error messages can leak schema or

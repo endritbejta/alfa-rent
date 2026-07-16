@@ -30,13 +30,22 @@ export const registrationFilters = [
 ] as const;
 export type RegistrationFilter = (typeof registrationFilters)[number];
 
+/**
+ * Every field falls back on its own via `.catch`, so one unreadable param
+ * drops just that filter instead of failing the parse and quietly handing
+ * back an unfiltered fleet.
+ */
 export const adminVehicleFilterSchema = vehicleFilterSchema.extend({
-  brand: z.string().trim().min(1).max(50).optional(),
-  status: z.enum(VehicleStatus).optional(),
-  registration: z.enum(registrationFilters).optional(),
-  // Staff page the whole fleet at once; the public cap of 50 is a
-  // payload guard for anonymous traffic, not an operational limit.
-  perPage: z.coerce.number().int().min(1).max(200).default(60),
+  brand: z.string().trim().min(1).max(50).optional().catch(undefined),
+  status: z.enum(VehicleStatus).optional().catch(undefined),
+  registration: z.enum(registrationFilters).optional().catch(undefined),
+  category: z.enum(VehicleCategory).optional().catch(undefined),
+  transmission: z.enum(Transmission).optional().catch(undefined),
+  page: z.coerce.number().int().min(1).catch(1),
+  // A real page size: the admin list paginates, so this no longer has to
+  // grow with the fleet. The public cap of 50 is a payload guard for
+  // anonymous traffic; staff may page a little larger.
+  perPage: z.coerce.number().int().min(1).max(100).catch(24),
 });
 
 export type AdminVehicleFilterInput = z.infer<typeof adminVehicleFilterSchema>;

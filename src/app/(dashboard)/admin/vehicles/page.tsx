@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import Image from "next/image";
 import { requireUser } from "@/lib/auth/guards";
 import {
@@ -15,6 +16,7 @@ import { BarList } from "@/components/dashboard/bar-list";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
 import { VehicleGrid } from "./vehicle-grid";
 import { VehicleFilters } from "./vehicle-filters";
+import { Pagination } from "@/components/dashboard/pagination";
 import { RecentlyAdded } from "./recently-added";
 import { registrationState } from "@/services/fleet.service";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -130,24 +132,39 @@ export default async function VehiclesPage({
   const isAdmin = user.role === "ADMIN";
 
   const params = await searchParams;
-  // Drop only the offending key rather than the whole filter set: a bad
-  // value in one param must never silently widen the query to everything.
+  // Each field falls back on its own (see the schema), so an unreadable
+  // param drops only that filter — it can never silently widen the query
+  // back to the whole fleet.
   const parsed = adminVehicleFilterSchema.safeParse(params);
   const filters = parsed.success
     ? parsed.data
     : adminVehicleFilterSchema.parse({});
 
-  const [{ items, total }, insights, brands] = await Promise.all([
-    getVehicles(filters, {
-      includeInactive: true,
-      brand: "brand" in filters ? filters.brand : undefined,
-      status: "status" in filters ? filters.status : undefined,
-      registration:
-        "registration" in filters ? filters.registration : undefined,
-    }),
-    getFleetInsights(),
-    getVehicleBrands(),
-  ]);
+  const [{ items, total, page, perPage, totalPages }, insights, brands] =
+    await Promise.all([
+      getVehicles(filters, {
+        includeInactive: true,
+        brand: "brand" in filters ? filters.brand : undefined,
+        status: "status" in filters ? filters.status : undefined,
+        registration:
+          "registration" in filters ? filters.registration : undefined,
+      }),
+      getFleetInsights(),
+      getVehicleBrands(),
+    ]);
+
+  // A stale ?page from a wider result set would strand staff on a blank
+  // page; send them back to the first page of what they actually asked for.
+  if (total > 0 && page > totalPages) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(
+        (entry): entry is [string, string] =>
+          entry[0] !== "page" && entry[1] !== undefined
+      )
+    );
+    const qs = query.toString();
+    redirect(qs ? `/admin/vehicles?${qs}` : "/admin/vehicles");
+  }
 
   const counts = insights.statusCounts;
   const activeFleet = items.filter((v) => v.status !== "INACTIVE").length;
@@ -197,33 +214,43 @@ export default async function VehiclesPage({
           </p>
         </div>
       ) : (
-        <ViewSwitcher
-          grid={
-            <VehicleGrid
-              items={items.map((v) => {
-                const reg = registrationState(v.registrationExpiry);
-                return {
-                  id: v.id,
-                  brand: v.brand,
-                  model: v.model,
-                  plate: v.plate,
-                  year: v.year,
-                  category: v.category,
-                  transmission: v.transmission,
-                  fuelType: v.fuelType,
-                  seats: v.seats,
-                  pricePerDay: String(v.pricePerDay),
-                  status: v.status,
-                  image: v.images[0]?.url ?? null,
-                  registrationDue: reg.state === "due",
-                  registrationExpired: reg.state === "expired",
-                };
-              })}
-            />
-          }
-          list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
-          compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}
-        />
+        <>
+          <ViewSwitcher
+            grid={
+              <VehicleGrid
+                items={items.map((v) => {
+                  const reg = registrationState(v.registrationExpiry);
+                  return {
+                    id: v.id,
+                    brand: v.brand,
+                    model: v.model,
+                    plate: v.plate,
+                    year: v.year,
+                    category: v.category,
+                    transmission: v.transmission,
+                    fuelType: v.fuelType,
+                    seats: v.seats,
+                    pricePerDay: String(v.pricePerDay),
+                    status: v.status,
+                    image: v.images[0]?.url ?? null,
+                    registrationDue: reg.state === "due",
+                    registrationExpired: reg.state === "expired",
+                  };
+                })}
+              />
+            }
+            list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
+            compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}
+          />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            perPage={perPage}
+            basePath="/admin/vehicles"
+            label="vehicles"
+          />
+        </>
       )}
     </div>
   );

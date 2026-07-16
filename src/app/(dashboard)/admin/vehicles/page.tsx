@@ -130,8 +130,12 @@ export default async function VehiclesPage({
   const isAdmin = user.role === "ADMIN";
 
   const params = await searchParams;
-  const parsed = adminVehicleFilterSchema.safeParse({ ...params, perPage: 60 });
-  const filters = parsed.success ? parsed.data : { page: 1, perPage: 60 };
+  // Drop only the offending key rather than the whole filter set: a bad
+  // value in one param must never silently widen the query to everything.
+  const parsed = adminVehicleFilterSchema.safeParse(params);
+  const filters = parsed.success
+    ? parsed.data
+    : adminVehicleFilterSchema.parse({});
 
   const [{ items, total }, insights, brands] = await Promise.all([
     getVehicles(filters, {

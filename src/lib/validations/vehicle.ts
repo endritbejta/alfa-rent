@@ -34,6 +34,9 @@ export const adminVehicleFilterSchema = vehicleFilterSchema.extend({
   brand: z.string().trim().min(1).max(50).optional(),
   status: z.enum(VehicleStatus).optional(),
   registration: z.enum(registrationFilters).optional(),
+  // Staff page the whole fleet at once; the public cap of 50 is a
+  // payload guard for anonymous traffic, not an operational limit.
+  perPage: z.coerce.number().int().min(1).max(200).default(60),
 });
 
 export type AdminVehicleFilterInput = z.infer<typeof adminVehicleFilterSchema>;

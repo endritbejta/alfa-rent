@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "postinstall": "prisma generate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:seed": "prisma db seed"
   },
   "engines": {
     "node": ">=20"

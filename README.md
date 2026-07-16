@@ -94,3 +94,39 @@ prisma/
 - `npx prettier --write .` — format
 - Husky runs lint on pre-commit
 - Branch from `main`, conventional commit messages (`feat:`, `fix:`, `chore:`)
+
+## Deployment (Vercel + Supabase)
+
+The app is stateless; everything lives in Postgres. Vercel cannot reach a
+database on your laptop, so production needs a hosted one.
+
+1. **Create a Supabase project** and copy its two connection strings.
+2. **Set these in Vercel** (Project → Settings → Environment Variables):
+
+   | Variable                                                                 | Value                                                                      |
+   | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+   | `DATABASE_URL`                                                           | Supabase **pooled** URL (port 6543) + `?pgbouncer=true&connection_limit=1` |
+   | `DIRECT_URL`                                                             | Supabase **direct** URL (port 5432) — used for migrations                  |
+   | `AUTH_SECRET`                                                            | `openssl rand -base64 32`                                                  |
+   | `AUTH_URL`                                                               | `https://<your-app>.vercel.app` (no trailing slash)                        |
+   | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | from Cloudinary                                                            |
+   | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`                                      | same cloud name                                                            |
+
+   The pooled URL serves requests; the direct URL exists because
+   migrations cannot run through PgBouncer.
+
+3. **Deploy.** `npm run build` runs `prisma migrate deploy` first, so the
+   schema is created on the production database automatically.
+4. **Seed once** (optional, for demo data) from your machine:
+
+   ```bash
+   DATABASE_URL="<supabase-direct-url>" DIRECT_URL="<supabase-direct-url>" npm run db:seed
+   ```
+
+   Seeding is deliberately not part of the build: the seed wipes the
+   database, and a redeploy must never destroy real bookings.
+
+### Local vs production
+
+Keep `AUTH_URL=http://localhost:3000` in your local `.env`. Pointing it at
+the deployed URL breaks local sign-in callbacks.

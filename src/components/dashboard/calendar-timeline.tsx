@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { createManualReservationAction } from "@/app/(dashboard)/admin/calendar/actions";
+import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,17 @@ const BAR_STYLES: Record<BarStatus, string> = {
   ACTIVE: "bg-status-rented/90 text-white",
 };
 
-const NAME_W = 200;
+/**
+ * Vehicle column width, as a CSS variable rather than a number so it can
+ * shrink at the mobile breakpoint. At a fixed 200px it took over half a
+ * 375px screen, leaving about three days of calendar visible — the column
+ * naming the rows was crowding out the rows. The value is set on the
+ * scroller; everything else derives from it.
+ */
+const NAME_W = "var(--name-w)";
+/** The sticky column plus the day grid — the scrollable width of a row. */
+const rowW = (gridW: number) => `calc(${NAME_W} + ${gridW}px)`;
+
 const ZOOMS = { compact: 34, comfortable: 68 } as const;
 type Zoom = keyof typeof ZOOMS;
 
@@ -67,6 +78,7 @@ export function CalendarTimeline({
   rows,
   vehicleOptions,
 }: Props) {
+  const { openReservation } = useDetailDrawer();
   const [zoom, setZoom] = useState<Zoom>("compact");
   const dayW = ZOOMS[zoom];
   const days = dayDates.length;
@@ -203,13 +215,13 @@ export function CalendarTimeline({
       <div
         ref={scroller}
         onScroll={syncMonth}
-        className="bg-card max-h-[68vh] overflow-auto overscroll-x-contain rounded-xl border shadow-xs"
+        className="bg-card max-h-[68vh] overflow-auto overscroll-x-contain rounded-xl border shadow-xs [--name-w:7.5rem] sm:[--name-w:12.5rem]"
       >
-        <div style={{ width: NAME_W + gridW }}>
+        <div style={{ width: rowW(gridW) }}>
           {/* Header: month band + day numbers */}
           <div
             className="bg-card sticky top-0 z-30 border-b"
-            style={{ width: NAME_W + gridW }}
+            style={{ width: rowW(gridW) }}
           >
             <div className="flex">
               <div
@@ -269,7 +281,7 @@ export function CalendarTimeline({
                   dimmed && "opacity-40",
                   focused && "bg-brand/[0.04]"
                 )}
-                style={{ width: NAME_W + gridW }}
+                style={{ width: rowW(gridW) }}
               >
                 <div
                   className="bg-card sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r px-3 py-1.5 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
@@ -318,7 +330,7 @@ export function CalendarTimeline({
                       <button
                         key={r.id}
                         type="button"
-                        title={`${r.customerName} (${r.status.toLowerCase()})`}
+                        title={`${r.customerName} (${r.status.toLowerCase()}) — double-click for details`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelected(
@@ -331,6 +343,21 @@ export function CalendarTimeline({
                                   end: r.start + r.span - 1,
                                 }
                           );
+                        }}
+                        // Single click traces the dates, so detail goes on the
+                        // second — the cheap gesture keeps the cheap job.
+                        // The two clicks that precede a dblclick toggle the
+                        // trace off again, so set it outright: a double-click
+                        // leaves the rental both traced and open.
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          setSelected({
+                            rowId: row.id,
+                            id: r.id,
+                            start: r.start,
+                            end: r.start + r.span - 1,
+                          });
+                          openReservation(r.id);
                         }}
                         className={cn(
                           "absolute top-2 z-10 h-7 cursor-pointer truncate rounded-md px-2 text-left text-xs leading-7 transition-shadow",

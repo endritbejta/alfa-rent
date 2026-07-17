@@ -10,17 +10,12 @@ import { cn } from "@/lib/utils";
  * shareable, survives a refresh, and lets a notification hand the operator
  * a pre-filtered page instead of a search box.
  */
+/**
+ * Availability is not here: it is the segmented control above the fleet,
+ * where the counts live. Two controls for one parameter meant the operator
+ * could see it set in one place and clear it in another.
+ */
 const GROUPS = [
-  {
-    param: "status",
-    label: "Availability",
-    options: [
-      { key: "AVAILABLE", label: "Free", dot: "bg-status-available" },
-      { key: "RENTED", label: "Taken", dot: "bg-status-rented" },
-      { key: "SERVICE", label: "In service", dot: "bg-status-maint" },
-      { key: "INACTIVE", label: "Retired", dot: "bg-status-inactive" },
-    ],
-  },
   {
     param: "registration",
     label: "Registration",
@@ -36,22 +31,21 @@ const GROUPS = [
 const FILTER_LABELS: Record<string, string> = {
   brand: "Brand",
   category: "Category",
-  status: "Availability",
   registration: "Registration",
 };
 
 const VALUE_LABELS: Record<string, string> = {
-  AVAILABLE: "Free",
-  RENTED: "Taken",
-  SERVICE: "In service",
-  INACTIVE: "Retired",
   valid: "Registered",
   due: "Expiring soon",
   expired: "Expired",
   missing: "Not recorded",
 };
 
-const KEYS = ["brand", "category", "status", "registration"] as const;
+/**
+ * No "status": the segmented control above shows what it is set to and can
+ * clear it, so a chip here would be the same state a second time.
+ */
+const KEYS = ["brand", "category", "registration"] as const;
 
 export function VehicleFilters({
   brands,

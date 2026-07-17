@@ -3,17 +3,25 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
-import { normalizeError } from "@/lib/errors";
+import { normalizeError, TooManyRequestsError } from "@/lib/errors";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import {
+  draftFolder,
+  signUpload,
+  vehicleFolder,
+  type UploadSignature,
+} from "@/lib/cloudinary";
 import {
   createVehicleSchema,
   updateVehicleSchema,
 } from "@/lib/validations/vehicle";
+import { parseVehicleImagesField } from "@/lib/validations/image";
 import {
   createVehicle,
   deleteVehicle,
   updateVehicle,
 } from "@/services/vehicle.service";
-import { addVehicleImages, deleteVehicleImage } from "@/services/image.service";
+import { syncVehicleImages } from "@/services/image.service";
 import { addRepair, deleteRepair } from "@/services/fleet.service";
 import { repairSchema } from "@/lib/validations/repair";
 
@@ -42,10 +50,36 @@ function parseVehicleFields(formData: FormData) {
   };
 }
 
-function imageFiles(formData: FormData): File[] {
-  return formData
-    .getAll("images")
-    .filter((f): f is File => f instanceof File && f.size > 0);
+/**
+ * Mints a short-lived Cloudinary signature so the browser can upload the
+ * file directly. Uploading through this action instead would cap the whole
+ * form at Vercel's 4.5 MB request body limit — under two phone photos.
+ *
+ * Rate limited per user: a signature is the credential that permits a write
+ * to our Cloudinary account, and issuing them is otherwise unmetered.
+ */
+export async function signVehicleUploadAction(
+  target: { vehicleId: string } | { draftId: string }
+): Promise<{ signature: UploadSignature } | { error: string }> {
+  try {
+    const user = await requireRole("ADMIN");
+    const limit = await consumeRateLimit(`upload-sign:${user.id}`, 60, 300);
+    if (!limit.allowed) {
+      throw new TooManyRequestsError(
+        "Too many uploads. Please wait a moment and try again.",
+        limit.retryAfter
+      );
+    }
+
+    const folder =
+      "vehicleId" in target
+        ? vehicleFolder(target.vehicleId)
+        : draftFolder(target.draftId);
+
+    return { signature: signUpload(folder) };
+  } catch (error) {
+    return { error: normalizeError(error).body.error.message };
+  }
 }
 
 export async function createVehicleAction(
@@ -55,9 +89,10 @@ export async function createVehicleAction(
   let vehicleId: string;
   try {
     const input = createVehicleSchema.parse(parseVehicleFields(formData));
+    const images = parseVehicleImagesField(formData.get("images"));
     const vehicle = await createVehicle(input);
     vehicleId = vehicle.id;
-    await addVehicleImages(vehicle.id, imageFiles(formData));
+    await syncVehicleImages(vehicle.id, images);
   } catch (error) {
     return { error: normalizeError(error).body.error.message };
   }
@@ -72,8 +107,9 @@ export async function updateVehicleAction(
   await requireRole("ADMIN");
   try {
     const input = updateVehicleSchema.parse(parseVehicleFields(formData));
+    const images = parseVehicleImagesField(formData.get("images"));
     await updateVehicle(vehicleId, input);
-    await addVehicleImages(vehicleId, imageFiles(formData));
+    await syncVehicleImages(vehicleId, images);
   } catch (error) {
     return { error: normalizeError(error).body.error.message };
   }
@@ -87,19 +123,6 @@ export async function deleteVehicleAction(
   await requireRole("ADMIN");
   try {
     await deleteVehicle(vehicleId);
-  } catch (error) {
-    return { error: normalizeError(error).body.error.message };
-  }
-  revalidatePath("/admin/vehicles");
-  return undefined;
-}
-
-export async function deleteVehicleImageAction(
-  imageId: string
-): Promise<ActionResult> {
-  await requireRole("ADMIN");
-  try {
-    await deleteVehicleImage(imageId);
   } catch (error) {
     return { error: normalizeError(error).body.error.message };
   }

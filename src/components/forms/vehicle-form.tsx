@@ -22,19 +22,46 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import type { VehicleWithImages } from "@/services/vehicle.service";
 import type { ActionResult } from "@/app/(dashboard)/admin/vehicles/actions";
-import { ImageDropzone } from "@/components/forms/image-dropzone";
+import { signVehicleUploadAction } from "@/app/(dashboard)/admin/vehicles/actions";
+import { MediaGrid } from "@/components/forms/media-grid";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * A plain, already-serialized vehicle — deliberately not Prisma's
+ * VehicleWithImages. `pricePerDay` is a Decimal on the model, and handing a
+ * Decimal to a client component is a hard RSC serialization error, so the
+ * page maps it to a number at the boundary. Same shape of contract as
+ * vehicle-grid's Item type.
+ */
+export type VehicleFormValues = {
+  id: string;
+  brand: string;
+  model: string;
+  plate: string | null;
+  year: number;
+  category: VehicleCategory;
+  transmission: Transmission;
+  fuelType: FuelType;
+  seats: number;
+  pricePerDay: number;
+  description: string;
+  status: VehicleStatus;
+  registrationDate: Date | null;
+  registrationExpiry: Date | null;
+  lastServiceDate: Date | null;
+  nextServiceDate: Date | null;
+  serviceNotes: string | null;
+  images: { id: string; url: string }[];
+};
+
 type Props = {
   action: (formData: FormData) => Promise<ActionResult>;
-  vehicle?: VehicleWithImages;
-  onDeleteImage?: (imageId: string) => Promise<ActionResult>;
+  vehicle?: VehicleFormValues;
   onDeleteVehicle?: () => Promise<ActionResult>;
 };
 
@@ -42,12 +69,7 @@ type Props = {
 const toDateInput = (d: Date | null | undefined) =>
   d ? new Date(d).toISOString().slice(0, 10) : "";
 
-export function VehicleForm({
-  action,
-  vehicle,
-  onDeleteImage,
-  onDeleteVehicle,
-}: Props) {
+export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,10 +158,12 @@ export function VehicleForm({
         </p>
       )}
 
-      <ImageDropzone
+      <MediaGrid
         name="images"
-        existing={vehicle?.images.map((i) => ({ id: i.id, url: i.url })) ?? []}
-        onDeleteExisting={onDeleteImage}
+        vehicleId={vehicle?.id}
+        existing={vehicle?.images ?? []}
+        signUpload={signVehicleUploadAction}
+        onDirty={() => setDirty(true)}
       />
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
@@ -209,7 +233,7 @@ export function VehicleForm({
                 type="number"
                 step="0.01"
                 min={1}
-                defaultValue={vehicle ? Number(vehicle.pricePerDay) : undefined}
+                defaultValue={vehicle?.pricePerDay}
                 required
               />
             </Field>

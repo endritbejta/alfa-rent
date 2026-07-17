@@ -7,6 +7,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
 import { cn } from "@/lib/utils";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function AnalyticsPage({
   const data = await getAnalytics(period);
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <PageHeader title="Analytics" description={data.periodLabel}>
         {/* Period switch: a soft navigation, so charts re-render on the
             server without a full page load. */}
@@ -95,6 +96,6 @@ export default async function AnalyticsPage({
           <AreaChart data={data.customerGrowth} height={140} />
         </Panel>
       </div>
-    </div>
+    </PageBody>
   );
 }

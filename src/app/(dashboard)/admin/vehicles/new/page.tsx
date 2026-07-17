@@ -1,13 +1,14 @@
 import { requireRole } from "@/lib/auth/guards";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { createVehicleAction } from "../actions";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export default async function NewVehiclePage() {
   await requireRole("ADMIN");
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <VehicleForm action={createVehicleAction} />
-    </div>
+    </PageBody>
   );
 }

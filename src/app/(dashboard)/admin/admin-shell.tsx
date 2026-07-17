@@ -149,26 +149,37 @@ export function AdminShell({
   return (
     <ReservationDetailProvider>
       <CommandPalette pendingCount={pendingCount} />
-      <div className="tabular-shell flex min-h-screen">
-        {/* Desktop sidebar */}
+      <div className="tabular-shell bg-background flex min-h-screen">
+        {/*
+          The floating rail. The aside is a transparent, sticky, full-height
+          padding frame; the charcoal panel floats inside it with the bench
+          showing on all four sides. This is the personality move — a black
+          rail on a warm bench is a silhouette no reference product shares —
+          and it keeps the sidebar fully opaque, so the black in
+          black-white-red stays black. (Glass here would be inert anyway:
+          nothing scrolls behind a flex-column sidebar.)
+        */}
         <aside
           className={cn(
-            "bg-sidebar text-sidebar-foreground border-sidebar-border relative hidden shrink-0 flex-col border-r transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)] lg:flex",
-            collapsed ? "w-16" : "w-60"
+            "sticky top-0 hidden h-screen shrink-0 p-3 transition-[width] duration-[var(--motion-panel)] ease-[var(--ease-standard)] lg:block",
+            collapsed ? "w-[88px]" : "w-[264px]"
           )}
         >
-          <SidebarChrome
-            user={user}
-            signOutAction={signOutAction}
-            pendingCount={pendingCount}
-            collapsed={collapsed}
-          />
+          <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-[20px] shadow-lg">
+            <SidebarChrome
+              user={user}
+              signOutAction={signOutAction}
+              pendingCount={pendingCount}
+              collapsed={collapsed}
+            />
+          </div>
+          {/* Sits on the rail's right edge, outside the clipped panel. */}
           <button
             type="button"
             onClick={toggleCollapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             title={`${collapsed ? "Expand" : "Collapse"} sidebar  [`}
-            className="bg-sidebar border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground absolute top-[62px] -right-3 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border shadow-sm transition-colors"
+            className="bg-sidebar border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground absolute top-[84px] right-0 z-20 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border shadow-sm transition-colors"
           >
             {collapsed ? (
               <PanelLeftOpen className="h-3 w-3" />
@@ -206,8 +217,11 @@ export function AdminShell({
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* Mobile topbar */}
-          <header className="bg-sidebar text-sidebar-foreground sticky top-0 z-40 flex h-14 items-center justify-between px-4 lg:hidden">
+          {/* Mobile topbar — glass, because content genuinely scrolls under
+              it here (unlike the desktop rail). Translucent charcoal, not the
+              light popover glass: the bar is the brand surface and its text is
+              near-white, which would vanish on a light frost. */}
+          <header className="text-sidebar-foreground sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-[color-mix(in_srgb,var(--sidebar)_82%,transparent)] px-4 backdrop-blur-xl lg:hidden">
             <p className="font-display font-bold">
               ALFA <span className="text-sidebar-primary">RENT</span>
             </p>
@@ -226,14 +240,14 @@ export function AdminShell({
             </button>
           </header>
 
-          <main className="bg-background min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            {/* A ceiling. Unbounded, the reservations table stretches to 2000px
-                on a 27" display and the eye loses the row between customer and
-                status on the way across. */}
-            <div className="mx-auto w-full max-w-[1440px]">
+          {/* The ceiling moved into PageBody (per page). The banner keeps it
+              here so alerts align with page content; :empty guards the margin
+              when nothing is showing. The calendar opts out and runs full-width. */}
+          <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+            <div className="mx-auto w-full max-w-[1440px] [&:not(:empty)]:mb-6">
               {banner}
-              {children}
             </div>
+            {children}
           </main>
         </div>
       </div>

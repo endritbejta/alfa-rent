@@ -49,7 +49,9 @@ export default function RootLayout({
         } as React.CSSProperties
       }
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="app-background flex min-h-full flex-col">
+        {children}
+      </body>
     </html>
   );
 }

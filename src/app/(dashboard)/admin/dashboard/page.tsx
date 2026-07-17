@@ -11,6 +11,7 @@ import { ScheduleList } from "@/components/dashboard/schedule-list";
 import { Button } from "@/components/ui/button";
 import { RecentReservations } from "./recent-reservations";
 import { PendingQueue } from "../reservations/pending-queue";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
   } = await getDashboardData();
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <PageHeader
         title="Dashboard"
         description={format(new Date(), "EEEE, dd MMMM yyyy")}
@@ -136,6 +137,6 @@ export default async function DashboardPage() {
           }))}
         />
       </Panel>
-    </div>
+    </PageBody>
   );
 }

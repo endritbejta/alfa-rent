@@ -4,6 +4,7 @@ import { getVehicleFleetProfile } from "@/services/fleet.service";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { RepairsPanel } from "./repairs";
 import { deleteVehicleAction, updateVehicleAction } from "../../actions";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export default async function EditVehiclePage({
   params,
@@ -21,7 +22,7 @@ export default async function EditVehiclePage({
   const deleteWithId = deleteVehicleAction.bind(null, id);
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <VehicleForm
         action={updateWithId}
         // Decimal cannot cross into a client component — convert at the edge.
@@ -63,6 +64,6 @@ export default async function EditVehiclePage({
         }))}
         stats={profile.stats}
       />
-    </div>
+    </PageBody>
   );
 }

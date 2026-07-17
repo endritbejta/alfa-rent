@@ -42,6 +42,15 @@ export const updateReservationStatusSchema = z.object({
 });
 
 /**
+ * Extending only ever moves the return date later; the service enforces
+ * that, along with availability and the registration ceiling. No past-date
+ * rule here — an ACTIVE rental's pickup is by definition already behind us.
+ */
+export const extendReservationSchema = z.object({
+  returnDate: z.coerce.date(),
+});
+
+/**
  * Admin "book on the phone" flow. Unlike the public form, staff choose the
  * initial status directly and identify the customer by name only; the
  * past-date restriction is dropped so a walk-in that already started can be

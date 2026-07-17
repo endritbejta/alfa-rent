@@ -15,6 +15,7 @@ import {
 import { DetailDrawer } from "@/components/dashboard/detail-drawer";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./reservations/status-actions";
+import { ExtendReservation } from "./reservations/extend-reservation";
 import { VehicleDetailBody } from "./vehicle-detail-body";
 import { CustomerDetailBody } from "./customer-detail-body";
 import { SectionTitle, Row, DrawerSkeleton } from "./detail-primitives";
@@ -127,7 +128,14 @@ export function ReservationDetailProvider({
           </p>
         )}
         {loaded?.kind === "reservation" && (
-          <ReservationBody detail={loaded.data} onDone={() => setOpen(false)} />
+          <ReservationBody
+            detail={loaded.data}
+            onDone={() => setOpen(false)}
+            // An extension rewrites the dates and total shown here, so the
+            // drawer reloads in place rather than dismissing — the operator
+            // stays on the record they just changed and sees the result.
+            onChanged={() => openReservation(loaded.data.id)}
+          />
         )}
         {loaded?.kind === "vehicle" && (
           <VehicleDetailBody detail={loaded.data} />
@@ -145,10 +153,13 @@ const eur = (v: unknown) => `${Number(v).toFixed(2)} EUR`;
 function ReservationBody({
   detail,
   onDone,
+  onChanged,
 }: {
   detail: ReservationDetail;
   /** Completing a task here should feel finished — the drawer dismisses. */
   onDone: () => void;
+  /** An edit that leaves the reservation open — reload, stay put. */
+  onChanged: () => void;
 }) {
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
@@ -208,6 +219,14 @@ function ReservationBody({
             </p>
           )}
         </div>
+        <ExtendReservation
+          reservationId={detail.id}
+          returnDate={detail.returnDate}
+          pricePerDay={detail.vehicle.pricePerDay}
+          extension={detail.extension}
+          onExtended={onChanged}
+        />
+
         <div className="mt-3">
           <StatusActions
             reservationId={detail.id}

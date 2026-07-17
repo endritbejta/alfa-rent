@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { AdminNav } from "./admin-nav";
+import { CommandPalette } from "./command-palette";
 import { ReservationDetailProvider } from "./reservation-detail";
+import {
+  SIDEBAR_COLLAPSED,
+  SIDEBAR_COOKIE,
+  SIDEBAR_MAX_AGE,
+} from "./sidebar-state";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ShellUser = { name: string; role: string };
 
@@ -13,31 +20,68 @@ function SidebarChrome({
   user,
   signOutAction,
   pendingCount,
+  collapsed = false,
 }: {
   user: ShellUser;
   signOutAction: () => Promise<void>;
   pendingCount: number;
+  collapsed?: boolean;
 }) {
   return (
     <>
-      <div className="border-sidebar-border border-b p-5">
-        <p className="font-display text-lg font-bold tracking-tight">
-          ALFA <span className="text-sidebar-primary">RENT</span>
-        </p>
-        <p className="text-sidebar-foreground/50 text-xs">Staff dashboard</p>
+      <div
+        className={cn(
+          "border-sidebar-border border-b",
+          collapsed ? "flex h-[73px] items-center justify-center px-2" : "p-5"
+        )}
+      >
+        {collapsed ? (
+          // The wordmark's own initial, not a new logo. Collapsing the
+          // sidebar shouldn't rebrand the product.
+          <p className="font-display text-lg font-bold">
+            A<span className="text-sidebar-primary">R</span>
+          </p>
+        ) : (
+          <>
+            <p className="font-display text-lg font-bold tracking-tight">
+              ALFA <span className="text-sidebar-primary">RENT</span>
+            </p>
+            <p className="text-sidebar-foreground/50 text-xs">
+              Staff dashboard
+            </p>
+          </>
+        )}
       </div>
-      <AdminNav pendingCount={pendingCount} />
-      <div className="border-sidebar-border border-t p-4">
-        <p className="truncate text-sm">{user.name}</p>
-        <p className="text-sidebar-foreground/50 mb-3 text-xs">{user.role}</p>
+
+      <AdminNav pendingCount={pendingCount} collapsed={collapsed} />
+
+      <div
+        className={cn(
+          "border-sidebar-border border-t",
+          collapsed ? "p-2" : "p-4"
+        )}
+      >
+        {!collapsed && (
+          <>
+            <p className="truncate text-sm">{user.name}</p>
+            <p className="text-sidebar-foreground/50 mb-3 text-xs">
+              {user.role}
+            </p>
+          </>
+        )}
         <form action={signOutAction}>
           <Button
             type="submit"
             variant="outline"
             size="sm"
-            className="w-full border-neutral-700 bg-transparent text-neutral-200 hover:bg-white/8 hover:text-white"
+            aria-label={collapsed ? "Sign out" : undefined}
+            title={collapsed ? `Sign out — ${user.name}` : undefined}
+            className={cn(
+              "w-full border-neutral-700 bg-transparent text-neutral-200 hover:bg-white/8 hover:text-white",
+              collapsed && "px-0"
+            )}
           >
-            Sign out
+            {collapsed ? <LogOut className="h-3.5 w-3.5" /> : "Sign out"}
           </Button>
         </form>
       </div>
@@ -49,16 +93,20 @@ export function AdminShell({
   user,
   signOutAction,
   pendingCount,
+  defaultCollapsed = false,
   banner,
   children,
 }: {
   user: ShellUser;
   signOutAction: () => Promise<void>;
   pendingCount: number;
+  /** Read from the cookie on the server, so the first paint is correct. */
+  defaultCollapsed?: boolean;
   banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
 
   // Close the drawer on navigation.
@@ -67,19 +115,70 @@ export function AdminShell({
     return () => clearTimeout(timer);
   }, [pathname]);
 
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((current) => {
+      const next = !current;
+      // Written here rather than through a server action: collapsing a
+      // sidebar should not cost a round trip. The server reads it on the
+      // next navigation.
+      document.cookie = `${SIDEBAR_COOKIE}=${
+        next ? SIDEBAR_COLLAPSED : "expanded"
+      }; path=/; max-age=${SIDEBAR_MAX_AGE}; samesite=lax`;
+      return next;
+    });
+  }, []);
+
+  // `[` toggles the sidebar — but not while someone is typing a `[`.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "[" || event.metaKey || event.ctrlKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName ?? "")
+      ) {
+        return;
+      }
+      event.preventDefault();
+      toggleCollapsed();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleCollapsed]);
+
   return (
     <ReservationDetailProvider>
+      <CommandPalette pendingCount={pendingCount} />
       <div className="tabular-shell flex min-h-screen">
         {/* Desktop sidebar */}
-        <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-60 shrink-0 flex-col border-r lg:flex">
+        <aside
+          className={cn(
+            "bg-sidebar text-sidebar-foreground border-sidebar-border relative hidden shrink-0 flex-col border-r transition-[width] duration-200 ease-[cubic-bezier(0.2,0,0,1)] lg:flex",
+            collapsed ? "w-16" : "w-60"
+          )}
+        >
           <SidebarChrome
             user={user}
             signOutAction={signOutAction}
             pendingCount={pendingCount}
+            collapsed={collapsed}
           />
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={`${collapsed ? "Expand" : "Collapse"} sidebar  [`}
+            className="bg-sidebar border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground absolute top-[62px] -right-3 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border shadow-sm transition-colors"
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-3 w-3" />
+            ) : (
+              <PanelLeftClose className="h-3 w-3" />
+            )}
+          </button>
         </aside>
 
-        {/* Mobile drawer */}
+        {/* Mobile drawer — never collapsed; on a phone there is no in-between. */}
         {open && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <button
@@ -128,8 +227,13 @@ export function AdminShell({
           </header>
 
           <main className="bg-background min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            {banner}
-            {children}
+            {/* A ceiling. Unbounded, the reservations table stretches to 2000px
+                on a 27" display and the eye loses the row between customer and
+                status on the way across. */}
+            <div className="mx-auto w-full max-w-[1440px]">
+              {banner}
+              {children}
+            </div>
           </main>
         </div>
       </div>

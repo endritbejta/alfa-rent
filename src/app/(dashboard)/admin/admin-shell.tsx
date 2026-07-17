@@ -69,7 +69,7 @@ export function AdminShell({
 
   return (
     <ReservationDetailProvider>
-      <div className="flex min-h-screen">
+      <div className="tabular-shell flex min-h-screen">
         {/* Desktop sidebar */}
         <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-60 shrink-0 flex-col border-r lg:flex">
           <SidebarChrome

@@ -18,11 +18,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -46,6 +41,17 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /*
+   * Elevation, warmed. A pure-black shadow on warm graphite reads as grey
+   * grime; these carry the same ~2% red bias as the neutral ramp, so a
+   * lifted sheet looks lit rather than dirty. Four steps, no more — the
+   * ladder in the design doc maps onto exactly these.
+   */
+  --shadow-xs: var(--elev-xs);
+  --shadow-sm: var(--elev-sm);
+  --shadow-md: var(--elev-md);
+  --shadow-lg: var(--elev-lg);
 
   /* Brand band (charcoal surfaces shared by hero, sidebar, footer) */
   --color-band: var(--band);
@@ -71,7 +77,15 @@
  * per viewport); deeper crimson reserved for destructive actions.
  */
 :root {
-  --background: #fcfbfb; /* N-25 */
+  /*
+   * The bench, not the paper. At #fcfbfb the canvas and a white card were
+   * within 1% of each other, so every panel needed a border to exist at all
+   * — which is why the app read as a grid of outlined boxes. Dropping the
+   * canvas to N-75 lets a plain white sheet register as lifted on its own,
+   * and most borders can then come off. This one value is the reason the
+   * rest of the pass works.
+   */
+  --background: #f4f2f1; /* N-75 */
   --foreground: #161414; /* N-900 */
   --card: #ffffff;
   --card-foreground: #161414;
@@ -86,15 +100,32 @@
   --accent: #fef1f1; /* Red-50 */
   --accent-foreground: #b8161f; /* Red-700 */
   --destructive: #a81e22; /* crimson, deeper than brand */
-  --border: #e2dfde; /* N-200 */
-  --input: #e2dfde;
+  /*
+   * Hairline, not border. A hairline separates; a border encloses. Almost
+   * everything here wants separating. Kept as an alpha so it sits on any
+   * ground — solid N-200 went muddy the moment a surface wasn't pure white.
+   * --input stays a shade stronger: a field has to read as enterable.
+   */
+  --border: rgba(22, 20, 20, 0.09);
+  --input: rgba(22, 20, 20, 0.14);
   --ring: #dc2028;
-  --chart-1: #dc2028;
-  --chart-2: #6d28d9;
-  --chart-3: #2563eb;
-  --chart-4: #b45309;
-  --chart-5: #7d7877;
-  --radius: 0.875rem; /* cards 14px */
+
+  /* Elevation ramp — warm, four steps. See --shadow-* in @theme. */
+  --elev-xs: 0 1px 2px rgba(22, 12, 12, 0.05);
+  --elev-sm:
+    0 2px 8px -2px rgba(22, 12, 12, 0.08), 0 1px 2px rgba(22, 12, 12, 0.04);
+  --elev-md:
+    0 12px 28px -8px rgba(22, 12, 12, 0.14), 0 2px 6px rgba(22, 12, 12, 0.05);
+  --elev-lg:
+    0 32px 64px -16px rgba(22, 12, 12, 0.22), 0 4px 12px rgba(22, 12, 12, 0.06);
+
+  /*
+   * 12px, down from 14. One knob: every radius derives from it, so the whole
+   * ladder tightens ~14% at once — panels 19.6 -> 16.8, drawer 25.2 -> 21.6.
+   * Buttons are deliberately pills and are unaffected; that is identity, not
+   * a default.
+   */
+  --radius: 0.75rem;
   --sidebar: #0e0d0d; /* N-950 */
   --sidebar-foreground: #efedec;
   --sidebar-primary: #dc2028;
@@ -122,7 +153,8 @@
 }
 
 .dark {
-  --background: #0e0d0d;
+  /* Same move as light: drop the bench so #161414 sheets lift off it. */
+  --background: #0b0a0a;
   --foreground: #f1efee;
   --card: #161414;
   --card-foreground: #f1efee;
@@ -137,14 +169,18 @@
   --accent: rgba(220, 32, 40, 0.14);
   --accent-foreground: #f3b7ba;
   --destructive: #e36065;
-  --border: #2e2a2a;
-  --input: #2e2a2a;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.16);
   --ring: #e8535c;
-  --chart-1: #e8535c;
-  --chart-2: #a78bfa;
-  --chart-3: #6c9bf2;
-  --chart-4: #e8a33d;
-  --chart-5: #8a8584;
+
+  /* Shadows do almost nothing on near-black, so dark leans on the ground
+     tone for hierarchy and keeps these mainly for overlay layers. */
+  --elev-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elev-md: 0 12px 28px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --elev-lg:
+    0 32px 64px -16px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+
   --sidebar: #080707;
   --sidebar-foreground: #efedec;
   --sidebar-primary: #e8535c;
@@ -179,18 +215,45 @@
   html {
     @apply font-sans;
   }
+  /*
+   * Optical tracking: the bigger the type, the tighter it wants to be. One
+   * blanket -0.015em left headlines loose and small headings cramped —
+   * tracking that does not respond to size is the tell of a scale that was
+   * never really set.
+   */
   h1,
   h2,
   h3,
   h4 {
     font-family: var(--font-display), var(--font-sans), sans-serif;
-    letter-spacing: -0.015em;
+  }
+  h1 {
+    letter-spacing: -0.032em;
+  }
+  h2 {
+    letter-spacing: -0.026em;
+  }
+  h3 {
+    letter-spacing: -0.022em;
+  }
+  h4 {
+    letter-spacing: -0.018em;
   }
 }
 
 @layer utilities {
   .font-display {
     font-family: var(--font-display), var(--font-sans), sans-serif;
+  }
+  /*
+   * Every digit in the admin lines up. Prices, plates, dates and counts sit
+   * in columns and get compared down the page; proportional figures make a
+   * column of money shimmer as it re-renders. Applied at the shell so the
+   * rule cannot be forgotten per-component, and scoped to the admin so
+   * marketing prose keeps its proportional figures.
+   */
+  .tabular-shell {
+    font-variant-numeric: tabular-nums;
   }
   /* Alfa Globe eyebrow: red dash + letterspaced uppercase label */
   .eyebrow {

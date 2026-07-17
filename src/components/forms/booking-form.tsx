@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2 } from "lucide-react";
+import {
+  DatePicker,
+  fromDateValue,
+  toDateValue,
+} from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,11 +52,15 @@ export function BookingForm({
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
-  const today = new Date().toISOString().slice(0, 10);
+  // Local midnight, not UTC: the old `toISOString()` bound made "today"
+  // yesterday for anyone whose local date was already ahead of UTC.
+  const now = new Date();
+  const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const preselected = vehicles.find((v) => v.slug === preselectedSlug);
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -62,6 +71,9 @@ export function BookingForm({
       to: initialTo ?? "",
     },
   });
+
+  /** useWatch, not watch(): the latter cannot be memoized safely. */
+  const pickedFrom = useWatch({ control, name: "from" });
 
   const onSubmit = async (data: FormValues) => {
     setServerError(null);
@@ -141,15 +153,48 @@ export function BookingForm({
         {err(errors.vehicleId?.message)}
       </div>
 
+      {/* Controller, not register: the picker is a button, not an input.
+          The field value stays the same "yyyy-MM-dd" string the schema
+          compares lexicographically, so validation is untouched. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="from">Pickup date</Label>
-          <Input id="from" type="date" min={today} {...register("from")} />
+          <Controller
+            control={control}
+            name="from"
+            render={({ field }) => (
+              <DatePicker
+                id="from"
+                value={fromDateValue(field.value)}
+                onChange={(date) =>
+                  field.onChange(date ? toDateValue(date) : "")
+                }
+                minDate={minDate}
+                placeholder="Pickup date"
+              />
+            )}
+          />
           {err(errors.from?.message)}
         </div>
         <div className="space-y-2">
           <Label htmlFor="to">Return date</Label>
-          <Input id="to" type="date" min={today} {...register("to")} />
+          <Controller
+            control={control}
+            name="to"
+            render={({ field }) => (
+              <DatePicker
+                id="to"
+                value={fromDateValue(field.value)}
+                onChange={(date) =>
+                  field.onChange(date ? toDateValue(date) : "")
+                }
+                // A return before the pickup is not a validation message
+                // worth writing — it is simply not offered.
+                minDate={fromDateValue(pickedFrom) ?? minDate}
+                placeholder="Return date"
+              />
+            )}
+          />
           {err(errors.to?.message)}
         </div>
       </div>

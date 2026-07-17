@@ -25,6 +25,7 @@ import {
 import type { ActionResult } from "@/app/(dashboard)/admin/vehicles/actions";
 import { signVehicleUploadAction } from "@/app/(dashboard)/admin/vehicles/actions";
 import { MediaGrid } from "@/components/forms/media-grid";
+import { DateField } from "@/components/forms/date-range-picker";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,10 +65,6 @@ type Props = {
   vehicle?: VehicleFormValues;
   onDeleteVehicle?: () => Promise<ActionResult>;
 };
-
-/** Prisma dates -> yyyy-MM-dd for native date inputs. */
-const toDateInput = (d: Date | null | undefined) =>
-  d ? new Date(d).toISOString().slice(0, 10) : "";
 
 export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
   const router = useRouter();
@@ -314,11 +311,10 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
                 htmlFor="registrationDate"
                 icon={CalendarDays}
               >
-                <Input
+                <DateField
                   id="registrationDate"
                   name="registrationDate"
-                  type="date"
-                  defaultValue={toDateInput(vehicle?.registrationDate)}
+                  defaultValue={vehicle?.registrationDate}
                 />
               </Field>
               <Field
@@ -326,11 +322,10 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
                 htmlFor="registrationExpiry"
                 icon={CalendarDays}
               >
-                <Input
+                <DateField
                   id="registrationExpiry"
                   name="registrationExpiry"
-                  type="date"
-                  defaultValue={toDateInput(vehicle?.registrationExpiry)}
+                  defaultValue={vehicle?.registrationExpiry}
                 />
               </Field>
             </div>
@@ -347,11 +342,10 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
                 htmlFor="lastServiceDate"
                 icon={CalendarDays}
               >
-                <Input
+                <DateField
                   id="lastServiceDate"
                   name="lastServiceDate"
-                  type="date"
-                  defaultValue={toDateInput(vehicle?.lastServiceDate)}
+                  defaultValue={vehicle?.lastServiceDate}
                 />
               </Field>
               <Field
@@ -359,11 +353,10 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
                 htmlFor="nextServiceDate"
                 icon={CalendarDays}
               >
-                <Input
+                <DateField
                   id="nextServiceDate"
                   name="nextServiceDate"
-                  type="date"
-                  defaultValue={toDateInput(vehicle?.nextServiceDate)}
+                  defaultValue={vehicle?.nextServiceDate}
                 />
               </Field>
             </div>

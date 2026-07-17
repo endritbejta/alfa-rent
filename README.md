@@ -1,6 +1,10 @@
 # Alfa Rent a Car
 
-Production-ready car rental management platform: a public customer-facing
+> **Continuing this project?** Read [HANDOFF.md](./HANDOFF.md) first — it
+> covers the conventions that have caused real bugs, the decisions that look
+> wrong but are deliberate, and the prioritised list of what is left.
+
+Car rental management platform: a public customer-facing
 website plus an internal admin dashboard for managing vehicles, reservations,
 and customers.
 
@@ -89,7 +93,8 @@ prisma/
 ## Development Workflow
 
 - `npm run dev` — dev server (Turbopack)
-- `npm run build` — production build
+- `npm run build` — production build (no database needed)
+- `npm test` — vitest
 - `npm run lint` — ESLint
 - `npx prettier --write .` — format
 - Husky runs lint on pre-commit
@@ -115,8 +120,10 @@ database on your laptop, so production needs a hosted one.
    The pooled URL serves requests; the direct URL exists because
    migrations cannot run through PgBouncer.
 
-3. **Deploy.** `npm run build` runs `prisma migrate deploy` first, so the
-   schema is created on the production database automatically.
+3. **Deploy.** Vercel runs `vercel-build`, which runs `prisma migrate deploy`
+   before `next build`, so the schema reaches the production database
+   automatically. Plain `npm run build` is deliberately database-free, so CI
+   can run it without one.
 4. **Seed once** (optional, for demo data) from your machine:
 
    ```bash

@@ -2,12 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { Button } from "@/components/ui/button";
 
 /**
- * One confirmation for every irreversible action. Focus moves to the safe
- * choice on open and Escape cancels, so the destructive path always takes
- * a deliberate act.
+ * One confirmation for every irreversible action. The trap lands focus on
+ * the first focusable — Cancel, by DOM order — and Escape cancels, so the
+ * destructive path always takes a deliberate act.
  */
 export function ConfirmDialog({
   open,
@@ -30,17 +31,17 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // The trap owns focus placement and restore; Cancel is first in DOM order,
+  // so the safe choice gets focus without naming it.
+  useFocusTrap(panelRef, open);
 
   useEffect(() => {
     if (!open) return;
-    const timer = setTimeout(() => cancelRef.current?.focus(), 0);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
     window.addEventListener("keydown", onKey);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, onCancel]);
 
   if (!open) return null;
@@ -54,10 +55,12 @@ export function ConfirmDialog({
         className="absolute inset-0 animate-[overlay-in_150ms_ease-out] cursor-default bg-black/50"
       />
       <div
+        ref={panelRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        className="bg-card relative z-10 w-full max-w-sm rounded-2xl border p-6 shadow-2xl"
+        tabIndex={-1}
+        className="glass-l6 relative z-10 w-full max-w-sm rounded-2xl p-6 shadow-lg outline-none motion-safe:animate-[modal-in_var(--motion-modal)_var(--ease-standard)]"
       >
         <div className="flex gap-4">
           <span
@@ -80,7 +83,6 @@ export function ConfirmDialog({
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <Button
-            ref={cancelRef}
             variant="outline"
             size="sm"
             onClick={onCancel}

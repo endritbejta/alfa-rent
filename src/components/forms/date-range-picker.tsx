@@ -261,10 +261,9 @@ export function DateRangePicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className={cn(
-          "w-auto rounded-2xl p-2 shadow-2xl",
-          dark && "dark bg-band border-band-border"
-        )}
+        // The `dark` scope alone is enough: the glass surface derives from
+        // --popover, which flips inside it — no hand-set band colours.
+        className={cn("w-auto rounded-2xl p-2 shadow-lg", dark && "dark")}
       >
         <RangeCalendar value={value} onChange={onChange} minDate={minDate} />
       </PopoverContent>

@@ -14,6 +14,7 @@ import {
 import { searchAdminAction } from "./search-actions";
 import { useDetailDrawer } from "./reservation-detail";
 import type { SearchHit } from "@/services/search.service";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
 
 type Row =
@@ -71,12 +72,17 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
   const router = useRouter();
   const { openReservation, openVehicle, openCustomer } = useDetailDrawer();
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  // Tab must not walk out into the page the palette floats over, and closing
+  // returns focus wherever ⌘K was pressed from.
+  useFocusTrap(panelRef, open);
 
   const rows: Row[] =
     query.trim().length < 2
@@ -184,12 +190,15 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
         className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-[2px]"
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Search"
+        tabIndex={-1}
         // Sits high rather than centred: the results grow downward and the
-        // input shouldn't move while you type.
-        className="absolute inset-x-4 top-[12vh] mx-auto max-w-[38rem] overflow-hidden rounded-2xl border border-white/15 bg-[color-mix(in_srgb,var(--popover)_88%,transparent)] shadow-2xl backdrop-blur-2xl backdrop-saturate-150"
+        // input shouldn't move while you type. L6 — this was the reference
+        // glass surface; now it consumes the ladder instead of hand-rolling it.
+        className="glass-l6 absolute inset-x-4 top-[12vh] mx-auto max-w-[38rem] overflow-hidden rounded-2xl shadow-lg outline-none motion-safe:animate-[modal-in_var(--motion-hover)_var(--ease-standard)]"
         onKeyDown={onKeyDown}
       >
         <div className="flex items-center gap-3 border-b px-4">

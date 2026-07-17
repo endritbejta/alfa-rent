@@ -206,34 +206,21 @@ export async function getReservationInsights() {
 }
 
 export async function getFleetInsights() {
-  const [byStatus, byCategory, utilizationRows, recentlyAdded] =
-    await Promise.all([
-      prisma.vehicle.groupBy({ by: ["status"], _count: true }),
-      prisma.vehicle.groupBy({
-        by: ["category"],
-        _count: true,
-        where: { status: { not: "INACTIVE" } },
-      }),
-      prisma.reservation.groupBy({
-        by: ["vehicleId"],
-        _count: true,
-        where: { status: { in: ["ACTIVE", "COMPLETED", "CONFIRMED"] } },
-        orderBy: { _count: { vehicleId: "desc" } },
-        take: 5,
-      }),
-      prisma.vehicle.findMany({
-        take: 3,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          brand: true,
-          model: true,
-          plate: true,
-          year: true,
-          createdAt: true,
-        },
-      }),
-    ]);
+  const [byStatus, byCategory, utilizationRows] = await Promise.all([
+    prisma.vehicle.groupBy({ by: ["status"], _count: true }),
+    prisma.vehicle.groupBy({
+      by: ["category"],
+      _count: true,
+      where: { status: { not: "INACTIVE" } },
+    }),
+    prisma.reservation.groupBy({
+      by: ["vehicleId"],
+      _count: true,
+      where: { status: { in: ["ACTIVE", "COMPLETED", "CONFIRMED"] } },
+      orderBy: { _count: { vehicleId: "desc" } },
+      take: 5,
+    }),
+  ]);
 
   const topVehicleIds = utilizationRows.map((r) => r.vehicleId);
   const topVehicles = topVehicleIds.length
@@ -259,7 +246,6 @@ export async function getFleetInsights() {
       label: nameOf(r.vehicleId),
       value: r._count,
     })),
-    recentlyAdded,
   };
 }
 

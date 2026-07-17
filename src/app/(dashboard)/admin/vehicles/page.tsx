@@ -10,14 +10,11 @@ import {
 import { adminVehicleFilterSchema } from "@/lib/validations/vehicle";
 import { getFleetInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
-import { Panel } from "@/components/dashboard/panel";
-import { BarList } from "@/components/dashboard/bar-list";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
 import { VehicleGrid } from "./vehicle-grid";
 import { VehicleFilters } from "./vehicle-filters";
+import { FleetStatusFilter } from "./fleet-status-filter";
 import { Pagination } from "@/components/dashboard/pagination";
-import { RecentlyAdded } from "./recently-added";
 import { registrationState } from "@/services/fleet.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DeleteVehicleButton } from "./delete-vehicle-button";
@@ -166,9 +163,6 @@ export default async function VehiclesPage({
     redirect(qs ? `/admin/vehicles?${qs}` : "/admin/vehicles");
   }
 
-  const counts = insights.statusCounts;
-  const activeFleet = items.filter((v) => v.status !== "INACTIVE").length;
-
   return (
     <div className="space-y-6">
       <PageHeader title="Vehicles" description="Fleet overview and management">
@@ -183,26 +177,9 @@ export default async function VehiclesPage({
         )}
       </PageHeader>
 
-      <StatGrid className="lg:grid-cols-3">
-        <StatCard label="Fleet size" value={activeFleet} />
-        <StatCard label="Available" value={counts.AVAILABLE ?? 0} tone="good" />
-        <StatCard label="Rented" value={counts.RENTED ?? 0} />
-      </StatGrid>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Fleet by category" subtitle="Active vehicles">
-          <BarList items={insights.categoryDistribution} />
-        </Panel>
-        <Panel title="Most booked" subtitle="All-time confirmed rentals">
-          <BarList
-            items={insights.topVehicles}
-            barClassName="bg-status-rented"
-          />
-        </Panel>
-        <Panel title="Recently added" subtitle="Latest fleet additions">
-          <RecentlyAdded items={insights.recentlyAdded} />
-        </Panel>
-      </div>
+      {/* Fleet-by-category and most-booked live on Analytics; duplicating
+          them here pushed the fleet itself below the fold. */}
+      <FleetStatusFilter counts={insights.statusCounts} />
 
       <VehicleFilters brands={brands} total={total} />
 

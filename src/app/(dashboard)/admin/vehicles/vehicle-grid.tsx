@@ -28,7 +28,7 @@ type Item = {
  */
 export function VehicleGrid({ items }: { items: Item[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
       {items.map((v) => (
         <Link
           key={v.id}
@@ -41,7 +41,9 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 src={v.image}
                 alt={`${v.brand} ${v.model}`}
                 fill
-                sizes="(max-width: 640px) 100vw, 33vw"
+                // Must track the column count above, or every card downloads
+                // an image sized for a wider slot than it renders in.
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                 className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
               />
             ) : (

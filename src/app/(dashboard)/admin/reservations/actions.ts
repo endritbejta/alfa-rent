@@ -4,8 +4,14 @@ import { revalidatePath } from "next/cache";
 import type { ReservationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth/guards";
 import { normalizeError } from "@/lib/errors";
-import { updateReservationStatusSchema } from "@/lib/validations/reservation";
-import { updateReservationStatus } from "@/services/reservation.service";
+import {
+  extendReservationSchema,
+  updateReservationStatusSchema,
+} from "@/lib/validations/reservation";
+import {
+  extendReservation,
+  updateReservationStatus,
+} from "@/services/reservation.service";
 
 export type ActionResult = { error: string } | undefined;
 
@@ -22,6 +28,28 @@ export async function updateReservationStatusAction(
   try {
     const input = updateReservationStatusSchema.parse({ status });
     await updateReservationStatus(reservationId, input.status);
+  } catch (error) {
+    return { error: normalizeError(error).body.error.message };
+  }
+  revalidatePath("/admin/reservations");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/calendar");
+  return undefined;
+}
+
+/**
+ * Keeping a car longer is a counter-side decision, so EMPLOYEE level like
+ * the rest of reservation handling. Availability, the registration ceiling
+ * and the status rules are all enforced in the service.
+ */
+export async function extendReservationAction(
+  reservationId: string,
+  returnDate: string
+): Promise<ActionResult> {
+  await requireRole("EMPLOYEE");
+  try {
+    const input = extendReservationSchema.parse({ returnDate });
+    await extendReservation(reservationId, input.returnDate);
   } catch (error) {
     return { error: normalizeError(error).body.error.message };
   }

@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth/guards";
 import { getCustomers } from "@/services/customer.service";
 import { getCustomerInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
+import { StatStrip } from "@/components/dashboard/stat-strip";
 import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
@@ -24,28 +24,26 @@ export default async function CustomersPage() {
         description="Everyone who has booked with Alfa"
       />
 
-      <StatGrid className="lg:grid-cols-4">
-        <StatCard label="Total customers" value={insights.total} />
-        <StatCard
-          label="New this month"
-          value={insights.newThisMonth}
-          tone={insights.newThisMonth > 0 ? "good" : "default"}
-        />
-        <StatCard
-          label="Returning"
-          value={insights.returning}
-          hint="more than one booking"
-        />
-        <StatCard
-          label="Top spender"
-          value={
-            insights.topSpenders[0]
+      {/* "Returning" loses its "more than one booking" hint — the word
+          carries it. The top spender keeps theirs: it is their name. */}
+      <StatStrip
+        stats={[
+          { label: "Customers", value: insights.total },
+          {
+            label: "New this month",
+            value: insights.newThisMonth,
+            tone: insights.newThisMonth > 0 ? "good" : "default",
+          },
+          { label: "Returning", value: insights.returning },
+          {
+            label: "Top spender",
+            value: insights.topSpenders[0]
               ? `${insights.topSpenders[0].value.toLocaleString()} EUR`
-              : "0 EUR"
-          }
-          hint={insights.topSpenders[0]?.label}
-        />
-      </StatGrid>
+              : "0 EUR",
+            hint: insights.topSpenders[0]?.label,
+          },
+        ]}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Customer growth" subtitle="New registrations by month">

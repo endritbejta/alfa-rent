@@ -3,9 +3,11 @@ import {
   type Reservation,
   type ReservationStatus,
 } from "@prisma/client";
+import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { calculateTotalPrice } from "@/utils/pricing";
+import { calculateTotalPrice, rentalDays } from "@/utils/pricing";
+import { latestUnder, withTimeOfDay } from "@/utils/rental-dates";
 import { findOrCreateCustomerByEmail } from "@/services/customer.service";
 import type {
   AvailabilityInput,
@@ -15,6 +17,15 @@ import type {
 
 /** Statuses that occupy the vehicle for a date range. */
 const BLOCKING_STATUSES: ReservationStatus[] = ["CONFIRMED", "ACTIVE"];
+
+/**
+ * Only a commitment can be extended. PENDING is still a request — staff
+ * decide it rather than reshape it — and COMPLETED/CANCELLED are history,
+ * where moving a return date would rewrite a settled total.
+ */
+const EXTENDABLE_STATUSES: ReservationStatus[] = ["CONFIRMED", "ACTIVE"];
+
+const day = (d: Date) => format(d, "dd MMM yyyy");
 
 /** Which transitions the business allows, e.g. no un-cancelling. */
 const ALLOWED_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
@@ -220,6 +231,163 @@ export async function cancelReservation(id: string): Promise<Reservation> {
 }
 
 /**
+ * How far a reservation can be extended, and what stops it going further.
+ *
+ * Computed alongside the detail so the drawer can bound its date input up
+ * front: staff see the ceiling instead of discovering it by being refused.
+ */
+export type ExtensionWindow =
+  | { allowed: false; reason: string }
+  | {
+      allowed: true;
+      /** null means nothing on the calendar limits it. */
+      latestReturn: Date | null;
+      limitedBy: "booking" | "registration" | null;
+    };
+
+async function getExtensionWindow(reservation: {
+  id: string;
+  vehicleId: string;
+  status: ReservationStatus;
+  returnDate: Date;
+  vehicle: { registrationExpiry: Date | null };
+}): Promise<ExtensionWindow> {
+  if (!EXTENDABLE_STATUSES.includes(reservation.status)) {
+    return { allowed: false, reason: extensionRefusal(reservation.status) };
+  }
+
+  // The vehicle's next commitment. tsrange is half-open, so a return landing
+  // exactly on the next pickup is not an overlap and is therefore allowed.
+  const next = await prisma.reservation.findFirst({
+    where: {
+      id: { not: reservation.id },
+      vehicleId: reservation.vehicleId,
+      status: { in: BLOCKING_STATUSES },
+      pickupDate: { gte: reservation.returnDate },
+    },
+    orderBy: { pickupDate: "asc" },
+    select: { pickupDate: true },
+  });
+
+  const ceilings: { at: Date; by: "booking" | "registration" }[] = [];
+  if (next) {
+    ceilings.push({
+      at: latestUnder(reservation.returnDate, next.pickupDate),
+      by: "booking",
+    });
+  }
+  if (reservation.vehicle.registrationExpiry) {
+    ceilings.push({
+      at: latestUnder(
+        reservation.returnDate,
+        reservation.vehicle.registrationExpiry
+      ),
+      by: "registration",
+    });
+  }
+
+  if (ceilings.length === 0) {
+    return { allowed: true, latestReturn: null, limitedBy: null };
+  }
+
+  const tightest = ceilings.reduce((a, b) => (a.at <= b.at ? a : b));
+
+  // Whatever comes next leaves no room at all — say so now rather than let
+  // staff pick a date and be refused.
+  if (tightest.at.getTime() <= reservation.returnDate.getTime()) {
+    return {
+      allowed: false,
+      reason:
+        tightest.by === "booking"
+          ? "The vehicle is booked again immediately after this rental."
+          : "The vehicle's registration expires at the end of this rental.",
+    };
+  }
+
+  return { allowed: true, latestReturn: tightest.at, limitedBy: tightest.by };
+}
+
+function extensionRefusal(status: ReservationStatus): string {
+  if (status === "PENDING") return "Confirm this request before extending it.";
+  return `A ${status.toLowerCase()} reservation cannot be extended.`;
+}
+
+/**
+ * Extends a rental in place — no second booking, no gap in the record.
+ *
+ * The overlap check here is advisory, exactly as elsewhere: the
+ * reservations_no_overlap exclusion constraint is what actually prevents a
+ * double-booking when two staff extend competing rentals at once. Reading it
+ * first only buys a message that names the conflicting date instead of a raw
+ * Postgres 23P01.
+ */
+export async function extendReservation(
+  id: string,
+  newReturnDate: Date
+): Promise<Reservation> {
+  return prisma.$transaction(async (tx) => {
+    const reservation = await tx.reservation.findUnique({
+      where: { id },
+      include: {
+        vehicle: { select: { pricePerDay: true, registrationExpiry: true } },
+      },
+    });
+    if (!reservation) throw new NotFoundError("Reservation");
+
+    if (!EXTENDABLE_STATUSES.includes(reservation.status)) {
+      throw new ValidationError(extensionRefusal(reservation.status));
+    }
+
+    const target = withTimeOfDay(reservation.returnDate, newReturnDate);
+    if (target.getTime() <= reservation.returnDate.getTime()) {
+      throw new ValidationError(
+        `The new return date must be after the current one (${day(reservation.returnDate)}).`
+      );
+    }
+
+    const expiry = reservation.vehicle.registrationExpiry;
+    if (expiry && target.getTime() > expiry.getTime()) {
+      throw new ValidationError(
+        `The vehicle's registration expires on ${day(expiry)}; the rental cannot run past it.`
+      );
+    }
+
+    const clash = await tx.reservation.findFirst({
+      where: {
+        id: { not: id },
+        vehicleId: reservation.vehicleId,
+        status: { in: BLOCKING_STATUSES },
+        pickupDate: { lt: target },
+        returnDate: { gt: reservation.pickupDate },
+      },
+      orderBy: { pickupDate: "asc" },
+      select: { pickupDate: true },
+    });
+    if (clash) {
+      throw new ConflictError(
+        `This vehicle is booked again from ${day(clash.pickupDate)}, so it cannot be kept until ${day(target)}.`
+      );
+    }
+
+    // The originally agreed days keep the price they were agreed at; only
+    // the added days are charged at today's rate.
+    const extraDays =
+      rentalDays(reservation.pickupDate, target) -
+      rentalDays(reservation.pickupDate, reservation.returnDate);
+
+    return tx.reservation.update({
+      where: { id },
+      data: {
+        returnDate: target,
+        totalPrice: reservation.totalPrice.add(
+          reservation.vehicle.pricePerDay.mul(extraDays)
+        ),
+      },
+    });
+  });
+}
+
+/**
  * Everything the detail drawer shows: the reservation plus enough of the
  * customer's and vehicle's context that staff never have to navigate away.
  */
@@ -263,7 +431,11 @@ export async function getReservationDetail(id: string) {
     },
   });
   if (!reservation) throw new NotFoundError("Reservation");
-  return reservation;
+  return {
+    ...reservation,
+    // Bundled with the detail so opening the drawer is still one round trip.
+    extension: await getExtensionWindow(reservation),
+  };
 }
 
 /** Requests awaiting a staff decision — surfaced across the admin. */

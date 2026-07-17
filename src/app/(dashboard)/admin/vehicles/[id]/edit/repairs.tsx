@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { format } from "date-fns";
 import { Plus, Trash2, Wrench } from "lucide-react";
 import { addRepairAction, deleteRepairAction } from "../../actions";
+import { DateField } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,12 +119,12 @@ export function RepairsPanel({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="date">Date</Label>
-              <Input
+              {/* Required, so no clear: an empty date has no meaning here. */}
+              <DateField
                 id="date"
                 name="date"
-                type="date"
-                required
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                defaultValue={new Date()}
+                clearable={false}
               />
             </div>
             <div className="space-y-1.5">

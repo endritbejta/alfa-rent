@@ -1,70 +1,104 @@
 import { prisma } from "@/lib/db/prisma";
-import { deleteImage, uploadVehicleImage } from "@/lib/cloudinary";
+import {
+  buildImageUrl,
+  deleteImage,
+  moveIntoVehicleFolder,
+  verifyUploadSignature,
+} from "@/lib/cloudinary";
 import { NotFoundError, ValidationError } from "@/lib/errors";
-import type { VehicleImage } from "@prisma/client";
-
-const MAX_FILES = 8;
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+import {
+  MAX_VEHICLE_IMAGES,
+  type VehicleImageItem,
+} from "@/lib/validations/image";
 
 /**
- * Uploads run sequentially, and the DB row is written immediately after
- * each upload — a failure mid-batch leaves earlier images fully recorded
- * instead of orphaned in Cloudinary.
+ * Reconciles a vehicle's photos against the ordered list the media grid
+ * submitted: entries that vanished are deleted, new uploads are recorded,
+ * and array position becomes sortOrder.
+ *
+ * One ordered list rather than add/delete/reorder endpoints because the three
+ * are a single operator intent — "the gallery should look like this" — and
+ * splitting them let a half-applied reorder survive a failed save.
+ *
+ * Every item here originated in the browser, including the publicIds, so
+ * nothing is trusted before `verifyUploadSignature` proves Cloudinary issued
+ * it and the id is confirmed to belong to this vehicle.
  */
-export async function addVehicleImages(
+export async function syncVehicleImages(
   vehicleId: string,
-  files: File[]
-): Promise<VehicleImage[]> {
-  if (files.length === 0) return [];
-  if (files.length > MAX_FILES) {
-    throw new ValidationError(`At most ${MAX_FILES} images per upload`);
-  }
-  for (const file of files) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      throw new ValidationError(
-        `Unsupported image type: ${file.type || "unknown"}. Use JPEG, PNG, WebP, or AVIF.`
-      );
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      throw new ValidationError(`Each image must be under 5 MB`);
-    }
+  items: VehicleImageItem[]
+): Promise<void> {
+  if (items.length > MAX_VEHICLE_IMAGES) {
+    throw new ValidationError(
+      `At most ${MAX_VEHICLE_IMAGES} images per vehicle`
+    );
   }
 
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
-    select: { id: true, _count: { select: { images: true } } },
+    select: { id: true, images: { select: { id: true, publicId: true } } },
   });
   if (!vehicle) throw new NotFoundError("Vehicle");
 
-  const created: VehicleImage[] = [];
-  let sortOrder = vehicle._count.images;
-  for (const file of files) {
-    const uploaded = await uploadVehicleImage(file, vehicleId);
-    created.push(
-      await prisma.vehicleImage.create({
-        data: {
-          vehicleId,
-          url: uploaded.url,
-          publicId: uploaded.publicId,
-          sortOrder: sortOrder++,
-        },
-      })
-    );
+  const ownedIds = new Set(vehicle.images.map((image) => image.id));
+  const seen = new Set<string>();
+
+  for (const item of items) {
+    const key = item.kind === "existing" ? item.id : item.publicId;
+    if (seen.has(key))
+      throw new ValidationError("The same photo was added twice");
+    seen.add(key);
+
+    if (item.kind === "existing") {
+      // An id from another vehicle would otherwise reassign its photo here.
+      if (!ownedIds.has(item.id)) {
+        throw new ValidationError("That photo does not belong to this vehicle");
+      }
+    } else if (!verifyUploadSignature(item)) {
+      throw new ValidationError(
+        "An upload could not be verified. Remove the photo and add it again."
+      );
+    }
   }
-  return created;
-}
 
-export async function deleteVehicleImage(imageId: string): Promise<void> {
-  const image = await prisma.vehicleImage.findUnique({
-    where: { id: imageId },
-  });
-  if (!image) throw new NotFoundError("Image");
+  const kept = new Set(
+    items.flatMap((item) => (item.kind === "existing" ? [item.id] : []))
+  );
 
-  // Cloudinary first: if it fails the DB row survives and the operation
-  // can be retried; the reverse order would strand an unreferenced asset.
-  await deleteImage(image.publicId);
-  await prisma.vehicleImage.delete({ where: { id: imageId } });
+  // Cloudinary first: if it fails the DB row survives and the operation can
+  // be retried; the reverse order would strand an unreferenced asset.
+  for (const image of vehicle.images) {
+    if (kept.has(image.id)) continue;
+    await deleteImage(image.publicId);
+    await prisma.vehicleImage.delete({ where: { id: image.id } });
+  }
+
+  for (const [index, item] of items.entries()) {
+    if (item.kind === "existing") {
+      await prisma.vehicleImage.update({
+        where: { id: item.id },
+        data: { sortOrder: index },
+      });
+      continue;
+    }
+
+    // Photos added before the vehicle existed were parked in a draft folder.
+    const asset = item.publicId.includes("/_drafts/")
+      ? await moveIntoVehicleFolder(item.publicId, vehicleId)
+      : {
+          publicId: item.publicId,
+          url: buildImageUrl(item.publicId, item.version),
+        };
+
+    await prisma.vehicleImage.create({
+      data: {
+        vehicleId,
+        url: asset.url,
+        publicId: asset.publicId,
+        sortOrder: index,
+      },
+    });
+  }
 }
 
 /** Removes all Cloudinary assets for a vehicle (used before hard delete). */

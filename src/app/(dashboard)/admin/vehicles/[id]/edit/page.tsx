@@ -3,11 +3,7 @@ import { getVehicleById } from "@/services/vehicle.service";
 import { getVehicleFleetProfile } from "@/services/fleet.service";
 import { VehicleForm } from "@/components/forms/vehicle-form";
 import { RepairsPanel } from "./repairs";
-import {
-  deleteVehicleAction,
-  deleteVehicleImageAction,
-  updateVehicleAction,
-} from "../../actions";
+import { deleteVehicleAction, updateVehicleAction } from "../../actions";
 
 export default async function EditVehiclePage({
   params,
@@ -28,8 +24,30 @@ export default async function EditVehiclePage({
     <div className="space-y-6">
       <VehicleForm
         action={updateWithId}
-        vehicle={vehicle}
-        onDeleteImage={deleteVehicleImageAction}
+        // Decimal cannot cross into a client component — convert at the edge.
+        vehicle={{
+          id: vehicle.id,
+          brand: vehicle.brand,
+          model: vehicle.model,
+          plate: vehicle.plate,
+          year: vehicle.year,
+          category: vehicle.category,
+          transmission: vehicle.transmission,
+          fuelType: vehicle.fuelType,
+          seats: vehicle.seats,
+          pricePerDay: Number(vehicle.pricePerDay),
+          description: vehicle.description,
+          status: vehicle.status,
+          registrationDate: vehicle.registrationDate,
+          registrationExpiry: vehicle.registrationExpiry,
+          lastServiceDate: vehicle.lastServiceDate,
+          nextServiceDate: vehicle.nextServiceDate,
+          serviceNotes: vehicle.serviceNotes,
+          images: vehicle.images.map((image) => ({
+            id: image.id,
+            url: image.url,
+          })),
+        }}
         onDeleteVehicle={deleteWithId}
       />
 

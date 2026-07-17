@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { requireUser } from "@/lib/auth/guards";
 import { getDashboardData } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
+import { StatStrip } from "@/components/dashboard/stat-strip";
 import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
@@ -68,27 +68,31 @@ export default async function DashboardPage() {
         }))}
       />
 
-      <StatGrid>
-        <StatCard
-          label="Rented now"
-          value={kpis.rentedNow}
-          hint={`of ${kpis.fleetTotal} vehicles`}
-        />
-        <StatCard
-          label="Fleet utilization"
-          value={`${kpis.utilization}%`}
-          tone={kpis.utilization > 60 ? "good" : "default"}
-        />
-        <StatCard label="Available" value={kpis.available} tone="good" />
-        <StatCard
-          label="Revenue this week"
-          value={`${kpis.revenueWeek.toLocaleString()} EUR`}
-        />
-        <StatCard
-          label="Revenue this month"
-          value={`${kpis.revenueMonth.toLocaleString()} EUR`}
-        />
-      </StatGrid>
+      {/* "of N vehicles" stays: it is what makes the rented count mean
+          anything. 3 is a different day at a fleet of 43 than at 5. */}
+      <StatStrip
+        stats={[
+          {
+            label: "Rented now",
+            value: kpis.rentedNow,
+            hint: `of ${kpis.fleetTotal} vehicles`,
+          },
+          {
+            label: "Utilization",
+            value: `${kpis.utilization}%`,
+            tone: kpis.utilization > 60 ? "good" : "default",
+          },
+          { label: "Available", value: kpis.available, tone: "good" },
+          {
+            label: "Revenue this week",
+            value: `${kpis.revenueWeek.toLocaleString()} EUR`,
+          },
+          {
+            label: "Revenue this month",
+            value: `${kpis.revenueMonth.toLocaleString()} EUR`,
+          },
+        ]}
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel

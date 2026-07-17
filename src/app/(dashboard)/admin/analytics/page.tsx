@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/guards";
 import { getAnalytics, type Period } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard, StatGrid } from "@/components/dashboard/stat-card";
+import { StatStrip } from "@/components/dashboard/stat-strip";
 import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
@@ -52,20 +52,22 @@ export default async function AnalyticsPage({
         </div>
       </PageHeader>
 
-      <StatGrid className="lg:grid-cols-4">
-        <StatCard
-          label="Revenue"
-          value={`${Math.round(data.totalRevenue).toLocaleString()} EUR`}
-          hint={data.periodLabel.toLowerCase()}
-        />
-        <StatCard label="Bookings" value={data.totalReservations} />
-        <StatCard
-          label="Cancellation rate"
-          value={`${data.cancellationRate}%`}
-          tone={data.cancellationRate > 25 ? "danger" : "default"}
-        />
-        <StatCard label="Active fleet" value={data.fleet} hint="vehicles" />
-      </StatGrid>
+      {/* No period hint on Revenue: the page header already states it. */}
+      <StatStrip
+        stats={[
+          {
+            label: "Revenue",
+            value: `${Math.round(data.totalRevenue).toLocaleString()} EUR`,
+          },
+          { label: "Bookings", value: data.totalReservations },
+          {
+            label: "Cancelled",
+            value: `${data.cancellationRate}%`,
+            tone: data.cancellationRate > 25 ? "danger" : "default",
+          },
+          { label: "Active fleet", value: data.fleet },
+        ]}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Revenue" subtitle={data.periodLabel}>

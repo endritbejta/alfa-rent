@@ -18,11 +18,6 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -46,6 +41,17 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /*
+   * Elevation, warmed. A pure-black shadow on warm graphite reads as grey
+   * grime; these carry the same ~2% red bias as the neutral ramp, so a
+   * lifted sheet looks lit rather than dirty. Four steps, no more — the
+   * ladder in the design doc maps onto exactly these.
+   */
+  --shadow-xs: var(--elev-xs);
+  --shadow-sm: var(--elev-sm);
+  --shadow-md: var(--elev-md);
+  --shadow-lg: var(--elev-lg);
 
   /* Brand band (charcoal surfaces shared by hero, sidebar, footer) */
   --color-band: var(--band);
@@ -71,7 +77,15 @@
  * per viewport); deeper crimson reserved for destructive actions.
  */
 :root {
-  --background: #fcfbfb; /* N-25 */
+  /*
+   * The bench, not the paper. At #fcfbfb the canvas and a white card were
+   * within 1% of each other, so every panel needed a border to exist at all
+   * — which is why the app read as a grid of outlined boxes. Dropping the
+   * canvas to N-75 lets a plain white sheet register as lifted on its own,
+   * and most borders can then come off. This one value is the reason the
+   * rest of the pass works.
+   */
+  --background: #f4f2f1; /* N-75 */
   --foreground: #161414; /* N-900 */
   --card: #ffffff;
   --card-foreground: #161414;
@@ -86,15 +100,67 @@
   --accent: #fef1f1; /* Red-50 */
   --accent-foreground: #b8161f; /* Red-700 */
   --destructive: #a81e22; /* crimson, deeper than brand */
-  --border: #e2dfde; /* N-200 */
-  --input: #e2dfde;
+  /*
+   * Hairline, not border. A hairline separates; a border encloses. Almost
+   * everything here wants separating. Kept as an alpha so it sits on any
+   * ground — solid N-200 went muddy the moment a surface wasn't pure white.
+   * --input stays a shade stronger: a field has to read as enterable.
+   */
+  --border: rgba(22, 20, 20, 0.09);
+  --input: rgba(22, 20, 20, 0.14);
   --ring: #dc2028;
-  --chart-1: #dc2028;
-  --chart-2: #6d28d9;
-  --chart-3: #2563eb;
-  --chart-4: #b45309;
-  --chart-5: #7d7877;
-  --radius: 0.875rem; /* cards 14px */
+
+  /* Elevation ramp — warm, four steps. See --shadow-* in @theme. */
+  --elev-xs: 0 1px 2px rgba(22, 12, 12, 0.05);
+  --elev-sm:
+    0 2px 8px -2px rgba(22, 12, 12, 0.08), 0 1px 2px rgba(22, 12, 12, 0.04);
+  --elev-md:
+    0 12px 28px -8px rgba(22, 12, 12, 0.14), 0 2px 6px rgba(22, 12, 12, 0.05);
+  --elev-lg:
+    0 32px 64px -16px rgba(22, 12, 12, 0.22), 0 4px 12px rgba(22, 12, 12, 0.06);
+
+  /*
+   * 12px, down from 14. One knob: every radius derives from it, so the whole
+   * ladder tightens ~14% at once — panels 19.6 -> 16.8, drawer 25.2 -> 21.6.
+   * Buttons are deliberately pills and are unaffected; that is identity, not
+   * a default.
+   */
+  --radius: 0.75rem;
+
+  /*
+   * Motion tokens (design doc C+, §5). Durations agree app-wide; exits run
+   * at x0.8 on a sharper curve — leaving is decisive, arriving is placed.
+   * Theme-independent, so they live only here.
+   */
+  --motion-press: 120ms;
+  --motion-hover: 180ms;
+  --motion-panel: 240ms;
+  --motion-panel-exit: 192ms;
+  --motion-modal: 320ms;
+  --motion-modal-exit: 256ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /*
+   * The tinted control tier: the translucent look for quiet actions, as ink
+   * alpha rather than blur, so it sits on any ground and costs nothing.
+   * Filled semantic buttons never use it — a promise doesn't change colour
+   * with its surroundings.
+   */
+  --tint: rgba(22, 20, 20, 0.05);
+  --tint-hover: rgba(22, 20, 20, 0.09);
+
+  /* Glass rim — the one edge that sells the material. */
+  --glass-edge: rgba(255, 255, 255, 0.55);
+
+  /*
+   * Chart language: monochrome plus the brand. The primary series is Alfa
+   * red, comparisons are graphite ghosts, the grid whispers. Status hues are
+   * for status; borrowing them as chart decoration is what C4 removes.
+   */
+  --series-primary: var(--brand);
+  --series-ghost: rgba(22, 20, 20, 0.28);
+  --chart-grid: rgba(22, 20, 20, 0.06);
   --sidebar: #0e0d0d; /* N-950 */
   --sidebar-foreground: #efedec;
   --sidebar-primary: #dc2028;
@@ -122,7 +188,8 @@
 }
 
 .dark {
-  --background: #0e0d0d;
+  /* Same move as light: drop the bench so #161414 sheets lift off it. */
+  --background: #0b0a0a;
   --foreground: #f1efee;
   --card: #161414;
   --card-foreground: #f1efee;
@@ -137,14 +204,18 @@
   --accent: rgba(220, 32, 40, 0.14);
   --accent-foreground: #f3b7ba;
   --destructive: #e36065;
-  --border: #2e2a2a;
-  --input: #2e2a2a;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.16);
   --ring: #e8535c;
-  --chart-1: #e8535c;
-  --chart-2: #a78bfa;
-  --chart-3: #6c9bf2;
-  --chart-4: #e8a33d;
-  --chart-5: #8a8584;
+
+  /* Shadows do almost nothing on near-black, so dark leans on the ground
+     tone for hierarchy and keeps these mainly for overlay layers. */
+  --elev-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elev-md: 0 12px 28px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --elev-lg:
+    0 32px 64px -16px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+
   --sidebar: #080707;
   --sidebar-foreground: #efedec;
   --sidebar-primary: #e8535c;
@@ -162,6 +233,12 @@
   --success: #1aa36a;
   --success-foreground: #ffffff;
 
+  --tint: rgba(255, 255, 255, 0.07);
+  --tint-hover: rgba(255, 255, 255, 0.11);
+  --glass-edge: rgba(255, 255, 255, 0.1);
+  --series-ghost: rgba(255, 255, 255, 0.3);
+  --chart-grid: rgba(255, 255, 255, 0.07);
+
   --st-available: #3dbe8b;
   --st-reserved: #6c9bf2;
   --st-rented: #a78bfa;
@@ -174,23 +251,123 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Transparent so the fixed ambient field (z-index:-1) shows through.
+       html keeps the canvas as a fallback for when the field can't paint. */
+    @apply text-foreground;
+    background: transparent;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
   }
+  /*
+   * Optical tracking: the bigger the type, the tighter it wants to be. One
+   * blanket -0.015em left headlines loose and small headings cramped —
+   * tracking that does not respond to size is the tell of a scale that was
+   * never really set.
+   */
   h1,
   h2,
   h3,
   h4 {
     font-family: var(--font-display), var(--font-sans), sans-serif;
-    letter-spacing: -0.015em;
+  }
+  h1 {
+    letter-spacing: -0.032em;
+  }
+  h2 {
+    letter-spacing: -0.026em;
+  }
+  h3 {
+    letter-spacing: -0.022em;
+  }
+  h4 {
+    letter-spacing: -0.018em;
   }
 }
 
 @layer utilities {
   .font-display {
     font-family: var(--font-display), var(--font-sans), sans-serif;
+  }
+  /*
+   * Every digit in the admin lines up. Prices, plates, dates and counts sit
+   * in columns and get compared down the page; proportional figures make a
+   * column of money shimmer as it re-renders. Applied at the shell so the
+   * rule cannot be forgotten per-component, and scoped to the admin so
+   * marketing prose keeps its proportional figures.
+   */
+  .tabular-shell {
+    font-variant-numeric: tabular-nums;
+    /* Sits above the fixed ambient field; z-index needs a position to bite. */
+    position: relative;
+    z-index: 1;
+  }
+
+  /*
+   * The glass ladder (design doc C+, §6). One recipe per level; a surface
+   * declares its level and nothing else. Opaque where you read, glass where
+   * you float — nothing below L3 may use these, and the calendar grid never
+   * may (performance ban, see calendar-timeline.tsx).
+   *
+   * The background derives from --popover, so the same class renders light
+   * glass on light and dark glass inside a `.dark` scope with no variants.
+   */
+  .glass-l3,
+  .glass-l4,
+  .glass-l5,
+  .glass-l6 {
+    border: 1px solid var(--glass-edge);
+    background: color-mix(
+      in srgb,
+      var(--popover) var(--glass-fill),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+  }
+  /*
+   * Frosted product card: translucent enough that the moving field reads
+   * through it, opaque enough (68%) that the name and price stay legible over
+   * it. The image half of a card is an opaque photo, so only the body frosts.
+   */
+  .glass-card {
+    background: color-mix(
+      in srgb,
+      var(--card) var(--glass-card-fill),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+  }
+
+  .glass-l3 {
+    --glass-fill: 72%;
+    --glass-blur: 20px;
+  }
+  .glass-l4 {
+    --glass-fill: 80%;
+    --glass-blur: 28px;
+  }
+  .glass-l5 {
+    --glass-fill: 85%;
+    --glass-blur: 32px;
+  }
+  .glass-l6 {
+    --glass-fill: 88%;
+    --glass-blur: 40px;
+  }
+
+  /*
+   * The typographic signature (design doc C+, §1): large numerals set light.
+   * Weight 320 at 28px+ reads confident rather than bold — money that does
+   * not shout. Below ~20px light weights lose legibility, so small figures
+   * keep font-medium instead; this class is for display sizes only.
+   */
+  .metric-num {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-weight: 320;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
   /* Alfa Globe eyebrow: red dash + letterspaced uppercase label */
   .eyebrow {
@@ -246,6 +423,18 @@
     opacity: 1;
   }
 }
+/* Modal arrival: floated up, not teleported in. Scale from 0.98, never less —
+   anything deeper reads as a zoom effect rather than a placement. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
 @keyframes overlay-out {
   from {
     opacity: 1;
@@ -259,5 +448,159 @@
   [data-drawer],
   [data-drawer-overlay] {
     animation-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Every glass surface has an opaque twin (design doc C+, §8). Unlayered on
+ * purpose: unlayered CSS outranks @layer utilities, so these win without
+ * !important. Two doors to the same room — no backdrop-filter support, or
+ * the user asked for less transparency.
+ */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .glass-l3,
+  .glass-l4,
+  .glass-l5,
+  .glass-l6 {
+    background: var(--popover);
+    border-color: var(--border);
+  }
+  .glass-card {
+    background: var(--card);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-l3,
+  .glass-l4,
+  .glass-l5,
+  .glass-l6 {
+    background: var(--popover);
+    border-color: var(--border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass-card {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+/*
+ * Ambient field: soft grey blobs drifting behind the app, so opaque cards
+ * read as lifted above a living surface rather than sitting on flat colour.
+ *
+ * Deliberately blobs, not the earlier hard-edged discs: two blurred layers
+ * drift on offset timings, so the motion never reads as one sliding sheet.
+ * Cards stay opaque (there is no .bg-card override any more) — translucent
+ * cards would recede into this field; opaque ones pop off it, which is the
+ * whole point. Tokenised so it flips for dark, and it holds still under
+ * reduced-motion.
+ */
+:root {
+  --ambient-canvas: #ecebe9;
+  --ambient-blob: 148 146 144;
+  --ambient-alpha: 0.55;
+  /* Card translucency, per theme. Dark glass tolerates more see-through
+     because light text holds contrast over a dark field; light glass needs
+     to stay denser to keep dark text legible. */
+  --glass-card-fill: 68%;
+}
+.dark {
+  --ambient-canvas: #08080a;
+  --ambient-blob: 150 152 168;
+  --ambient-alpha: 0.16;
+  --glass-card-fill: 46%;
+}
+
+.ambient-background {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /*
+   * Behind everything, not z-index:0. A fixed z-index:0 layer paints ABOVE
+   * static content that has no stacking context of its own — which hid the
+   * whole login card. At -1 it sits under all content uniformly, so no page
+   * needs its own z-index to escape it. Requires a transparent body (below)
+   * so it shows through.
+   */
+  z-index: -1;
+  background: var(--ambient-canvas);
+}
+
+.ambient-background::before,
+.ambient-background::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200vw;
+  height: 200vh;
+  /* Heavy blur is what turns the gradients into soft blobs. */
+  filter: blur(90px);
+  transform: translate(-50%, -50%);
+  will-change: transform;
+}
+
+.ambient-background::before {
+  background:
+    radial-gradient(
+      closest-side at 28% 30%,
+      rgb(var(--ambient-blob) / var(--ambient-alpha)),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 76% 24%,
+      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.85)),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 58% 78%,
+      rgb(var(--ambient-blob) / var(--ambient-alpha)),
+      transparent
+    );
+  animation: ambientDriftA 34s ease-in-out infinite alternate;
+}
+
+.ambient-background::after {
+  background:
+    radial-gradient(
+      closest-side at 16% 72%,
+      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.9)),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 88% 58%,
+      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.8)),
+      transparent
+    );
+  animation: ambientDriftB 44s ease-in-out infinite alternate;
+}
+
+/* Wider drift + scale than before: the earlier ±4% over 60s+ was technically
+   moving but read as static. This is unmistakably alive without being busy. */
+@keyframes ambientDriftA {
+  from {
+    transform: translate(-58%, -54%) scale(1);
+  }
+  to {
+    transform: translate(-42%, -46%) scale(1.15);
+  }
+}
+@keyframes ambientDriftB {
+  from {
+    transform: translate(-44%, -46%) scale(1.12);
+  }
+  to {
+    transform: translate(-56%, -54%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-background::before,
+  .ambient-background::after {
+    animation: none;
   }
 }

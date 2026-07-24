@@ -33,7 +33,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
         <Link
           key={v.id}
           href={`/admin/vehicles/${v.id}/edit`}
-          className="bg-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-xs transition-all hover:shadow-md"
+          className="glass-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-sm transition-all hover:shadow-md"
         >
           <div className="relative aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800">
             {v.image ? (

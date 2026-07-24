@@ -39,8 +39,11 @@ export function StatStrip({ stats }: { stats: Stat[] }) {
               {stat.label}
             </dt>
             <dd
+              // font-medium, not bold: the strip adopts the light-numeral
+              // direction scaled for its size — .metric-num's weight 320 is
+              // for display sizes and would go thin at 15px.
               className={cn(
-                "font-display text-sm font-bold whitespace-nowrap tabular-nums",
+                "font-display text-[15px] font-medium whitespace-nowrap tabular-nums",
                 TONES[stat.tone ?? "default"]
               )}
             >

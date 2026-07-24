@@ -13,6 +13,7 @@ import {
   type Row,
 } from "./reservation-rows";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function ReservationsPage({
     (insights.statusCounts.ACTIVE ?? 0);
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <PageHeader
         title="Reservations"
         count={pendingCount || undefined}
@@ -119,6 +120,6 @@ export default async function ReservationsPage({
       >
         <AreaChart data={insights.activitySeries} height={64} />
       </Panel>
-    </div>
+    </PageBody>
   );
 }

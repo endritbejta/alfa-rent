@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Cog, Fuel, Users } from "lucide-react";
-import type { VehicleWithImages } from "@/services/vehicle.service";
+import type { PublicVehicle } from "@/services/vehicle.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ export function VehicleCard({
   vehicle,
   query,
 }: {
-  vehicle: VehicleWithImages;
+  vehicle: PublicVehicle;
   query?: string;
 }) {
   const cover = vehicle.images[0];
@@ -33,7 +33,7 @@ export function VehicleCard({
   ];
 
   return (
-    <article className="bg-card group overflow-hidden rounded-xl border shadow-xs transition-shadow hover:shadow-md">
+    <article className="glass-card group overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md">
       <Link
         href={href}
         className="relative block aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800"
@@ -64,11 +64,6 @@ export function VehicleCard({
           <h3 className="font-display text-lg font-bold">
             {vehicle.brand} {vehicle.model}
           </h3>
-          {vehicle.plate && (
-            <span className="text-muted-foreground shrink-0 font-mono text-[11px] tracking-wide">
-              {vehicle.plate}
-            </span>
-          )}
         </div>
         <div className="mt-2.5 mb-4 flex flex-wrap gap-1.5">
           {pills.map(({ icon: Icon, label }) => (

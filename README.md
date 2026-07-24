@@ -33,7 +33,12 @@ cp .env.example .env
 # 3. Set up the database (requires a running PostgreSQL, e.g. `brew services start postgresql`)
 createdb alfa_rent   # once
 npx prisma migrate dev
-npx prisma db seed   # 10 vehicles, 2 users, sample reservations
+
+# The seed deletes all application data. Use distinct 16+ character passwords.
+ALLOW_DESTRUCTIVE_SEED=WIPE_AND_RESEED \
+SEED_ADMIN_PASSWORD="<unique-admin-password>" \
+SEED_EMPLOYEE_PASSWORD="<unique-employee-password>" \
+npx prisma db seed
 
 # 4. Run the dev server
 npm run dev
@@ -124,14 +129,18 @@ database on your laptop, so production needs a hosted one.
    before `next build`, so the schema reaches the production database
    automatically. Plain `npm run build` is deliberately database-free, so CI
    can run it without one.
-4. **Seed once** (optional, for demo data) from your machine:
+4. **Seed once** (optional, for a new disposable demo database) from your machine:
 
    ```bash
-   DATABASE_URL="<supabase-direct-url>" DIRECT_URL="<supabase-direct-url>" npm run db:seed
+   ALLOW_DESTRUCTIVE_SEED=WIPE_AND_RESEED \
+   SEED_ADMIN_PASSWORD="<unique-admin-password>" \
+   SEED_EMPLOYEE_PASSWORD="<unique-employee-password>" \
+   npm run db:seed
    ```
 
    Seeding is deliberately not part of the build: the seed wipes the
-   database, and a redeploy must never destroy real bookings.
+   database, and a redeploy must never destroy real bookings. The seed refuses
+   to run without the acknowledgement and both distinct 16+ character passwords.
 
 ### Local vs production
 

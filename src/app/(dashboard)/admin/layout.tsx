@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth";
+import { SIDEBAR_COLLAPSED, SIDEBAR_COOKIE } from "./sidebar-state";
 import { getPendingCount } from "@/services/reservation.service";
 import { getRegistrationAlerts } from "@/services/fleet.service";
 import { PendingBanner } from "@/components/dashboard/pending-banner";
@@ -14,10 +16,15 @@ export default async function AdminLayout({
   // render independently — never rely on a single boundary.
   const user = await requireUser();
   // Operational alerts live in the layout so they follow staff everywhere.
-  const [pendingCount, registrationAlerts] = await Promise.all([
+  const [pendingCount, registrationAlerts, cookieStore] = await Promise.all([
     getPendingCount(),
     getRegistrationAlerts(),
+    cookies(),
   ]);
+
+  // Read on the server so the first paint already has the right sidebar.
+  const collapsed =
+    cookieStore.get(SIDEBAR_COOKIE)?.value === SIDEBAR_COLLAPSED;
 
   async function signOutAction() {
     "use server";
@@ -29,6 +36,7 @@ export default async function AdminLayout({
       user={{ name: user.name ?? "Staff", role: user.role }}
       signOutAction={signOutAction}
       pendingCount={pendingCount}
+      defaultCollapsed={collapsed}
       banner={
         <PendingBanner
           pendingCount={pendingCount}

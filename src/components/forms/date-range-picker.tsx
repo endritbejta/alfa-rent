@@ -149,6 +149,7 @@ export function DateField({
   maxDate,
   placeholder,
   clearable = true,
+  onChange,
 }: {
   name: string;
   id?: string;
@@ -158,10 +159,15 @@ export function DateField({
   placeholder?: string;
   /** Optional fields need a way back to empty; required ones do not. */
   clearable?: boolean;
+  onChange?: (date: Date | undefined) => void;
 }) {
   const [value, setValue] = useState<Date | undefined>(
     defaultValue ? toLocalDay(defaultValue) : undefined
   );
+  const updateValue = (date: Date | undefined) => {
+    setValue(date);
+    onChange?.(date);
+  };
 
   return (
     <div className="flex items-center gap-1.5">
@@ -169,7 +175,7 @@ export function DateField({
         <DatePicker
           id={id}
           value={value}
-          onChange={setValue}
+          onChange={updateValue}
           minDate={minDate}
           maxDate={maxDate}
           placeholder={placeholder}
@@ -179,7 +185,7 @@ export function DateField({
         <button
           type="button"
           aria-label="Clear date"
-          onClick={() => setValue(undefined)}
+          onClick={() => updateValue(undefined)}
           className="text-muted-foreground hover:text-destructive shrink-0 cursor-pointer p-1 transition-colors"
         >
           <X className="h-3.5 w-3.5" />
@@ -261,10 +267,9 @@ export function DateRangePicker({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className={cn(
-          "w-auto rounded-2xl p-2 shadow-2xl",
-          dark && "dark bg-band border-band-border"
-        )}
+        // The `dark` scope alone is enough: the glass surface derives from
+        // --popover, which flips inside it — no hand-set band colours.
+        className={cn("w-auto rounded-2xl p-2 shadow-lg", dark && "dark")}
       >
         <RangeCalendar value={value} onChange={onChange} minDate={minDate} />
       </PopoverContent>

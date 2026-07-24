@@ -7,6 +7,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
 import { CustomerList } from "./customer-list";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function CustomersPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <PageHeader
         title="Customers"
         description="Everyone who has booked with Alfa"
@@ -60,6 +61,6 @@ export default async function CustomersPage() {
       <Panel title="All customers" subtitle="Click a customer for full profile">
         <CustomerList items={items} />
       </Panel>
-    </div>
+    </PageBody>
   );
 }

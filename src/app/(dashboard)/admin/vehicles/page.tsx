@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageBody } from "@/app/(dashboard)/admin/page-body";
 
 export const dynamic = "force-dynamic";
 
@@ -164,7 +165,7 @@ export default async function VehiclesPage({
   }
 
   return (
-    <div className="space-y-6">
+    <PageBody>
       <PageHeader title="Vehicles" description="Fleet overview and management">
         {isAdmin && (
           <Button
@@ -229,6 +230,6 @@ export default async function VehiclesPage({
           />
         </>
       )}
-    </div>
+    </PageBody>
   );
 }

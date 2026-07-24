@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import {
   Users,
   Fuel,
@@ -9,21 +10,21 @@ import {
   Gauge,
   ShieldCheck,
 } from "lucide-react";
-import { getVehicleBySlug } from "@/services/vehicle.service";
+import { getPublicVehicleBySlug } from "@/services/vehicle.service";
 import { NotFoundError } from "@/lib/errors";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
 
 export const dynamic = "force-dynamic";
 
-async function loadVehicle(slug: string) {
+const loadVehicle = cache(async (slug: string) => {
   try {
-    return await getVehicleBySlug(slug);
+    return await getPublicVehicleBySlug(slug);
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
-}
+});
 
 export async function generateMetadata({
   params,

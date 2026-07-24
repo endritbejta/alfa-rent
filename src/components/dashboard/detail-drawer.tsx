@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
 
-const EXIT_MS = 200;
+/** Must match --motion-panel-exit in globals.css — the unmount is timed to it. */
+const EXIT_MS = 192;
 
 /**
  * Right-side drawer used by every summary widget: clicking an item opens
@@ -29,6 +31,10 @@ export function DetailDrawer({
 }) {
   const [mounted, setMounted] = useState(open);
   const [closing, setClosing] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+
+  // Tab stays inside; closing hands focus back to the row that opened it.
+  useFocusTrap(panelRef, open);
 
   // Keep the panel mounted through its exit so closing reverses the entry
   // rather than vanishing. State changes are deferred out of the effect body.
@@ -71,21 +77,26 @@ export function DetailDrawer({
         className={cn(
           "absolute inset-0 cursor-default bg-black/40 backdrop-blur-[1px]",
           closing
-            ? "animate-[overlay-out_200ms_ease-in_forwards]"
-            : "animate-[overlay-in_200ms_ease-out]"
+            ? "animate-[overlay-out_var(--motion-panel-exit)_var(--ease-exit)_forwards]"
+            : "animate-[overlay-in_var(--motion-panel)_var(--ease-standard)]"
         )}
       />
       <aside
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         data-drawer
+        // L5 glass: the drawer floats over work you'll return to, and the
+        // blur is what says that work is still there. 32rem, not 26 — a
+        // workspace needs room (design doc C+, §3).
         className={cn(
-          "bg-card absolute right-0 bottom-0 flex max-h-[92vh] w-full flex-col rounded-t-2xl border shadow-2xl",
-          "sm:top-0 sm:bottom-0 sm:max-h-none sm:w-[26rem] sm:rounded-none sm:rounded-l-2xl",
+          "glass-l5 absolute right-0 bottom-0 flex max-h-[92vh] w-full flex-col rounded-t-2xl shadow-lg outline-none",
+          "sm:top-0 sm:bottom-0 sm:max-h-none sm:w-[32rem] sm:rounded-none sm:rounded-l-2xl",
           closing
-            ? "animate-[drawer-out-bottom_200ms_cubic-bezier(0.4,0,1,1)_forwards] sm:animate-[drawer-out-right_200ms_cubic-bezier(0.4,0,1,1)_forwards]"
-            : "animate-[drawer-in-bottom_220ms_cubic-bezier(0.2,0,0,1)] sm:animate-[drawer-in-right_220ms_cubic-bezier(0.2,0,0,1)]"
+            ? "animate-[drawer-out-bottom_var(--motion-panel-exit)_var(--ease-exit)_forwards] sm:animate-[drawer-out-right_var(--motion-panel-exit)_var(--ease-exit)_forwards]"
+            : "animate-[drawer-in-bottom_var(--motion-panel)_var(--ease-standard)] sm:animate-[drawer-in-right_var(--motion-panel)_var(--ease-standard)]"
         )}
       >
         <header className="flex items-start justify-between gap-3 border-b p-5">

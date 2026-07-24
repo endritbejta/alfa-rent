@@ -7,6 +7,7 @@ import {
   type ReservationStatus,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { requireSeedCredentials } from "./seed-safety";
 
 const prisma = new PrismaClient();
 
@@ -553,6 +554,10 @@ function slugify(brand: string, model: string, year: number, suffix?: number) {
 }
 
 async function main() {
+  const { adminPassword, employeePassword } = requireSeedCredentials(
+    process.env
+  );
+
   console.log("Seeding database (rich dataset)...");
 
   await prisma.repair.deleteMany();
@@ -562,20 +567,22 @@ async function main() {
   await prisma.customer.deleteMany();
   await prisma.user.deleteMany();
 
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
-  const hash = await bcrypt.hash(adminPassword, 12);
+  const [adminHash, employeeHash] = await Promise.all([
+    bcrypt.hash(adminPassword, 12),
+    bcrypt.hash(employeePassword, 12),
+  ]);
   await prisma.user.createMany({
     data: [
       {
         name: "Admin",
         email: "admin@alfarent.com",
-        password: hash,
+        password: adminHash,
         role: "ADMIN",
       },
       {
         name: "Employee",
         email: "employee@alfarent.com",
-        password: hash,
+        password: employeeHash,
         role: "EMPLOYEE",
       },
     ],

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
+import { addDays, format, isAfter } from "date-fns";
 import { CalendarDays, X } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -33,45 +33,6 @@ export function fromDateValue(value: string | null | undefined) {
   if (!value) return undefined;
   const [y, m, d] = value.split("-").map(Number);
   return y && m && d ? new Date(y, m - 1, d) : undefined;
-}
-
-/**
- * Soft red range fill with brand-red endpoints. The selected day itself is
- * already brand red because the shadcn Calendar reads --primary, which is
- * Alfa red — these overrides only theme the range band and its radii.
- */
-const RANGE_CLASSNAMES = {
-  range_start:
-    "relative isolate z-0 rounded-l-xl bg-[var(--brand)]/20 after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-[var(--brand)]/20",
-  range_middle: "rounded-none bg-[var(--brand)]/15",
-  range_end:
-    "relative isolate z-0 rounded-r-xl bg-[var(--brand)]/20 after:absolute after:inset-y-0 after:left-0 after:w-4 after:bg-[var(--brand)]/20",
-};
-
-/** The themed calendar itself — reusable outside a popover if needed. */
-export function RangeCalendar({
-  value,
-  onChange,
-  minDate,
-  numberOfMonths = 1,
-}: {
-  value: DateRange | undefined;
-  onChange: (range: DateRange | undefined) => void;
-  minDate?: Date;
-  numberOfMonths?: number;
-}) {
-  return (
-    <Calendar
-      mode="range"
-      numberOfMonths={numberOfMonths}
-      defaultMonth={value?.from}
-      selected={value}
-      onSelect={onChange}
-      disabled={minDate ? { before: minDate } : undefined}
-      className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
-      classNames={RANGE_CLASSNAMES}
-    />
-  );
 }
 
 /**
@@ -201,11 +162,90 @@ export function DateField({
 }
 
 /**
- * Two-field trigger (Pickup / Return) that opens one range calendar.
+ * Two independent calendars that write into one range value.
+ *
+ * A single range-mode calendar made changing a completed range ambiguous:
+ * react-day-picker had to infer whether the next click meant a new pickup or
+ * a new return. Each visible field now owns its calendar, so the interaction
+ * is deterministic. Moving pickup beyond the current return clears return
+ * instead of leaving an invalid range behind.
+ *
  * `tone` adapts it to the near-black hero or a light admin surface;
  * `minDate` is omitted for staff so a walk-in that already started can
  * still be logged.
  */
+function RangeDateField({
+  label,
+  value,
+  onSelect,
+  tone,
+  minDate,
+  disabled = false,
+}: {
+  label: string;
+  value: Date | undefined;
+  onSelect: (date: Date) => void;
+  tone: "dark" | "light";
+  minDate?: Date;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const dark = tone === "dark";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        disabled={disabled}
+        className={cn(
+          "w-full cursor-pointer px-4 py-2.5 text-left transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45",
+          dark ? "hover:bg-white/[0.04]" : "hover:bg-secondary"
+        )}
+      >
+        <span
+          className={cn(
+            "block text-[11px] font-semibold tracking-wide uppercase",
+            dark ? "text-band-muted" : "text-muted-foreground"
+          )}
+        >
+          {label}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 flex items-center gap-1.5 text-sm",
+            dark ? "text-white" : "text-foreground",
+            !value && (dark ? "text-band-muted" : "text-muted-foreground")
+          )}
+        >
+          <CalendarDays
+            className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              dark ? "text-band-muted" : "text-brand"
+            )}
+          />
+          {value ? format(value, "dd MMM yyyy") : "Add date"}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className={cn("w-auto rounded-2xl p-2 shadow-lg", dark && "dark")}
+      >
+        <Calendar
+          mode="single"
+          defaultMonth={value ?? minDate}
+          selected={value}
+          onSelect={(date) => {
+            if (!date) return;
+            onSelect(date);
+            setOpen(false);
+          }}
+          disabled={minDate ? { before: minDate } : undefined}
+          className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function DateRangePicker({
   value,
   onChange,
@@ -220,59 +260,41 @@ export function DateRangePicker({
   labels?: { from: string; to: string };
 }) {
   const dark = tone === "dark";
-  const label = (d: Date | undefined) =>
-    d ? format(d, "dd MMM yyyy") : "Add date";
+  const earliestReturn = value?.from ? addDays(value.from, 1) : minDate;
+  const returnMinDate =
+    minDate && earliestReturn && isAfter(minDate, earliestReturn)
+      ? minDate
+      : earliestReturn;
 
   return (
-    <Popover>
-      <PopoverTrigger
-        className={cn(
-          "grid flex-1 cursor-pointer grid-cols-2 overflow-hidden rounded-xl text-left transition-colors focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:outline-none",
-          dark
-            ? "divide-x divide-white/10 bg-white/[0.06] ring-1 ring-white/10 hover:bg-white/[0.09]"
-            : "border-input divide-input bg-card hover:bg-secondary divide-x border"
-        )}
-      >
-        {(
-          [
-            { text: labels.from, date: value?.from },
-            { text: labels.to, date: value?.to },
-          ] as const
-        ).map((field) => (
-          <span key={field.text} className="block px-4 py-2.5">
-            <span
-              className={cn(
-                "block text-[11px] font-semibold tracking-wide uppercase",
-                dark ? "text-band-muted" : "text-muted-foreground"
-              )}
-            >
-              {field.text}
-            </span>
-            <span
-              className={cn(
-                "mt-0.5 flex items-center gap-1.5 text-sm",
-                dark ? "text-white" : "text-foreground"
-              )}
-            >
-              <CalendarDays
-                className={cn(
-                  "h-3.5 w-3.5",
-                  dark ? "text-band-muted" : "text-brand"
-                )}
-              />
-              {label(field.date)}
-            </span>
-          </span>
-        ))}
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        // The `dark` scope alone is enough: the glass surface derives from
-        // --popover, which flips inside it — no hand-set band colours.
-        className={cn("w-auto rounded-2xl p-2 shadow-lg", dark && "dark")}
-      >
-        <RangeCalendar value={value} onChange={onChange} minDate={minDate} />
-      </PopoverContent>
-    </Popover>
+    <div
+      className={cn(
+        "grid flex-1 grid-cols-2 divide-x overflow-hidden rounded-xl",
+        dark
+          ? "divide-white/10 bg-white/[0.06] ring-1 ring-white/10"
+          : "border-input divide-input bg-card border"
+      )}
+    >
+      <RangeDateField
+        label={labels.from}
+        value={value?.from}
+        tone={tone}
+        minDate={minDate}
+        onSelect={(from) =>
+          onChange({
+            from,
+            to: value?.to && isAfter(value.to, from) ? value.to : undefined,
+          })
+        }
+      />
+      <RangeDateField
+        label={labels.to}
+        value={value?.to}
+        tone={tone}
+        minDate={returnMinDate}
+        disabled={!value?.from}
+        onSelect={(to) => onChange({ from: value?.from, to })}
+      />
+    </div>
   );
 }

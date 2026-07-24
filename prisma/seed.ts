@@ -446,7 +446,7 @@ const CATALOGUE: ModelSpec[] = [
     fuelType: "DIESEL",
     seats: 8,
     price: 120,
-    blurb: "Eight-seat luxury van for group travel and airport transfers.",
+    blurb: "Eight-seat luxury van for group travel and long-distance comfort.",
   },
   {
     brand: "Volkswagen",
@@ -757,7 +757,7 @@ async function main() {
           returnDate,
           status,
           totalPrice: price.mul(days),
-          notes: rand() < 0.15 ? "Airport pickup requested." : null,
+          notes: rand() < 0.15 ? "Child seat requested." : null,
           createdAt: at10(now, Math.min(createdOffset, 0)),
         },
       });

@@ -98,7 +98,7 @@ export default async function VehiclePage({
               </span>
             )}
             <span className="absolute top-4 left-4">
-              <StatusBadge status={vehicle.status} />
+              <StatusBadge status={vehicle.status} variant="overlay" />
             </span>
           </div>
           {rest.length > 0 && (

@@ -246,7 +246,7 @@ export function BookingForm({
         <Textarea
           id="notes"
           rows={3}
-          placeholder="Airport pickup, child seat, anything we should know"
+          placeholder="Child seat, additional driver, anything we should know"
           {...register("notes")}
         />
       </div>

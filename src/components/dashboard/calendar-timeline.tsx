@@ -360,7 +360,7 @@ export function CalendarTimeline({
                           openReservation(r.id);
                         }}
                         className={cn(
-                          "absolute top-2 z-10 h-7 cursor-pointer truncate rounded-md px-2 text-left text-xs leading-7 transition-shadow",
+                          "absolute top-2 z-10 h-7 cursor-pointer truncate rounded-md px-2 text-center text-xs leading-7 transition-shadow",
                           BAR_STYLES[r.status],
                           active && "ring-foreground/70 shadow-md ring-2"
                         )}

@@ -52,7 +52,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
               </span>
             )}
             <span className="absolute top-3 right-3">
-              <StatusBadge status={v.status} />
+              <StatusBadge status={v.status} variant="overlay" />
             </span>
             {(v.registrationExpired || v.registrationDue) && (
               <span

@@ -9,7 +9,7 @@ type Status = VehicleStatus | ReservationStatus;
  * so tables can be scanned without reading labels. The dot carries the
  * color; the label carries it for color-blind users.
  */
-const HUES: Record<Status, string> = {
+const SURFACE_HUES: Record<Status, string> = {
   AVAILABLE: "text-status-available bg-status-available/12",
   RENTED: "text-status-rented bg-status-rented/12",
   SERVICE: "text-status-maint bg-status-maint/14",
@@ -21,19 +21,44 @@ const HUES: Record<Status, string> = {
   CANCELLED: "text-destructive bg-destructive/10",
 };
 
+const DOT_HUES: Record<Status, string> = {
+  AVAILABLE: "bg-status-available",
+  RENTED: "bg-status-rented",
+  SERVICE: "bg-status-maint",
+  INACTIVE: "bg-status-inactive",
+  PENDING: "bg-status-maint",
+  CONFIRMED: "bg-status-reserved",
+  ACTIVE: "bg-status-rented",
+  COMPLETED: "bg-status-inactive",
+  CANCELLED: "bg-destructive",
+};
+
 const LABELS: Partial<Record<Status, string>> = {
   SERVICE: "Maintenance",
 };
 
-export function StatusBadge({ status }: { status: Status }) {
+export function StatusBadge({
+  status,
+  variant = "surface",
+}: {
+  status: Status;
+  variant?: "surface" | "overlay";
+}) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-        HUES[status]
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
+        variant === "overlay"
+          ? "border-white/25 bg-neutral-950/90 text-white shadow-lg backdrop-blur-sm"
+          : cn("border-current/15", SURFACE_HUES[status])
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      <span
+        className={cn(
+          "h-2 w-2 rounded-full",
+          variant === "overlay" ? DOT_HUES[status] : "bg-current"
+        )}
+      />
       {LABELS[status] ?? status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );

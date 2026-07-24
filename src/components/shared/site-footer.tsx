@@ -51,7 +51,7 @@ export function SiteFooter() {
           <ul className="space-y-2 text-sm">
             <li>Mon - Sat: 08:00 - 20:00</li>
             <li>Sunday: 09:00 - 17:00</li>
-            <li>Airport pickup: 24/7 on request</li>
+            <li>Reservations confirmed during opening hours</li>
           </ul>
         </div>
       </div>

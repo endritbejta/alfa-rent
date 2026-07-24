@@ -8,7 +8,7 @@ import {
   KeyRound,
   CalendarCheck,
 } from "lucide-react";
-import { getVehicles } from "@/services/vehicle.service";
+import { getPublicVehicles } from "@/services/vehicle.service";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { HeroSearch } from "@/components/forms/hero-search";
@@ -91,7 +91,7 @@ const REVIEWS = [
 ];
 
 export default async function HomePage() {
-  const { items: featured } = await getVehicles({ page: 1, perPage: 3 });
+  const { items: featured } = await getPublicVehicles({ page: 1, perPage: 3 });
 
   return (
     <>

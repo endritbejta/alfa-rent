@@ -10,6 +10,7 @@ import type {
 } from "@/lib/validations/vehicle";
 import type { VehicleStatus } from "@prisma/client";
 import type { Paginated } from "@/types/api";
+import { PUBLIC_BOOKABLE_VEHICLE_STATUSES } from "@/lib/vehicle-policy";
 
 const vehicleWithImages = Prisma.validator<Prisma.VehicleDefaultArgs>()({
   include: { images: { orderBy: { sortOrder: "asc" as const } } },
@@ -45,7 +46,10 @@ const publicVehicleSelect = Prisma.validator<Prisma.VehicleSelectScalar>()({
 const publicVehicleArgs = Prisma.validator<Prisma.VehicleDefaultArgs>()({
   select: {
     ...publicVehicleSelect,
-    images: { orderBy: { sortOrder: "asc" as const }, select: { url: true } },
+    images: {
+      orderBy: { sortOrder: "asc" as const },
+      select: { id: true, url: true },
+    },
   },
 });
 
@@ -122,6 +126,15 @@ function buildVehicleWhere(
           },
         },
       }),
+  };
+}
+
+function buildPublicVehicleWhere(
+  filters: VehicleFilterInput
+): Prisma.VehicleWhereInput {
+  return {
+    ...buildVehicleWhere(filters, { includeInactive: true }),
+    status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] },
   };
 }
 
@@ -235,7 +248,7 @@ export async function getPublicVehicles(
   filters: VehicleFilterInput
 ): Promise<Paginated<PublicVehicle>> {
   const { page, perPage } = filters;
-  const where = buildVehicleWhere(filters, {});
+  const where = buildPublicVehicleWhere(filters);
 
   const [items, total] = await prisma.$transaction([
     prisma.vehicle.findMany({
@@ -255,6 +268,21 @@ export async function getPublicVehicles(
     perPage,
     totalPages: Math.ceil(total / perPage),
   };
+}
+
+/** Public detail read: the same minimal DTO and status policy as the listing. */
+export async function getPublicVehicleBySlug(
+  slug: string
+): Promise<PublicVehicle> {
+  const vehicle = await prisma.vehicle.findFirst({
+    where: {
+      slug,
+      status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] },
+    },
+    ...publicVehicleArgs,
+  });
+  if (!vehicle) throw new NotFoundError("Vehicle");
+  return vehicle;
 }
 
 /** Distinct brands in the fleet, for the admin filter dropdown. */

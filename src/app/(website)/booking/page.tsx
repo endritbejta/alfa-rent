@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getVehicles } from "@/services/vehicle.service";
+import { getPublicVehicles } from "@/services/vehicle.service";
 import { BookingForm } from "@/components/forms/booking-form";
 import { vehicleLabel } from "@/utils/vehicle";
 
@@ -17,7 +17,10 @@ export default async function BookingPage({
   searchParams: Promise<{ vehicle?: string; from?: string; to?: string }>;
 }) {
   const { vehicle: preselectedSlug, from, to } = await searchParams;
-  const { items: vehicles } = await getVehicles({ page: 1, perPage: 50 });
+  const { items: vehicles } = await getPublicVehicles({
+    page: 1,
+    perPage: 50,
+  });
 
   return (
     <>

@@ -149,7 +149,7 @@ export function AdminShell({
   return (
     <ReservationDetailProvider>
       <CommandPalette pendingCount={pendingCount} />
-      <div className="tabular-shell bg-background flex min-h-screen">
+      <div className="tabular-shell flex min-h-screen">
         {/*
           The floating rail. The aside is a transparent, sticky, full-height
           padding frame; the charcoal panel floats inside it with the bench

@@ -251,10 +251,13 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Transparent so the fixed ambient field (z-index:-1) shows through.
+       html keeps the canvas as a fallback for when the field can't paint. */
+    @apply text-foreground;
+    background: transparent;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
   }
   /*
    * Optical tracking: the bigger the type, the tighter it wants to be. One
@@ -295,6 +298,9 @@
    */
   .tabular-shell {
     font-variant-numeric: tabular-nums;
+    /* Sits above the fixed ambient field; z-index needs a position to bite. */
+    position: relative;
+    z-index: 1;
   }
 
   /*
@@ -319,6 +325,21 @@
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
   }
+  /*
+   * Frosted product card: translucent enough that the moving field reads
+   * through it, opaque enough (68%) that the name and price stay legible over
+   * it. The image half of a card is an opaque photo, so only the body frosts.
+   */
+  .glass-card {
+    background: color-mix(
+      in srgb,
+      var(--card) var(--glass-card-fill),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+  }
+
   .glass-l3 {
     --glass-fill: 72%;
     --glass-blur: 20px;
@@ -446,6 +467,9 @@
     background: var(--popover);
     border-color: var(--border);
   }
+  .glass-card {
+    background: var(--card);
+  }
 }
 @media (prefers-reduced-transparency: reduce) {
   .glass-l3,
@@ -457,66 +481,126 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+  .glass-card {
+    background: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+/*
+ * Ambient field: soft grey blobs drifting behind the app, so opaque cards
+ * read as lifted above a living surface rather than sitting on flat colour.
+ *
+ * Deliberately blobs, not the earlier hard-edged discs: two blurred layers
+ * drift on offset timings, so the motion never reads as one sliding sheet.
+ * Cards stay opaque (there is no .bg-card override any more) — translucent
+ * cards would recede into this field; opaque ones pop off it, which is the
+ * whole point. Tokenised so it flips for dark, and it holds still under
+ * reduced-motion.
+ */
+:root {
+  --ambient-canvas: #ecebe9;
+  --ambient-blob: 148 146 144;
+  --ambient-alpha: 0.55;
+  /* Card translucency, per theme. Dark glass tolerates more see-through
+     because light text holds contrast over a dark field; light glass needs
+     to stay denser to keep dark text legible. */
+  --glass-card-fill: 68%;
+}
+.dark {
+  --ambient-canvas: #08080a;
+  --ambient-blob: 150 152 168;
+  --ambient-alpha: 0.16;
+  --glass-card-fill: 46%;
 }
 
-.app-background {
+.ambient-background {
   position: fixed;
-  inset: -100vh -100vw;
-  width: 300vw;
-  height: 300vh;
+  inset: 0;
+  overflow: hidden;
   pointer-events: none;
-  z-index: -2;
+  /*
+   * Behind everything, not z-index:0. A fixed z-index:0 layer paints ABOVE
+   * static content that has no stacking context of its own — which hid the
+   * whole login card. At -1 it sits under all content uniformly, so no page
+   * needs its own z-index to escape it. Requires a transparent body (below)
+   * so it shows through.
+   */
+  z-index: -1;
+  background: var(--ambient-canvas);
+}
 
-  background:
-    radial-gradient(
-      circle at 18% 22%,
-      rgba(220, 32, 40, 0.08) 0%,
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at 72% 18%,
-      rgba(255, 255, 255, 0.14) 0%,
-      transparent 32%
-    ),
-    radial-gradient(
-      circle at 78% 72%,
-      rgba(70, 70, 70, 0.08) 0%,
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 25% 80%,
-      rgba(180, 180, 180, 0.1) 0%,
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(30, 30, 30, 0.05) 0%,
-      transparent 45%
-    ),
-    linear-gradient(135deg, #eceef1, #e7e8eb, #f1f2f4);
-
-  animation: backgroundFloat 70s ease-in-out infinite alternate;
+.ambient-background::before,
+.ambient-background::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200vw;
+  height: 200vh;
+  /* Heavy blur is what turns the gradients into soft blobs. */
+  filter: blur(90px);
+  transform: translate(-50%, -50%);
   will-change: transform;
 }
 
-@keyframes backgroundFloat {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
+.ambient-background::before {
+  background:
+    radial-gradient(
+      closest-side at 28% 30%,
+      rgb(var(--ambient-blob) / var(--ambient-alpha)),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 76% 24%,
+      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.85)),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 58% 78%,
+      rgb(var(--ambient-blob) / var(--ambient-alpha)),
+      transparent
+    );
+  animation: ambientDriftA 34s ease-in-out infinite alternate;
+}
 
-  25% {
-    transform: translate3d(-8%, -4%, 0);
-  }
+.ambient-background::after {
+  background:
+    radial-gradient(
+      closest-side at 16% 72%,
+      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.9)),
+      transparent
+    ),
+    radial-gradient(
+      closest-side at 88% 58%,
+      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.8)),
+      transparent
+    );
+  animation: ambientDriftB 44s ease-in-out infinite alternate;
+}
 
-  50% {
-    transform: translate3d(-15%, 6%, 0);
+/* Wider drift + scale than before: the earlier ±4% over 60s+ was technically
+   moving but read as static. This is unmistakably alive without being busy. */
+@keyframes ambientDriftA {
+  from {
+    transform: translate(-58%, -54%) scale(1);
   }
-
-  75% {
-    transform: translate3d(-5%, 12%, 0);
+  to {
+    transform: translate(-42%, -46%) scale(1.15);
   }
+}
+@keyframes ambientDriftB {
+  from {
+    transform: translate(-44%, -46%) scale(1.12);
+  }
+  to {
+    transform: translate(-56%, -54%) scale(1);
+  }
+}
 
-  100% {
-    transform: translate3d(-18%, -8%, 0);
+@media (prefers-reduced-motion: reduce) {
+  .ambient-background::before,
+  .ambient-background::after {
+    animation: none;
   }
 }

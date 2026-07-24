@@ -9,6 +9,7 @@ import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { calculateTotalPrice, rentalDays } from "@/utils/pricing";
 import { latestUnder, withTimeOfDay } from "@/utils/rental-dates";
 import { findOrCreateCustomerByEmail } from "@/services/customer.service";
+import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
 import type {
   AvailabilityInput,
   CreateBookingInput,
@@ -46,7 +47,9 @@ export async function checkAvailability({
     select: { status: true },
   });
   if (!vehicle) throw new NotFoundError("Vehicle");
-  if (vehicle.status === "INACTIVE") return { available: false };
+  if (!isPublicBookableVehicleStatus(vehicle.status)) {
+    return { available: false };
+  }
 
   const overlapping = await prisma.reservation.count({
     where: {
@@ -94,7 +97,7 @@ export async function createReservation(
       select: { pricePerDay: true, status: true },
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
-    if (vehicle.status === "INACTIVE") {
+    if (!isPublicBookableVehicleStatus(vehicle.status)) {
       throw new ConflictError("Vehicle is not available for booking");
     }
 

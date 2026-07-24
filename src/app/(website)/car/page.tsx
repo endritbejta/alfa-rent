@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { format } from "date-fns";
-import { getVehicles } from "@/services/vehicle.service";
+import { getPublicVehicles } from "@/services/vehicle.service";
 import { vehicleFilterSchema } from "@/lib/validations/vehicle";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { FleetFilters } from "@/components/forms/fleet-filters";
@@ -21,7 +21,7 @@ export default async function FleetPage({
   const params = await searchParams;
   const parsed = vehicleFilterSchema.safeParse({ ...params, perPage: 24 });
   const filters = parsed.success ? parsed.data : { page: 1, perPage: 24 };
-  const { items, total } = await getVehicles(filters);
+  const { items, total } = await getPublicVehicles(filters);
 
   const dateRange =
     filters.from && filters.to && filters.to > filters.from

@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       style={
         {
           "--font-sans": "var(--font-geist-sans)",
@@ -49,7 +49,10 @@ export default function RootLayout({
         } as React.CSSProperties
       }
     >
-      <body className="app-background flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col">
+        <div className="ambient-background">
+          <div className="ambient-light"></div>
+        </div>
         {children}
       </body>
     </html>

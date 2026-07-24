@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { publicVehicleFields } from "./vehicle.service";
+import {
+  isPublicBookableVehicleStatus,
+  PUBLIC_BOOKABLE_VEHICLE_STATUSES,
+} from "@/lib/vehicle-policy";
 
 /**
  * Guards the shape of the anonymous payload.
@@ -30,5 +34,11 @@ describe("public vehicle payload", () => {
     for (const field of ["slug", "brand", "model", "pricePerDay", "status"]) {
       expect(publicVehicleFields).toContain(field);
     }
+  });
+
+  it("never lists vehicles that are off-road", () => {
+    expect(PUBLIC_BOOKABLE_VEHICLE_STATUSES).toEqual(["AVAILABLE", "RENTED"]);
+    expect(isPublicBookableVehicleStatus("SERVICE")).toBe(false);
+    expect(isPublicBookableVehicleStatus("INACTIVE")).toBe(false);
   });
 });

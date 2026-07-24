@@ -19,8 +19,8 @@ group). Two products in one Next.js app:
 
 **Live:** https://alfa-rent.vercel.app · **Repo:** github.com/endritbejta/alfa-rent (private)
 
-Staff login: `admin@alfarent.com` / `employee@alfarent.com`, password
-`ChangeMe123!` (seeded — change before real use).
+Staff credentials are never documented in the repository. Provision them through
+the approved password manager and require an out-of-band reset before first use.
 
 ## 2. Stack and where things live
 
@@ -98,11 +98,13 @@ https://claude.ai/code/artifact/c6d3cf98-a175-4d1c-9d96-2ed57a4dd268
 
 ## 5. Environment
 
-`.env` is gitignored and **currently points at Supabase (production)**.
+`.env` is gitignored. Always verify which database it targets before running the
+application or a Prisma command; never assume it is a disposable local database.
 
-> **Careful:** `npm run dev` therefore reads and writes live data, and
-> `npm run db:seed` would **wipe it**. For day-to-day work, uncomment the
-> local Postgres lines at the top of `.env`.
+> **Careful:** `npm run db:seed` deletes all application data. It now refuses to
+> run without the explicit destructive acknowledgement and two distinct strong
+> staff passwords documented in `.env.example`. Do not set those values against
+> production.
 
 `AUTH_URL` must stay `http://localhost:3000` locally; the deployed URL lives
 in Vercel's env. Vercel vars are marked **Sensitive**, so `vercel env pull`
@@ -113,8 +115,10 @@ returns empty strings — use `vercel logs <url> --json` to diagnose instead
 
 ### Security / correctness
 
-1. **Rotate the Supabase credentials.** The DB password, `service_role` key
-   and JWT secret were pasted into a chat on 16 Jul. Not in git, but exposed.
+1. **Complete and privately document the open credential-rotation incident.**
+   Rotate every affected credential, revoke old sessions, inspect provider audit
+   logs, and retain evidence in the approved private incident system rather than
+   this repository.
 2. **Slug collisions are latent.** `createVehicle` has no dedupe, but the seed
    needed it. Production already has 2× E-Class, 2× RAV4, 2× Octavia (different
    years). Buying a second E-Class _of the same year_ → P2002 with an unhelpful

@@ -52,7 +52,7 @@ export function VehicleCard({
           </span>
         )}
         <span className="absolute top-3 right-3">
-          <StatusBadge status={vehicle.status} />
+          <StatusBadge status={vehicle.status} variant="overlay" />
         </span>
       </Link>
 

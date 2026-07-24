@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/shared/theme-provider";
 import "./globals.css";
 
 /**
@@ -41,7 +42,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       style={
         {
           "--font-sans": "var(--font-geist-sans)",
@@ -50,10 +52,12 @@ export default function RootLayout({
       }
     >
       <body className="flex min-h-full flex-col">
-        <div className="ambient-background">
-          <div className="ambient-light"></div>
-        </div>
-        {children}
+        <ThemeProvider>
+          <div className="ambient-background">
+            <div className="ambient-light"></div>
+          </div>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

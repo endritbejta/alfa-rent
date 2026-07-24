@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, Menu, X } from "lucide-react";
 import { AdminNav } from "./admin-nav";
 import { CommandPalette } from "./command-palette";
 import { ReservationDetailProvider } from "./reservation-detail";
@@ -11,6 +11,7 @@ import {
   SIDEBAR_COOKIE,
   SIDEBAR_MAX_AGE,
 } from "./sidebar-state";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,35 +22,57 @@ function SidebarChrome({
   signOutAction,
   pendingCount,
   collapsed = false,
+  onToggleCollapsed,
 }: {
   user: ShellUser;
   signOutAction: () => Promise<void>;
   pendingCount: number;
   collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
   return (
     <>
       <div
         className={cn(
-          "border-sidebar-border border-b",
-          collapsed ? "flex h-[73px] items-center justify-center px-2" : "p-5"
+          "border-sidebar-border flex items-center justify-between border-b",
+          collapsed ? "h-[73px] gap-1 px-1" : "gap-2 p-5"
         )}
       >
-        {collapsed ? (
-          // The wordmark's own initial, not a new logo. Collapsing the
-          // sidebar shouldn't rebrand the product.
-          <p className="font-display text-lg font-bold">
-            A<span className="text-sidebar-primary">R</span>
-          </p>
-        ) : (
-          <>
-            <p className="font-display text-lg font-bold tracking-tight">
-              ALFA <span className="text-sidebar-primary">RENT</span>
+        <div className="min-w-0">
+          {collapsed ? (
+            // The wordmark's own initial, not a new logo. Collapsing the
+            // sidebar shouldn't rebrand the product.
+            <p className="font-display text-base font-bold">
+              A<span className="text-sidebar-primary">R</span>
             </p>
-            <p className="text-sidebar-foreground/50 text-xs">
-              Staff dashboard
-            </p>
-          </>
+          ) : (
+            <>
+              <p className="font-display text-lg font-bold tracking-tight">
+                ALFA <span className="text-sidebar-primary">RENT</span>
+              </p>
+              <p className="text-sidebar-foreground/50 text-xs">
+                Staff dashboard
+              </p>
+            </>
+          )}
+        </div>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={`${collapsed ? "Expand" : "Collapse"} sidebar  [`}
+            className={cn(
+              "border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground relative flex shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-colors hover:bg-white/8",
+              collapsed ? "h-6 w-6" : "h-7 w-7"
+            )}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
         )}
       </div>
 
@@ -69,6 +92,10 @@ function SidebarChrome({
             </p>
           </>
         )}
+        <ThemeToggle
+          showLabel={!collapsed}
+          className={cn("mb-2 w-full", collapsed && "px-0")}
+        />
         <form action={signOutAction}>
           <Button
             type="submit"
@@ -171,22 +198,9 @@ export function AdminShell({
               signOutAction={signOutAction}
               pendingCount={pendingCount}
               collapsed={collapsed}
+              onToggleCollapsed={toggleCollapsed}
             />
           </div>
-          {/* Sits on the rail's right edge, outside the clipped panel. */}
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={`${collapsed ? "Expand" : "Collapse"} sidebar  [`}
-            className="bg-sidebar border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground absolute top-[84px] right-0 z-20 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border shadow-sm transition-colors"
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="h-3 w-3" />
-            ) : (
-              <PanelLeftClose className="h-3 w-3" />
-            )}
-          </button>
         </aside>
 
         {/* Mobile drawer — never collapsed; on a phone there is no in-between. */}

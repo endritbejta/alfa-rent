@@ -49,7 +49,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
             </span>
           )}
           <span className="absolute top-3 right-3">
-            <StatusBadge status={vehicle.status} />
+            <StatusBadge status={vehicle.status} variant="overlay" />
           </span>
         </div>
         {rest.length > 0 && (

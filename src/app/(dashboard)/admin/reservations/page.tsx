@@ -61,35 +61,28 @@ export default async function ReservationsPage({
         description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${inFlight} rental${inFlight === 1 ? "" : "s"} in flight`}
       />
 
+      <StatusFilter counts={insights.statusCounts} active={statusFilter} />
+
       {/* Pending is a queue of decisions, so it renders as modules. */}
       {statusFilter === "PENDING" ? (
-        <div className="space-y-4">
-          <StatusFilter counts={insights.statusCounts} active={statusFilter} />
-          <PendingQueue
-            requests={items.map((r) => ({
-              id: r.id,
-              pickupDate: r.pickupDate,
-              returnDate: r.returnDate,
-              totalPrice: String(r.totalPrice),
-              createdAt: r.createdAt,
-              notes: r.notes,
-              vehicle: r.vehicle,
-              customer: r.customer,
-            }))}
-          />
-        </div>
+        <PendingQueue
+          requests={items.map((r) => ({
+            id: r.id,
+            pickupDate: r.pickupDate,
+            returnDate: r.returnDate,
+            totalPrice: String(r.totalPrice),
+            createdAt: r.createdAt,
+            notes: r.notes,
+            vehicle: r.vehicle,
+            customer: r.customer,
+          }))}
+        />
       ) : (
         <Panel
           title={
             statusFilter
-              ? `${statusFilter.toLowerCase()} reservations`
+              ? `${statusFilter.charAt(0)}${statusFilter.slice(1).toLowerCase()} reservations`
               : "All reservations"
-          }
-          action={
-            <StatusFilter
-              counts={insights.statusCounts}
-              active={statusFilter}
-            />
           }
         >
           <div className="md:hidden">

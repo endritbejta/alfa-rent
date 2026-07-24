@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import {
   ShieldCheck,
   Clock,
-  MapPin,
   BadgeEuro,
   KeyRound,
   CalendarCheck,
@@ -17,14 +16,14 @@ import { HeroBackground } from "@/components/shared/hero-background";
 export const metadata: Metadata = {
   title: "Premium Car Rental in Kosovo",
   description:
-    "Drive premium, travel without limits. Modern, fully insured rental fleet in Prishtina with airport delivery and transparent pricing.",
+    "Drive premium, travel without limits. Modern, fully insured rental fleet in Prishtina with flexible booking and transparent pricing.",
 };
 
 export const dynamic = "force-dynamic";
 
 const PROOF = [
   { icon: ShieldCheck, label: "Fully insured fleet" },
-  { icon: Clock, label: "24/7 airport pickup" },
+  { icon: Clock, label: "Flexible rental periods" },
   { icon: BadgeEuro, label: "Transparent pricing, no hidden fees" },
 ];
 
@@ -37,12 +36,12 @@ const WHY = [
   {
     icon: BadgeEuro,
     title: "The price is the price",
-    text: "The total you see when you pick your dates is the total you pay. No airport surcharges, no fine print.",
+    text: "The total you see when you pick your dates is the total you pay. No hidden surcharges, no fine print.",
   },
   {
-    icon: MapPin,
-    title: "Delivered where you land",
-    text: "Prishtina Airport, your hotel, or your doorstep — tell us where and the keys will be waiting.",
+    icon: KeyRound,
+    title: "A simple handover",
+    text: "We confirm the details before pickup so the vehicle and paperwork are ready when you arrive.",
   },
   {
     icon: Clock,
@@ -72,9 +71,9 @@ const STEPS = [
 const REVIEWS = [
   {
     quote:
-      "Landed at 2 AM, the car was waiting at arrivals with a full tank. This is how rental should work everywhere.",
+      "Picked up the Tiguan for a family trip. It was spotless, comfortable, and exactly as described.",
     name: "Liridon H.",
-    detail: "Airport pickup, BMW X5",
+    detail: "Family trip, Volkswagen Tiguan",
   },
   {
     quote:
@@ -109,7 +108,7 @@ export default async function HomePage() {
           </h1>
           <p className="text-band-muted mt-6 max-w-xl text-lg">
             A modern, fully insured fleet — from city runabouts to executive
-            sedans — delivered wherever your journey starts.
+            sedans — ready for journeys across Kosovo.
           </p>
 
           <HeroSearch />

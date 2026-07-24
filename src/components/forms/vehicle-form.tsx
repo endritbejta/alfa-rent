@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { addDays, format, startOfDay } from "date-fns";
 import {
   VehicleCategory,
   VehicleStatus,
@@ -25,7 +26,11 @@ import {
 import type { ActionResult } from "@/app/(dashboard)/admin/vehicles/actions";
 import { signVehicleUploadAction } from "@/app/(dashboard)/admin/vehicles/actions";
 import { MediaGrid } from "@/components/forms/media-grid";
-import { DateField } from "@/components/forms/date-range-picker";
+import {
+  DateField,
+  toDateValue,
+  toLocalDay,
+} from "@/components/forms/date-range-picker";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,19 +69,34 @@ type Props = {
   action: (formData: FormData) => Promise<ActionResult>;
   vehicle?: VehicleFormValues;
   onDeleteVehicle?: () => Promise<ActionResult>;
+  repairsPanel?: React.ReactNode;
 };
 
-export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
+export function VehicleForm({
+  action,
+  vehicle,
+  onDeleteVehicle,
+  repairsPanel,
+}: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [renewingRegistration, setRenewingRegistration] = useState(false);
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
 
   const submit = (formData: FormData) => {
     setError(null);
+    if (
+      vehicle &&
+      renewingRegistration &&
+      !formData.get("registrationExpiry")
+    ) {
+      setError("Choose the new registration expiry date before saving.");
+      return;
+    }
     startTransition(async () => {
       const result = await action(formData);
       if (result?.error) {
@@ -88,6 +108,17 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
   };
 
   const leave = () => router.push("/admin/vehicles");
+  const currentRegistrationExpiry = vehicle?.registrationExpiry
+    ? toLocalDay(vehicle.registrationExpiry)
+    : undefined;
+  const renewalMinDate = currentRegistrationExpiry
+    ? new Date(
+        Math.max(
+          addDays(currentRegistrationExpiry, 1).getTime(),
+          startOfDay(new Date()).getTime()
+        )
+      )
+    : startOfDay(new Date());
 
   return (
     <form
@@ -164,92 +195,96 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
       />
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        {/* Left: what the car is */}
-        <Card title="Specifications" icon={Car}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Brand" htmlFor="brand" icon={Car}>
-              <Input
-                id="brand"
-                name="brand"
-                defaultValue={vehicle?.brand}
-                required
-              />
-            </Field>
-            <Field label="Model" htmlFor="model" icon={Car}>
-              <Input
-                id="model"
-                name="model"
-                defaultValue={vehicle?.model}
-                required
-              />
-            </Field>
-            <Field label="Year" htmlFor="year" icon={CalendarDays}>
-              <Input
-                id="year"
-                name="year"
-                type="number"
-                min={1990}
-                max={new Date().getFullYear() + 1}
-                defaultValue={vehicle?.year ?? new Date().getFullYear()}
-                required
-              />
-            </Field>
-            <Field label="Category" htmlFor="category" icon={Layers}>
-              <Select
-                id="category"
-                name="category"
-                defaultValue={vehicle?.category ?? "SEDAN"}
+        {/* Independent stacks prevent a tall card from opening a hole opposite it. */}
+        <div className="space-y-5">
+          <Card title="Specifications" icon={Car}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Brand" htmlFor="brand" icon={Car}>
+                <Input
+                  id="brand"
+                  name="brand"
+                  defaultValue={vehicle?.brand}
+                  required
+                />
+              </Field>
+              <Field label="Model" htmlFor="model" icon={Car}>
+                <Input
+                  id="model"
+                  name="model"
+                  defaultValue={vehicle?.model}
+                  required
+                />
+              </Field>
+              <Field label="Year" htmlFor="year" icon={CalendarDays}>
+                <Input
+                  id="year"
+                  name="year"
+                  type="number"
+                  min={1990}
+                  max={new Date().getFullYear() + 1}
+                  defaultValue={vehicle?.year ?? new Date().getFullYear()}
+                  required
+                />
+              </Field>
+              <Field label="Category" htmlFor="category" icon={Layers}>
+                <Select
+                  id="category"
+                  name="category"
+                  defaultValue={vehicle?.category ?? "SEDAN"}
+                >
+                  {Object.values(VehicleCategory).map((c) => (
+                    <option key={c} value={c}>
+                      {c.charAt(0) + c.slice(1).toLowerCase()}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Seats" htmlFor="seats" icon={Users}>
+                <Input
+                  id="seats"
+                  name="seats"
+                  type="number"
+                  min={1}
+                  max={20}
+                  defaultValue={vehicle?.seats ?? 5}
+                  required
+                />
+              </Field>
+              <Field
+                label="Price per day"
+                htmlFor="pricePerDay"
+                icon={Euro}
+                hint="EUR"
               >
-                {Object.values(VehicleCategory).map((c) => (
-                  <option key={c} value={c}>
-                    {c.charAt(0) + c.slice(1).toLowerCase()}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Seats" htmlFor="seats" icon={Users}>
-              <Input
-                id="seats"
-                name="seats"
-                type="number"
-                min={1}
-                max={20}
-                defaultValue={vehicle?.seats ?? 5}
+                <Input
+                  id="pricePerDay"
+                  name="pricePerDay"
+                  type="number"
+                  step="0.01"
+                  min={1}
+                  defaultValue={vehicle?.pricePerDay}
+                  required
+                />
+              </Field>
+            </div>
+
+            <Field label="Description" htmlFor="description" className="mt-4">
+              <Textarea
+                id="description"
+                name="description"
+                rows={4}
+                defaultValue={vehicle?.description}
                 required
+                minLength={10}
+                placeholder="What makes this one worth renting?"
               />
             </Field>
-            <Field
-              label="Price per day"
-              htmlFor="pricePerDay"
-              icon={Euro}
-              hint="EUR"
-            >
-              <Input
-                id="pricePerDay"
-                name="pricePerDay"
-                type="number"
-                step="0.01"
-                min={1}
-                defaultValue={vehicle?.pricePerDay}
-                required
-              />
-            </Field>
-          </div>
+          </Card>
 
-          <Field label="Description" htmlFor="description" className="mt-4">
-            <Textarea
-              id="description"
-              name="description"
-              rows={4}
-              defaultValue={vehicle?.description}
-              required
-              minLength={10}
-              placeholder="What makes this one worth renting?"
-            />
-          </Field>
-        </Card>
+          {repairsPanel}
+        </div>
 
-        {/* Right: how it is doing */}
+        {/* Right: operational, legal, and routine service status. */}
         <div className="space-y-5">
           <Card title="Operational status" icon={CircleGauge}>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -304,76 +339,147 @@ export function VehicleForm({ action, vehicle, onDeleteVehicle }: Props) {
             </div>
           </Card>
 
-          <Card title="Registration" icon={ShieldCheck}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label="Registered on"
-                htmlFor="registrationDate"
-                icon={CalendarDays}
-              >
-                <DateField
-                  id="registrationDate"
-                  name="registrationDate"
-                  defaultValue={vehicle?.registrationDate}
-                />
-              </Field>
-              <Field
-                label="Expires"
-                htmlFor="registrationExpiry"
-                icon={CalendarDays}
-              >
-                <DateField
-                  id="registrationExpiry"
-                  name="registrationExpiry"
-                  defaultValue={vehicle?.registrationExpiry}
-                />
-              </Field>
-            </div>
-          </Card>
-
-          <Card
-            title="Service"
-            icon={Wrench}
-            subtitle="Routine upkeep — repairs are logged below"
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label="Last service"
-                htmlFor="lastServiceDate"
-                icon={CalendarDays}
-              >
-                <DateField
-                  id="lastServiceDate"
-                  name="lastServiceDate"
-                  defaultValue={vehicle?.lastServiceDate}
-                />
-              </Field>
-              <Field
-                label="Next due"
-                htmlFor="nextServiceDate"
-                icon={CalendarDays}
-              >
-                <DateField
-                  id="nextServiceDate"
-                  name="nextServiceDate"
-                  defaultValue={vehicle?.nextServiceDate}
-                />
-              </Field>
-            </div>
-            <Field
-              label="Service notes"
-              htmlFor="serviceNotes"
-              className="mt-4"
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21rem),1fr))] gap-5">
+            <Card
+              title="Registration"
+              icon={ShieldCheck}
+              action={
+                vehicle ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    aria-expanded={renewingRegistration}
+                    aria-controls="registration-renewal"
+                    onClick={() => setRenewingRegistration((value) => !value)}
+                  >
+                    {renewingRegistration
+                      ? "Cancel renewal"
+                      : "Renew registration"}
+                  </Button>
+                ) : undefined
+              }
             >
-              <Textarea
-                id="serviceNotes"
-                name="serviceNotes"
-                rows={2}
-                defaultValue={vehicle?.serviceNotes ?? ""}
-                placeholder="Oil and filters replaced, brake fluid due next time"
-              />
-            </Field>
-          </Card>
+              <div className="grid gap-4">
+                <Field
+                  label="Registered on"
+                  htmlFor="registrationDate"
+                  icon={CalendarDays}
+                >
+                  <DateField
+                    id="registrationDate"
+                    name="registrationDate"
+                    defaultValue={vehicle?.registrationDate}
+                    onChange={() => setDirty(true)}
+                  />
+                </Field>
+                {vehicle ? (
+                  <Field label="Current expiry" icon={CalendarDays}>
+                    <div className="border-input bg-secondary/50 flex h-9 items-center rounded-lg border px-3 text-sm">
+                      {currentRegistrationExpiry
+                        ? format(currentRegistrationExpiry, "dd MMM yyyy")
+                        : "Not recorded"}
+                    </div>
+                  </Field>
+                ) : (
+                  <Field
+                    label="Expires"
+                    htmlFor="registrationExpiry"
+                    icon={CalendarDays}
+                  >
+                    <DateField
+                      id="registrationExpiry"
+                      name="registrationExpiry"
+                      onChange={() => setDirty(true)}
+                    />
+                  </Field>
+                )}
+              </div>
+
+              {vehicle && !renewingRegistration && (
+                <input
+                  type="hidden"
+                  name="registrationExpiry"
+                  value={
+                    currentRegistrationExpiry
+                      ? toDateValue(currentRegistrationExpiry)
+                      : ""
+                  }
+                />
+              )}
+
+              {vehicle && renewingRegistration && (
+                <div
+                  id="registration-renewal"
+                  className="border-brand/25 bg-brand/[0.06] mt-4 rounded-lg border p-4"
+                >
+                  <Field
+                    label="New expiry date"
+                    htmlFor="registrationExpiry"
+                    icon={CalendarDays}
+                  >
+                    <DateField
+                      id="registrationExpiry"
+                      name="registrationExpiry"
+                      minDate={renewalMinDate}
+                      placeholder="Choose the new end date"
+                      clearable={false}
+                      onChange={() => setDirty(true)}
+                    />
+                  </Field>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    Choose the renewed registration end date, then save changes.
+                  </p>
+                </div>
+              )}
+            </Card>
+
+            <Card
+              title="Service"
+              icon={Wrench}
+              subtitle="Routine upkeep — repairs are logged alongside"
+            >
+              <div className="grid gap-4">
+                <Field
+                  label="Last service"
+                  htmlFor="lastServiceDate"
+                  icon={CalendarDays}
+                >
+                  <DateField
+                    id="lastServiceDate"
+                    name="lastServiceDate"
+                    defaultValue={vehicle?.lastServiceDate}
+                    onChange={() => setDirty(true)}
+                  />
+                </Field>
+                <Field
+                  label="Next due"
+                  htmlFor="nextServiceDate"
+                  icon={CalendarDays}
+                >
+                  <DateField
+                    id="nextServiceDate"
+                    name="nextServiceDate"
+                    defaultValue={vehicle?.nextServiceDate}
+                    onChange={() => setDirty(true)}
+                  />
+                </Field>
+              </div>
+              <Field
+                label="Service notes"
+                htmlFor="serviceNotes"
+                className="mt-4"
+              >
+                <Textarea
+                  id="serviceNotes"
+                  name="serviceNotes"
+                  rows={2}
+                  defaultValue={vehicle?.serviceNotes ?? ""}
+                  placeholder="Oil and filters replaced, brake fluid due next time"
+                />
+              </Field>
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -415,23 +521,28 @@ function Card({
   title,
   subtitle,
   icon: Icon,
+  action,
   children,
 }: {
   title: string;
   subtitle?: string;
   icon: React.ElementType;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="bg-card rounded-xl border shadow-xs">
-      <div className="border-b px-5 py-3">
-        <h2 className="font-display flex items-center gap-2 text-sm font-bold">
-          <Icon className="text-brand h-4 w-4" />
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="text-muted-foreground mt-0.5 text-xs">{subtitle}</p>
-        )}
+      <div className="flex items-start justify-between gap-3 border-b px-5 py-3">
+        <div>
+          <h2 className="font-display flex items-center gap-2 text-sm font-bold">
+            <Icon className="text-brand h-4 w-4" />
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="text-muted-foreground mt-0.5 text-xs">{subtitle}</p>
+          )}
+        </div>
+        {action}
       </div>
       <div className="p-5">{children}</div>
     </section>

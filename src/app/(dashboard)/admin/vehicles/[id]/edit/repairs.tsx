@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { format } from "date-fns";
 import { Plus, Trash2, Wrench } from "lucide-react";
 import { addRepairAction, deleteRepairAction } from "../../actions";
@@ -47,6 +47,7 @@ export function RepairsPanel({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const repairFieldsRef = useRef<HTMLDivElement>(null);
 
   const submit = (formData: FormData) => {
     setError(null);
@@ -58,6 +59,23 @@ export function RepairsPanel({
       }
       setOpen(false);
     });
+  };
+
+  const submitFields = () => {
+    const fields = Array.from(
+      repairFieldsRef.current?.querySelectorAll<HTMLInputElement>(
+        "input[name]"
+      ) ?? []
+    );
+    const invalidField = fields.find((field) => !field.checkValidity());
+    if (invalidField) {
+      invalidField.reportValidity();
+      return;
+    }
+
+    const formData = new FormData();
+    fields.forEach((field) => formData.set(field.name, field.value));
+    submit(formData);
   };
 
   const summary = [
@@ -80,7 +98,10 @@ export function RepairsPanel({
   ];
 
   return (
-    <section className="bg-card max-w-2xl rounded-xl border p-5 shadow-xs">
+    <section
+      className="bg-card rounded-xl border p-5 shadow-xs"
+      onChange={(event) => event.stopPropagation()}
+    >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="font-display flex items-center gap-2 text-sm font-bold">
@@ -88,10 +109,15 @@ export function RepairsPanel({
             Repairs
           </h2>
           <p className="text-muted-foreground mt-0.5 text-xs">
-            Unplanned costs only — regular servicing is tracked above
+            Unplanned costs only — routine servicing is tracked separately
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setOpen((v) => !v)}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setOpen((v) => !v)}
+        >
           <Plus className="h-4 w-4" />
           Add repair
         </Button>
@@ -112,8 +138,8 @@ export function RepairsPanel({
       </div>
 
       {open && (
-        <form
-          action={submit}
+        <div
+          ref={repairFieldsRef}
           className="bg-secondary mb-5 space-y-3 rounded-lg border p-4"
         >
           <div className="grid gap-3 sm:grid-cols-2">
@@ -167,10 +193,16 @@ export function RepairsPanel({
               {error}
             </p>
           )}
-          <Button type="submit" size="sm" variant="success" disabled={pending}>
+          <Button
+            type="button"
+            size="sm"
+            variant="success"
+            disabled={pending}
+            onClick={submitFields}
+          >
             {pending ? "Saving..." : "Save repair"}
           </Button>
-        </form>
+        </div>
       )}
 
       {repairs.length === 0 ? (

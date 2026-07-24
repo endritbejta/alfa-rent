@@ -50,19 +50,20 @@ export default async function EditVehiclePage({
           })),
         }}
         onDeleteVehicle={deleteWithId}
-      />
-
-      <RepairsPanel
-        vehicleId={id}
-        repairs={profile.repairs.map((r) => ({
-          id: r.id,
-          date: r.date,
-          cost: String(r.cost),
-          description: r.description,
-          notes: r.notes,
-          reference: r.reference,
-        }))}
-        stats={profile.stats}
+        repairsPanel={
+          <RepairsPanel
+            vehicleId={id}
+            repairs={profile.repairs.map((r) => ({
+              id: r.id,
+              date: r.date,
+              cost: String(r.cost),
+              description: r.description,
+              notes: r.notes,
+              reference: r.reference,
+            }))}
+            stats={profile.stats}
+          />
+        }
       />
     </PageBody>
   );

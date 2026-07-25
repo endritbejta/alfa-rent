@@ -72,6 +72,7 @@ export async function getCustomerById(id: string) {
     include: {
       reservations: {
         orderBy: { pickupDate: "desc" },
+        take: 50,
         include: {
           vehicle: {
             select: { brand: true, model: true, plate: true, slug: true },

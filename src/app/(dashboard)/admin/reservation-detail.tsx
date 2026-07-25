@@ -3,7 +3,14 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { Mail, Phone, Car, CalendarRange, Receipt } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  Car,
+  CalendarRange,
+  Receipt,
+  ClipboardCheck,
+} from "lucide-react";
 import {
   getReservationDetailAction,
   getVehicleDetailAction,
@@ -20,6 +27,8 @@ import { VehicleDetailBody } from "./vehicle-detail-body";
 import { CustomerDetailBody } from "./customer-detail-body";
 import { SectionTitle, Row, DrawerSkeleton } from "./detail-primitives";
 import { vehicleLabel } from "@/utils/vehicle";
+import { ReservationAttention } from "@/components/shared/reservation-attention";
+import { InspectionAction } from "./reservations/inspection-action";
 
 type Loaded =
   | { kind: "reservation"; data: ReservationDetail }
@@ -192,7 +201,10 @@ function ReservationBody({
         <SectionTitle icon={CalendarRange}>This reservation</SectionTitle>
         <div className="space-y-2 text-sm">
           <Row label="Status">
-            <StatusBadge status={detail.status} />
+            <span className="flex flex-wrap justify-end gap-1.5">
+              <StatusBadge status={detail.status} />
+              <ReservationAttention attention={detail.timing.attention} />
+            </span>
           </Row>
           <Row label="Pickup">
             {format(detail.pickupDate, "EEE dd MMM yyyy")}
@@ -213,6 +225,16 @@ function ReservationBody({
             </span>
           </Row>
           <Row label="Booked">{format(detail.createdAt, "dd MMM yyyy")}</Row>
+          {detail.startedAt && (
+            <Row label="Handover">
+              {format(detail.startedAt, "dd MMM yyyy, HH:mm")}
+            </Row>
+          )}
+          {detail.completedAt && (
+            <Row label="Returned">
+              {format(detail.completedAt, "dd MMM yyyy, HH:mm")}
+            </Row>
+          )}
           {detail.notes && (
             <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">
               {detail.notes}
@@ -228,13 +250,111 @@ function ReservationBody({
         />
 
         <div className="mt-3">
-          <StatusActions
-            reservationId={detail.id}
-            status={detail.status}
-            onSuccess={onDone}
-          />
+          <div className="flex flex-wrap justify-end gap-2">
+            <InspectionAction
+              reservationId={detail.id}
+              status={detail.status}
+              timing={detail.timing}
+              signerName={`${detail.customer.firstName} ${detail.customer.lastName}`}
+              onSuccess={onChanged}
+            />
+            <StatusActions
+              reservationId={detail.id}
+              status={detail.status}
+              onSuccess={onDone}
+            />
+          </div>
         </div>
       </section>
+
+      {detail.inspections.length > 0 && (
+        <section>
+          <SectionTitle icon={ClipboardCheck}>
+            Inspections ({detail.inspections.length})
+          </SectionTitle>
+          <div className="space-y-3">
+            {detail.inspections.map((inspection) => (
+              <article
+                key={inspection.id}
+                className="bg-secondary/60 rounded-xl border p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {inspection.type === "PICKUP"
+                        ? "Pickup condition"
+                        : "Return condition"}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {format(inspection.createdAt, "dd MMM yyyy, HH:mm")} by{" "}
+                      {inspection.createdBy.name}
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold tabular-nums">
+                    {inspection.mileage.toLocaleString()} km ·{" "}
+                    {inspection.fuelLevel}% fuel
+                  </span>
+                </div>
+
+                {(inspection.exteriorNotes ||
+                  inspection.interiorNotes ||
+                  inspection.damageNotes) && (
+                  <dl className="mt-3 space-y-1 text-xs">
+                    {inspection.exteriorNotes && (
+                      <div>
+                        <dt className="text-muted-foreground inline">
+                          Exterior:{" "}
+                        </dt>
+                        <dd className="inline">{inspection.exteriorNotes}</dd>
+                      </div>
+                    )}
+                    {inspection.interiorNotes && (
+                      <div>
+                        <dt className="text-muted-foreground inline">
+                          Interior:{" "}
+                        </dt>
+                        <dd className="inline">{inspection.interiorNotes}</dd>
+                      </div>
+                    )}
+                    {inspection.damageNotes && (
+                      <div>
+                        <dt className="text-destructive inline font-semibold">
+                          Damage:{" "}
+                        </dt>
+                        <dd className="inline">{inspection.damageNotes}</dd>
+                      </div>
+                    )}
+                  </dl>
+                )}
+
+                {inspection.photos.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {inspection.photos.map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="relative aspect-square overflow-hidden rounded-lg bg-neutral-900"
+                      >
+                        <Image
+                          src={photo.url}
+                          alt={`${inspection.type.toLowerCase()} inspection`}
+                          fill
+                          sizes="8rem"
+                          className="object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-muted-foreground mt-3 border-t pt-2 text-[11px]">
+                  Acknowledged by {inspection.signerName} at{" "}
+                  {format(inspection.acknowledgedAt, "HH:mm")}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <SectionTitle icon={Mail}>Customer</SectionTitle>

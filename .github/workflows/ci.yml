@@ -8,10 +8,21 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # A syntactically valid URL is all `prisma generate` needs. Nothing in
-      # CI touches a live database: `build` is deliberately free of
-      # migrations (those run in `vercel-build`), so this job stays hermetic.
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
       DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
     steps:
@@ -24,4 +35,6 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test
+      - run: npx prisma migrate deploy
+      - run: npm run test:integration
       - run: npm run build

@@ -1,4 +1,5 @@
 import { ReservationStatus } from "@prisma/client";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/guards";
 import { getReservations } from "@/services/reservation.service";
 import { getReservationInsights } from "@/services/analytics.service";
@@ -14,6 +15,9 @@ import {
 } from "./reservation-rows";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
+import { getReservationTiming } from "@/lib/reservation-lifecycle";
+import { paginationSchema } from "@/lib/validations/common";
+import { Pagination } from "@/components/dashboard/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -22,18 +26,28 @@ const STATUSES = Object.values(ReservationStatus);
 export default async function ReservationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   await requireUser();
-  const { status } = await searchParams;
+  const { status, page: rawPage } = await searchParams;
   const statusFilter = STATUSES.includes(status as ReservationStatus)
     ? (status as ReservationStatus)
     : undefined;
+  const { page } = paginationSchema.parse({ page: rawPage, perPage: 25 });
 
-  const [{ items }, insights] = await Promise.all([
-    getReservations({ status: statusFilter, page: 1, perPage: 50 }),
+  const [reservations, insights] = await Promise.all([
+    getReservations({ status: statusFilter, page, perPage: 25 }),
     getReservationInsights(),
   ]);
+  const { items, total, perPage, totalPages } = reservations;
+  if (total > 0 && page > totalPages) {
+    redirect(
+      statusFilter
+        ? `/admin/reservations?status=${statusFilter}`
+        : "/admin/reservations"
+    );
+  }
+  const now = new Date();
 
   // Decimal cannot cross into a client component — convert at the edge.
   const rows: Row[] = items.map((r) => ({
@@ -42,6 +56,7 @@ export default async function ReservationsPage({
     returnDate: r.returnDate,
     totalPrice: String(r.totalPrice),
     status: r.status,
+    timing: getReservationTiming(r, now),
     vehicle: r.vehicle,
     customer: r.customer,
   }));
@@ -58,7 +73,7 @@ export default async function ReservationsPage({
       <PageHeader
         title="Reservations"
         count={pendingCount || undefined}
-        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${inFlight} rental${inFlight === 1 ? "" : "s"} in flight`}
+        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${insights.overdue} overdue - ${inFlight} rental${inFlight === 1 ? "" : "s"} in flight`}
       />
 
       <StatusFilter counts={insights.statusCounts} active={statusFilter} />
@@ -106,6 +121,15 @@ export default async function ReservationsPage({
           </div>
         </Panel>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        basePath="/admin/reservations"
+        label="reservations"
+      />
 
       <Panel
         title="Booking activity"

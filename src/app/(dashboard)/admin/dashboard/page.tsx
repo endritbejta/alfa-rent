@@ -83,6 +83,11 @@ export default async function DashboardPage() {
             value: `${kpis.utilization}%`,
             tone: kpis.utilization > 60 ? "good" : "default",
           },
+          {
+            label: "Needs attention",
+            value: kpis.overdue,
+            tone: kpis.overdue > 0 ? "danger" : "default",
+          },
           { label: "Available", value: kpis.available, tone: "good" },
           {
             label: "Revenue this week",

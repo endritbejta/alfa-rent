@@ -59,7 +59,7 @@ export function HeroSearch() {
 
       <button
         type="submit"
-        className="bg-brand flex h-11 cursor-pointer items-center justify-center gap-2 self-end rounded-xl px-7 text-sm font-semibold text-white transition-transform duration-150 hover:scale-[1.03] hover:bg-[#b8161f] active:scale-100 md:mt-[26px]"
+        className="bg-brand flex h-11 cursor-pointer items-center justify-center gap-2 self-end rounded-xl px-7 text-sm font-semibold text-white transition-transform duration-150 hover:scale-[1.03] hover:bg-[#b8161f] active:scale-100"
       >
         <Search className="h-4 w-4" />
         Search

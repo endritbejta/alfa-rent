@@ -1,8 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { availabilitySchema, createBookingSchema } from "./reservation";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  availabilitySchema,
+  createBookingSchema,
+  MAX_BOOKING_HORIZON_DAYS,
+  MAX_RENTAL_DAYS,
+} from "./reservation";
 
 const future = (days: number) =>
   new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+
+afterEach(() => vi.useRealTimers());
 
 describe("availabilitySchema", () => {
   it("accepts a valid future range and coerces ISO strings to dates", () => {
@@ -32,6 +39,36 @@ describe("availabilitySchema", () => {
         returnDate: future(2),
       })
     ).toThrow();
+  });
+
+  it("rejects yesterday by the branch calendar even when it is less than 24 hours ago", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-24T08:00:00.000Z"));
+    expect(() =>
+      availabilitySchema.parse({
+        vehicleId: "v1",
+        pickupDate: "2026-07-23T10:00:00.000Z",
+        returnDate: "2026-07-25T10:00:00.000Z",
+      })
+    ).toThrow(/past/);
+  });
+
+  it("bounds both the booking horizon and rental duration", () => {
+    expect(() =>
+      availabilitySchema.parse({
+        vehicleId: "v1",
+        pickupDate: future(MAX_BOOKING_HORIZON_DAYS + 2),
+        returnDate: future(MAX_BOOKING_HORIZON_DAYS + 4),
+      })
+    ).toThrow(/within/);
+
+    expect(() =>
+      availabilitySchema.parse({
+        vehicleId: "v1",
+        pickupDate: future(2),
+        returnDate: future(MAX_RENTAL_DAYS + 3),
+      })
+    ).toThrow(/duration/);
   });
 });
 

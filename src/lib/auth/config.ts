@@ -18,17 +18,24 @@ export const authConfig = {
     authorized({ auth, request }) {
       const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
       if (!isAdminRoute) return true;
-      return !!auth?.user;
+      return (
+        !!auth?.user &&
+        Number.isInteger(auth.user.sessionVersion) &&
+        typeof auth.user.id === "string" &&
+        auth.user.id.length > 0
+      );
     },
     jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.sessionVersion = user.sessionVersion;
       }
       return token;
     },
     session({ session, token }) {
       session.user.id = token.sub ?? "";
       session.user.role = token.role;
+      session.user.sessionVersion = token.sessionVersion;
       return session;
     },
   },

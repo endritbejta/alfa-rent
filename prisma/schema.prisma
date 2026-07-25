@@ -49,14 +49,23 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum InspectionType {
+  PICKUP
+  RETURN
+}
+
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(EMPLOYEE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String             @id @default(cuid())
+  name           String
+  email          String             @unique
+  password       String
+  role           Role               @default(EMPLOYEE)
+  active         Boolean            @default(true)
+  /// Incrementing this immediately invalidates every previously issued JWT.
+  sessionVersion Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  inspections    RentalInspection[]
 
   @@map("users")
 }
@@ -92,8 +101,8 @@ model Vehicle {
   serviceCost        Decimal?  @db.Decimal(10, 2)
   serviceNotes       String?
 
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   images       VehicleImage[]
   reservations Reservation[]
@@ -150,28 +159,78 @@ model Customer {
 
   reservations Reservation[]
 
+  @@index([createdAt])
   @@map("customers")
 }
 
 model Reservation {
-  id         String            @id @default(cuid())
-  vehicleId  String
-  customerId String
-  pickupDate DateTime
-  returnDate DateTime
-  status     ReservationStatus @default(PENDING)
-  totalPrice Decimal           @db.Decimal(10, 2)
-  notes      String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  vehicleId   String
+  customerId  String
+  pickupDate  DateTime
+  returnDate  DateTime
+  status      ReservationStatus @default(PENDING)
+  totalPrice  Decimal           @db.Decimal(10, 2)
+  notes       String?
+  /// Actual handover and return timestamps. Scheduled dates remain unchanged
+  /// so punctuality and overdue rentals can be audited later.
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
-  vehicle  Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicle     Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  customer    Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  inspections RentalInspection[]
 
   @@index([vehicleId, pickupDate, returnDate])
   @@index([customerId])
   @@index([status])
+  @@index([status, pickupDate])
+  @@index([status, returnDate])
+  @@index([createdAt])
   @@map("reservations")
+}
+
+/// Immutable condition record captured at the actual vehicle handover or
+/// return. Scheduled reservation dates stay on Reservation; this records what
+/// staff and the customer observed in person.
+model RentalInspection {
+  id             String         @id @default(cuid())
+  reservationId  String
+  createdById    String
+  type           InspectionType
+  mileage        Int
+  fuelLevel      Int
+  exteriorNotes  String?
+  interiorNotes  String?
+  damageFound    Boolean        @default(false)
+  damageNotes    String?
+  signerName     String
+  acknowledgedAt DateTime
+  createdAt      DateTime       @default(now())
+
+  reservation Reservation       @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  createdBy   User              @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  photos      InspectionPhoto[]
+
+  @@unique([reservationId, type])
+  @@index([createdById])
+  @@map("rental_inspections")
+}
+
+model InspectionPhoto {
+  id           String   @id @default(cuid())
+  inspectionId String
+  url          String
+  publicId     String   @unique
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  inspection RentalInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@index([inspectionId, sortOrder])
+  @@map("inspection_photos")
 }
 
 /// Fixed-window counters for abuse control. Kept in Postgres rather than a

@@ -60,6 +60,13 @@ export function draftFolder(draftId: string): string {
   return `${ROOT_FOLDER}/vehicles/_drafts/${assertSafeId(draftId)}`;
 }
 
+export function inspectionFolder(
+  reservationId: string,
+  type: "PICKUP" | "RETURN"
+): string {
+  return `${ROOT_FOLDER}/inspections/${assertSafeId(reservationId)}/${type.toLowerCase()}`;
+}
+
 export function signUpload(folder: string): UploadSignature {
   const timestamp = Math.round(Date.now() / 1000);
   const signature = cloudinary.utils.api_sign_request(

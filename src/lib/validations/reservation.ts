@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { ReservationStatus } from "@prisma/client";
+import { businessDay, rentalCalendarDay } from "@/lib/reservation-lifecycle";
+
+export const MAX_RENTAL_DAYS = 365;
+export const MAX_BOOKING_HORIZON_DAYS = 730;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const dateRange = {
   pickupDate: z.coerce.date(),
@@ -14,10 +19,28 @@ const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
       message: "Return date must be after pickup date",
       path: ["returnDate"],
     })
-    .refine((d) => d.pickupDate.getTime() > Date.now() - 24 * 60 * 60 * 1000, {
+    .refine((d) => rentalCalendarDay(d.pickupDate) >= businessDay(new Date()), {
       message: "Pickup date cannot be in the past",
       path: ["pickupDate"],
-    });
+    })
+    .refine(
+      (d) =>
+        d.pickupDate.getTime() <=
+        Date.now() + MAX_BOOKING_HORIZON_DAYS * DAY_MS,
+      {
+        message: `Pickup date must be within ${MAX_BOOKING_HORIZON_DAYS} days`,
+        path: ["pickupDate"],
+      }
+    )
+    .refine(
+      (d) =>
+        d.returnDate.getTime() - d.pickupDate.getTime() <=
+        MAX_RENTAL_DAYS * DAY_MS,
+      {
+        message: `Rental duration cannot exceed ${MAX_RENTAL_DAYS} days`,
+        path: ["returnDate"],
+      }
+    );
 
 export const availabilitySchema = withValidRange(
   z.object({ vehicleId: z.string().min(1), ...dateRange })
@@ -52,22 +75,19 @@ export const extendReservationSchema = z.object({
 
 /**
  * Admin "book on the phone" flow. Unlike the public form, staff choose the
- * initial status directly and identify the customer by name only; the
- * past-date restriction is dropped so a walk-in that already started can be
- * logged as ACTIVE.
+ * initial request status and identify the customer by name only. An active
+ * rental must go through the pickup inspection, so it cannot be created
+ * directly from the calendar.
  */
-export const manualReservationSchema = z
-  .object({
+export const manualReservationSchema = withValidRange(
+  z.object({
     vehicleId: z.string().min(1, "Choose a vehicle"),
     customerName: z.string().trim().min(2, "Customer name is required").max(80),
     ...dateRange,
-    status: z.enum(["PENDING", "CONFIRMED", "ACTIVE"]),
+    status: z.enum(["PENDING", "CONFIRMED"]),
     notes: z.string().trim().max(1000).optional(),
   })
-  .refine((d) => d.returnDate > d.pickupDate, {
-    message: "Return date must be after pickup date",
-    path: ["returnDate"],
-  });
+);
 
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;

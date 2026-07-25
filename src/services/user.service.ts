@@ -7,6 +7,7 @@ export type AuthenticatedUser = {
   name: string;
   email: string;
   role: Role;
+  sessionVersion: number;
 };
 
 /**
@@ -28,6 +29,12 @@ export async function verifyCredentials(
     "$2a$12$C6UzMDM.H6dfI/f/IKcEeO7ZBpDDQrGRnMUCIDGNMOl3cJdKO0uO2";
   const valid = await bcrypt.compare(password, hash);
 
-  if (!user || !valid) return null;
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+  if (!user || !user.active || !valid) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    sessionVersion: user.sessionVersion,
+  };
 }

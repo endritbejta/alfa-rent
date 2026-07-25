@@ -209,7 +209,8 @@ export function CalendarTimeline({
 
       <p className="text-muted-foreground mb-2 text-xs">
         Scroll sideways to move through months. Click a rental to trace its
-        dates, or an empty row to book.
+        dates, or an empty date to book. Keyboard users can press Enter on a
+        rental to open its details.
       </p>
 
       <div
@@ -298,16 +299,20 @@ export function CalendarTimeline({
                 </div>
 
                 <div
-                  role="presentation"
-                  onClick={(e) =>
-                    openFromIndex(
-                      row.id,
-                      Math.floor(e.nativeEvent.offsetX / dayW)
-                    )
-                  }
-                  className="relative shrink-0 cursor-copy"
+                  className="relative shrink-0"
                   style={{ width: gridW, height: 46, ...gridLines }}
                 >
+                  {dayDates.map((date, index) => (
+                    <button
+                      key={date}
+                      type="button"
+                      aria-label={`Book ${row.name} on ${date}`}
+                      onClick={() => openFromIndex(row.id, index)}
+                      className="hover:bg-brand/5 focus-visible:ring-brand absolute inset-y-0 z-0 cursor-copy focus-visible:z-20 focus-visible:ring-2 focus-visible:outline-none"
+                      style={{ left: index * dayW, width: dayW }}
+                    />
+                  ))}
+
                   {/* Month boundaries read stronger than day lines */}
                   {months.map((m) => (
                     <span
@@ -330,7 +335,8 @@ export function CalendarTimeline({
                       <button
                         key={r.id}
                         type="button"
-                        title={`${r.customerName} (${r.status.toLowerCase()}) — double-click for details`}
+                        aria-pressed={active}
+                        title={`${r.customerName} (${r.status.toLowerCase()}) — double-click or press Enter for details`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelected(
@@ -350,6 +356,18 @@ export function CalendarTimeline({
                         // trace off again, so set it outright: a double-click
                         // leaves the rental both traced and open.
                         onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          setSelected({
+                            rowId: row.id,
+                            id: r.id,
+                            start: r.start,
+                            end: r.start + r.span - 1,
+                          });
+                          openReservation(r.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter") return;
+                          e.preventDefault();
                           e.stopPropagation();
                           setSelected({
                             rowId: row.id,
@@ -400,6 +418,7 @@ function BookingModal({
   vehicleOptions: { id: string; name: string }[];
   onClose: () => void;
 }) {
+  type NewReservationStatus = "PENDING" | "CONFIRMED";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -408,7 +427,7 @@ function BookingModal({
     customerName: "",
     from: state.from,
     to: state.to,
-    status: "CONFIRMED" as BarStatus,
+    status: "CONFIRMED" as NewReservationStatus,
     notes: "",
   });
 
@@ -437,10 +456,13 @@ function BookingModal({
 
   const field =
     "border-input focus:ring-ring h-10 w-full rounded-lg border bg-transparent px-3 text-sm outline-none focus:ring-2";
-  const STATUS: { value: BarStatus; label: string; dot: string }[] = [
+  const STATUS: {
+    value: NewReservationStatus;
+    label: string;
+    dot: string;
+  }[] = [
     { value: "PENDING", label: "Pending", dot: "bg-status-maint" },
     { value: "CONFIRMED", label: "Confirmed", dot: "bg-status-reserved" },
-    { value: "ACTIVE", label: "Active", dot: "bg-status-rented" },
   ];
 
   return (
@@ -519,7 +541,7 @@ function BookingModal({
 
           <div>
             <span className="mb-1.5 block text-xs font-semibold">Status</span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {STATUS.map((s) => (
                 <button
                   key={s.value}

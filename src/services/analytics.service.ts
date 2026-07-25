@@ -2,7 +2,6 @@ import {
   addDays,
   addMonths,
   format,
-  startOfDay,
   startOfMonth,
   startOfWeek,
   startOfYear,
@@ -11,6 +10,12 @@ import {
 } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/utils/vehicle";
+import {
+  businessDay,
+  businessDayStart,
+  businessMonthStart,
+  businessWeekStart,
+} from "@/lib/reservation-lifecycle";
 
 export type SeriesPoint = { label: string; value: number };
 
@@ -34,7 +39,7 @@ function monthlySeries(
 }
 
 function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
-  const today = startOfDay(new Date());
+  const today = businessDayStart(new Date());
   return Array.from({ length: days }, (_, i) => {
     const day = subDays(today, days - 1 - i);
     const next = addDays(day, 1);
@@ -48,10 +53,11 @@ function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
 
 export async function getDashboardData() {
   const now = new Date();
-  const todayStart = startOfDay(now);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(now);
+  const todayStart = businessDayStart(now);
+  const weekStart = businessWeekStart(now);
+  const monthStart = businessMonthStart(now);
   const horizon = addDays(todayStart, 7);
+  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
 
   const [
     fleetTotal,
@@ -66,6 +72,7 @@ export async function getDashboardData() {
     recentReservations,
     pendingRequests,
     revenueRows,
+    overdue,
   ] = await prisma.$transaction([
     prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
     prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
@@ -130,6 +137,7 @@ export async function getDashboardData() {
     prisma.reservation.findMany({
       where: { status: "PENDING" },
       orderBy: { createdAt: "asc" },
+      take: 10,
       include: {
         vehicle: { select: { brand: true, model: true, plate: true } },
         customer: {
@@ -140,6 +148,14 @@ export async function getDashboardData() {
     prisma.reservation.findMany({
       where: { createdAt: { gte: subMonths(now, 6) } },
       select: { createdAt: true, totalPrice: true, status: true },
+    }),
+    prisma.reservation.count({
+      where: {
+        OR: [
+          { status: "CONFIRMED", pickupDate: { lt: businessToday } },
+          { status: "ACTIVE", returnDate: { lt: businessToday } },
+        ],
+      },
     }),
   ]);
 
@@ -156,6 +172,7 @@ export async function getDashboardData() {
       rentedNow,
       maintenance,
       pending,
+      overdue,
       utilization: fleetTotal ? Math.round((rentedNow / fleetTotal) * 100) : 0,
       revenueWeek: Number(revenueWeek._sum.totalPrice ?? 0),
       revenueMonth: Number(revenueMonth._sum.totalPrice ?? 0),
@@ -169,10 +186,12 @@ export async function getDashboardData() {
 }
 
 export async function getReservationInsights() {
-  const todayStart = startOfDay(new Date());
+  const now = new Date();
+  const todayStart = businessDayStart(now);
   const todayEnd = addDays(todayStart, 1);
+  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
 
-  const [byStatus, activityRows, todaysPickups, todaysReturns] =
+  const [byStatus, activityRows, todaysPickups, todaysReturns, overdue] =
     await Promise.all([
       prisma.reservation.groupBy({ by: ["status"], _count: true }),
       prisma.reservation.findMany({
@@ -191,6 +210,14 @@ export async function getReservationInsights() {
           returnDate: { gte: todayStart, lt: todayEnd },
         },
       }),
+      prisma.reservation.count({
+        where: {
+          OR: [
+            { status: "CONFIRMED", pickupDate: { lt: businessToday } },
+            { status: "ACTIVE", returnDate: { lt: businessToday } },
+          ],
+        },
+      }),
     ]);
 
   const statusCounts = Object.fromEntries(
@@ -202,6 +229,7 @@ export async function getReservationInsights() {
     activitySeries: dailySeries(activityRows, 14),
     todaysPickups,
     todaysReturns,
+    overdue,
   };
 }
 
@@ -251,7 +279,7 @@ export async function getFleetInsights() {
 
 export async function getCustomerInsights() {
   const now = new Date();
-  const monthStart = startOfMonth(now);
+  const monthStart = businessMonthStart(now);
 
   const [total, newThisMonth, perCustomer, spenders, registrationRows] =
     await Promise.all([

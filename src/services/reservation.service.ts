@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { calculateTotalPrice, rentalDays } from "@/utils/pricing";
 import { latestUnder, withTimeOfDay } from "@/utils/rental-dates";
+import { getReservationTiming } from "@/lib/reservation-lifecycle";
 import { findOrCreateCustomerByEmail } from "@/services/customer.service";
 import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
 import type {
@@ -28,6 +29,27 @@ const EXTENDABLE_STATUSES: ReservationStatus[] = ["CONFIRMED", "ACTIVE"];
 
 const day = (d: Date) => format(d, "dd MMM yyyy");
 
+function registrationCovers(
+  registrationExpiry: Date | null,
+  returnDate: Date
+): boolean {
+  return (
+    registrationExpiry === null ||
+    returnDate.getTime() <= registrationExpiry.getTime()
+  );
+}
+
+function assertRegistrationCovers(
+  registrationExpiry: Date | null,
+  returnDate: Date
+) {
+  if (!registrationCovers(registrationExpiry, returnDate)) {
+    throw new ValidationError(
+      `The vehicle's registration expires on ${day(registrationExpiry!)}; the rental cannot run past it.`
+    );
+  }
+}
+
 /** Which transitions the business allows, e.g. no un-cancelling. */
 const ALLOWED_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
   PENDING: ["CONFIRMED", "CANCELLED"],
@@ -44,10 +66,13 @@ export async function checkAvailability({
 }: AvailabilityInput): Promise<{ available: boolean }> {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
-    select: { status: true },
+    select: { status: true, registrationExpiry: true },
   });
   if (!vehicle) throw new NotFoundError("Vehicle");
-  if (!isPublicBookableVehicleStatus(vehicle.status)) {
+  if (
+    !isPublicBookableVehicleStatus(vehicle.status) ||
+    !registrationCovers(vehicle.registrationExpiry, returnDate)
+  ) {
     return { available: false };
   }
 
@@ -94,12 +119,17 @@ export async function createReservation(
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({
       where: { id: input.vehicleId },
-      select: { pricePerDay: true, status: true },
+      select: {
+        pricePerDay: true,
+        status: true,
+        registrationExpiry: true,
+      },
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
     if (!isPublicBookableVehicleStatus(vehicle.status)) {
       throw new ConflictError("Vehicle is not available for booking");
     }
+    assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
     return tx.reservation.create({
       data: {
@@ -135,12 +165,17 @@ export async function createManualReservation(
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({
       where: { id: input.vehicleId },
-      select: { pricePerDay: true, status: true },
+      select: {
+        pricePerDay: true,
+        status: true,
+        registrationExpiry: true,
+      },
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
     if (vehicle.status === "INACTIVE") {
       throw new ConflictError("Vehicle is not available for booking");
     }
+    assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
     const customer = await tx.customer.create({
       data: {
@@ -214,18 +249,44 @@ export async function updateReservationStatus(
   id: string,
   nextStatus: ReservationStatus
 ): Promise<Reservation> {
-  const reservation = await prisma.reservation.findUnique({ where: { id } });
-  if (!reservation) throw new NotFoundError("Reservation");
+  return prisma.$transaction(async (tx) => {
+    const reservation = await tx.reservation.findUnique({
+      where: { id },
+      include: { vehicle: { select: { registrationExpiry: true } } },
+    });
+    if (!reservation) throw new NotFoundError("Reservation");
 
-  if (!ALLOWED_TRANSITIONS[reservation.status].includes(nextStatus)) {
-    throw new ValidationError(
-      `Cannot change a ${reservation.status} reservation to ${nextStatus}`
-    );
-  }
+    if (!ALLOWED_TRANSITIONS[reservation.status].includes(nextStatus)) {
+      throw new ValidationError(
+        `Cannot change a ${reservation.status} reservation to ${nextStatus}`
+      );
+    }
 
-  return prisma.reservation.update({
-    where: { id },
-    data: { status: nextStatus },
+    if (nextStatus === "ACTIVE" || nextStatus === "COMPLETED") {
+      throw new ValidationError(
+        nextStatus === "ACTIVE"
+          ? "Record the pickup inspection to start this rental"
+          : "Record the return inspection to complete this rental"
+      );
+    }
+
+    if (nextStatus === "CONFIRMED") {
+      assertRegistrationCovers(
+        reservation.vehicle.registrationExpiry,
+        reservation.returnDate
+      );
+    }
+
+    const changed = await tx.reservation.updateMany({
+      where: { id, status: reservation.status },
+      data: { status: nextStatus },
+    });
+    if (changed.count !== 1) {
+      throw new ConflictError(
+        "Reservation changed while you were working. Refresh and try again."
+      );
+    }
+    return tx.reservation.findUniqueOrThrow({ where: { id } });
   });
 }
 
@@ -348,12 +409,7 @@ export async function extendReservation(
       );
     }
 
-    const expiry = reservation.vehicle.registrationExpiry;
-    if (expiry && target.getTime() > expiry.getTime()) {
-      throw new ValidationError(
-        `The vehicle's registration expires on ${day(expiry)}; the rental cannot run past it.`
-      );
-    }
+    assertRegistrationCovers(reservation.vehicle.registrationExpiry, target);
 
     const clash = await tx.reservation.findFirst({
       where: {
@@ -378,8 +434,12 @@ export async function extendReservation(
       rentalDays(reservation.pickupDate, target) -
       rentalDays(reservation.pickupDate, reservation.returnDate);
 
-    return tx.reservation.update({
-      where: { id },
+    const changed = await tx.reservation.updateMany({
+      where: {
+        id,
+        status: reservation.status,
+        returnDate: reservation.returnDate,
+      },
       data: {
         returnDate: target,
         totalPrice: reservation.totalPrice.add(
@@ -387,6 +447,12 @@ export async function extendReservation(
         ),
       },
     });
+    if (changed.count !== 1) {
+      throw new ConflictError(
+        "Reservation changed while you were working. Refresh and try again."
+      );
+    }
+    return tx.reservation.findUniqueOrThrow({ where: { id } });
   });
 }
 
@@ -431,11 +497,19 @@ export async function getReservationDetail(id: string) {
           },
         },
       },
+      inspections: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          photos: { orderBy: { sortOrder: "asc" } },
+          createdBy: { select: { name: true } },
+        },
+      },
     },
   });
   if (!reservation) throw new NotFoundError("Reservation");
   return {
     ...reservation,
+    timing: getReservationTiming(reservation),
     // Bundled with the detail so opening the drawer is still one round trip.
     extension: await getExtensionWindow(reservation),
   };

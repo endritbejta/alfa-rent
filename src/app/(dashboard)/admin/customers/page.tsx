@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth/guards";
+import { redirect } from "next/navigation";
 import { getCustomers } from "@/services/customer.service";
 import { getCustomerInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -8,15 +9,25 @@ import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
 import { CustomerList } from "./customer-list";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
+import { paginationSchema } from "@/lib/validations/common";
+import { Pagination } from "@/components/dashboard/pagination";
 
 export const dynamic = "force-dynamic";
 
-export default async function CustomersPage() {
+export default async function CustomersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   await requireUser();
-  const [{ items }, insights] = await Promise.all([
-    getCustomers({ page: 1, perPage: 50 }),
+  const { page: rawPage } = await searchParams;
+  const { page } = paginationSchema.parse({ page: rawPage, perPage: 25 });
+  const [customers, insights] = await Promise.all([
+    getCustomers({ page, perPage: 25 }),
     getCustomerInsights(),
   ]);
+  const { items, total, perPage, totalPages } = customers;
+  if (total > 0 && page > totalPages) redirect("/admin/customers");
 
   return (
     <PageBody>
@@ -61,6 +72,14 @@ export default async function CustomersPage() {
       <Panel title="All customers" subtitle="Click a customer for full profile">
         <CustomerList items={items} />
       </Panel>
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        perPage={perPage}
+        basePath="/admin/customers"
+        label="customers"
+      />
     </PageBody>
   );
 }

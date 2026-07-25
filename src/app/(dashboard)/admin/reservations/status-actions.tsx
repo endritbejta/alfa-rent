@@ -15,11 +15,7 @@ const NEXT_ACTIONS: Partial<
     { label: "Confirm", to: "CONFIRMED" },
     { label: "Cancel", to: "CANCELLED", destructive: true },
   ],
-  CONFIRMED: [
-    { label: "Start rental", to: "ACTIVE" },
-    { label: "Cancel", to: "CANCELLED", destructive: true },
-  ],
-  ACTIVE: [{ label: "Complete", to: "COMPLETED" }],
+  CONFIRMED: [{ label: "Cancel", to: "CANCELLED", destructive: true }],
 };
 
 export function StatusActions({

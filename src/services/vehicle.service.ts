@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { deleteAllVehicleImages } from "@/services/image.service";
@@ -58,8 +59,13 @@ export type PublicVehicle = Prisma.VehicleGetPayload<typeof publicVehicleArgs>;
 /** The allowlist, exposed so a test can assert nothing sensitive creeps in. */
 export const publicVehicleFields = Object.keys(publicVehicleSelect);
 
-function slugify(brand: string, model: string, year: number): string {
-  return `${brand}-${model}-${year}`
+function slugify(
+  brand: string,
+  model: string,
+  year: number,
+  identity: string
+): string {
+  return `${brand}-${model}-${year}-${identity}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
@@ -135,6 +141,12 @@ function buildPublicVehicleWhere(
   return {
     ...buildVehicleWhere(filters, { includeInactive: true }),
     status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] },
+    ...(filters.to && {
+      OR: [
+        { registrationExpiry: null },
+        { registrationExpiry: { gte: filters.to } },
+      ],
+    }),
   };
 }
 
@@ -188,8 +200,15 @@ export async function getVehicleBySlug(
 export async function createVehicle(
   input: CreateVehicleInput
 ): Promise<VehicleWithImages> {
+  // The identity suffix allows multiple same-model vehicles and remains
+  // stable when display fields are edited. A plate is ideal; vehicles
+  // without one receive a non-guessable short identity.
+  const identity = input.plate ?? randomUUID().slice(0, 8);
   return prisma.vehicle.create({
-    data: { ...input, slug: slugify(input.brand, input.model, input.year) },
+    data: {
+      ...input,
+      slug: slugify(input.brand, input.model, input.year, identity),
+    },
     ...vehicleWithImages,
   });
 }
@@ -198,14 +217,9 @@ export async function updateVehicle(
   id: string,
   input: UpdateVehicleInput
 ): Promise<VehicleWithImages> {
-  const current = await getVehicleById(id);
-  const brand = input.brand ?? current.brand;
-  const model = input.model ?? current.model;
-  const year = input.year ?? current.year;
-
   return prisma.vehicle.update({
     where: { id },
-    data: { ...input, slug: slugify(brand, model, year) },
+    data: input,
     ...vehicleWithImages,
   });
 }

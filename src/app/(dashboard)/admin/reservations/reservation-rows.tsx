@@ -7,6 +7,9 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/utils/vehicle";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
+import type { ReservationTiming } from "@/lib/reservation-lifecycle";
+import { ReservationAttention } from "@/components/shared/reservation-attention";
+import { InspectionAction } from "./inspection-action";
 
 /**
  * Plain props: totalPrice is a Decimal on the model and cannot cross into a
@@ -18,6 +21,7 @@ export type Row = {
   returnDate: Date;
   totalPrice: string;
   status: ReservationStatus;
+  timing: ReservationTiming;
   vehicle: { brand: string; model: string; plate: string | null };
   customer: { firstName: string; lastName: string; email: string };
 };
@@ -75,7 +79,10 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             {Number(r.totalPrice).toFixed(2)} EUR
           </TableCell>
           <TableCell>
-            <StatusBadge status={r.status} />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <StatusBadge status={r.status} />
+              <ReservationAttention attention={r.timing.attention} />
+            </div>
           </TableCell>
           <TableCell
             className="text-right"
@@ -84,7 +91,15 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <StatusActions reservationId={r.id} status={r.status} />
+            <div className="flex flex-wrap justify-end gap-2">
+              <InspectionAction
+                reservationId={r.id}
+                status={r.status}
+                timing={r.timing}
+                signerName={`${r.customer.firstName} ${r.customer.lastName}`}
+              />
+              <StatusActions reservationId={r.id} status={r.status} />
+            </div>
           </TableCell>
         </TableRow>
       ))}
@@ -129,7 +144,10 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                   {vehicleLabel(r.vehicle)}
                 </p>
               </div>
-              <StatusBadge status={r.status} />
+              <div className="flex flex-col items-end gap-1">
+                <StatusBadge status={r.status} />
+                <ReservationAttention attention={r.timing.attention} />
+              </div>
             </div>
             <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
               <span>
@@ -145,7 +163,15 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
-              <StatusActions reservationId={r.id} status={r.status} />
+              <div className="flex flex-wrap justify-end gap-2">
+                <InspectionAction
+                  reservationId={r.id}
+                  status={r.status}
+                  timing={r.timing}
+                  signerName={`${r.customer.firstName} ${r.customer.lastName}`}
+                />
+                <StatusActions reservationId={r.id} status={r.status} />
+              </div>
             </div>
           </div>
         </li>

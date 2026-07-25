@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { getPublicVehicles } from "@/services/vehicle.service";
 import { vehicleFilterSchema } from "@/lib/validations/vehicle";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { FleetFilters } from "@/components/forms/fleet-filters";
+import { Pagination } from "@/components/dashboard/pagination";
 
 export const metadata: Metadata = {
   title: "Our Fleet",
@@ -21,7 +23,18 @@ export default async function FleetPage({
   const params = await searchParams;
   const parsed = vehicleFilterSchema.safeParse({ ...params, perPage: 24 });
   const filters = parsed.success ? parsed.data : { page: 1, perPage: 24 };
-  const { items, total } = await getPublicVehicles(filters);
+  const { items, total, page, perPage, totalPages } =
+    await getPublicVehicles(filters);
+  if (total > 0 && page > totalPages) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(
+        (entry): entry is [string, string] => entry[1] !== undefined
+      )
+    );
+    query.delete("page");
+    const rest = query.toString();
+    redirect(rest ? `/car?${rest}` : "/car");
+  }
 
   const dateRange =
     filters.from && filters.to && filters.to > filters.from
@@ -69,11 +82,21 @@ export default async function FleetPage({
             </p>
           </div>
         ) : (
-          <div className="grid gap-6 pb-10 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} query={query} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 pb-8 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((vehicle) => (
+                <VehicleCard key={vehicle.id} vehicle={vehicle} query={query} />
+              ))}
+            </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              perPage={perPage}
+              basePath="/car"
+              label="vehicles"
+            />
+          </>
         )}
       </section>
     </>

@@ -1,9 +1,5 @@
 # Alfa Rent a Car
 
-> **Continuing this project?** Read [HANDOFF.md](./HANDOFF.md) first — it
-> covers the conventions that have caused real bugs, the decisions that look
-> wrong but are deliberate, and the prioritised list of what is left.
-
 Car rental management platform: a public customer-facing
 website plus an internal admin dashboard for managing vehicles, reservations,
 and customers.

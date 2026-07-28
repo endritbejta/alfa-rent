@@ -12,61 +12,73 @@ import { VehicleCard } from "@/components/shared/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { HeroSearch } from "@/components/forms/hero-search";
 import { HeroBackground } from "@/components/shared/hero-background";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-export const metadata: Metadata = {
-  title: "Premium Car Rental in Kosovo",
-  description:
-    "Drive premium, travel without limits. Modern, fully insured rental fleet in Prishtina with flexible booking and transparent pricing.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return {
+    title: t("home.metaTitle"),
+    description: t("home.metaDescription"),
+  };
+}
 
 export const dynamic = "force-dynamic";
 
 const PROOF = [
-  { icon: ShieldCheck, label: "Fully insured fleet" },
-  { icon: Clock, label: "Flexible rental periods" },
-  { icon: BadgeEuro, label: "Transparent pricing, no hidden fees" },
-];
+  { icon: ShieldCheck, label: "home.proof.insured" },
+  { icon: Clock, label: "home.proof.flexible" },
+  { icon: BadgeEuro, label: "home.proof.transparent" },
+] satisfies { icon: typeof ShieldCheck; label: TranslationKey }[];
 
 const WHY = [
   {
     icon: ShieldCheck,
-    title: "Maintained like our own",
-    text: "Every vehicle is serviced on schedule and inspected between rentals. You drive cars we would put our family in.",
+    title: "home.why1.title",
+    text: "home.why1.text",
   },
   {
     icon: BadgeEuro,
-    title: "The price is the price",
-    text: "The total you see when you pick your dates is the total you pay. No hidden surcharges, no fine print.",
+    title: "home.why2.title",
+    text: "home.why2.text",
   },
   {
     icon: KeyRound,
-    title: "A simple handover",
-    text: "We confirm the details before pickup so the vehicle and paperwork are ready when you arrive.",
+    title: "home.why3.title",
+    text: "home.why3.text",
   },
   {
     icon: Clock,
-    title: "Backed by Alfa Globe",
-    text: "We are part of a company that keeps fleets moving across Kosovo. Reliability is the family business.",
+    title: "home.why4.title",
+    text: "home.why4.text",
   },
-];
+] satisfies {
+  icon: typeof ShieldCheck;
+  title: TranslationKey;
+  text: TranslationKey;
+}[];
 
 const STEPS = [
   {
     icon: CalendarCheck,
-    title: "Choose your dates",
-    text: "Tell us when you need a car. We show you only what is actually available — no dead ends.",
+    title: "home.step1.title",
+    text: "home.step1.text",
   },
   {
     icon: KeyRound,
-    title: "Pick your vehicle",
-    text: "From economy hatchbacks to the E-Class. Every listing shows the full price for your dates.",
+    title: "home.step2.title",
+    text: "home.step2.text",
   },
   {
     icon: ShieldCheck,
-    title: "We confirm, you drive",
-    text: "Our team confirms your request within hours and meets you with the keys.",
+    title: "home.step3.title",
+    text: "home.step3.text",
   },
-];
+] satisfies {
+  icon: typeof ShieldCheck;
+  title: TranslationKey;
+  text: TranslationKey;
+}[];
 
 const REVIEWS = [
   {
@@ -90,6 +102,7 @@ const REVIEWS = [
 ];
 
 export default async function HomePage() {
+  const { t } = await getI18n();
   const { items: featured } = await getPublicVehicles({ page: 1, perPage: 3 });
 
   return (
@@ -98,17 +111,15 @@ export default async function HomePage() {
       <section className="bg-band text-band-foreground relative isolate overflow-hidden">
         <HeroBackground />
         <div className="relative z-10 mx-auto max-w-6xl px-5 pt-20 pb-16 lg:pt-28">
-          <span className="eyebrow text-band-muted">
-            Premium car rental — Kosovo
-          </span>
+          <span className="eyebrow text-band-muted">{t("home.eyebrow")}</span>
           <h1 className="font-display mt-5 max-w-3xl text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-            Drive premium.
+            {t("home.titleLine1")}
             <br />
-            Travel <span className="text-brand">without limits.</span>
+            {t("home.titleLine2")}{" "}
+            <span className="text-brand">{t("home.titleAccent")}</span>
           </h1>
           <p className="text-band-muted mt-6 max-w-xl text-lg">
-            A modern, fully insured fleet — from city runabouts to executive
-            sedans — ready for journeys across Kosovo.
+            {t("home.intro")}
           </p>
 
           <HeroSearch />
@@ -120,7 +131,7 @@ export default async function HomePage() {
                 className="text-band-muted flex items-center gap-2.5 text-sm"
               >
                 <Icon className="text-brand h-4.5 w-4.5" />
-                {label}
+                {t(label)}
               </span>
             ))}
           </div>
@@ -132,10 +143,10 @@ export default async function HomePage() {
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <span className="eyebrow text-muted-foreground">
-              Featured fleet
+              {t("home.featured")}
             </span>
             <h2 className="font-display mt-3 text-3xl font-bold tracking-tight">
-              The latest additions
+              {t("home.latest")}
             </h2>
           </div>
           <Button
@@ -143,7 +154,7 @@ export default async function HomePage() {
             nativeButton={false}
             render={<Link href="/car" />}
           >
-            View all vehicles
+            {t("common.viewAllVehicles")}
           </Button>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -156,9 +167,9 @@ export default async function HomePage() {
       {/* How it works — warm tint band */}
       <section className="bg-secondary border-y">
         <div className="mx-auto max-w-6xl px-5 py-20">
-          <span className="eyebrow text-muted-foreground">How it works</span>
+          <span className="eyebrow text-muted-foreground">{t("home.how")}</span>
           <h2 className="font-display mt-3 mb-12 text-3xl font-bold tracking-tight">
-            Three steps to the open road
+            {t("home.stepsTitle")}
           </h2>
           <div className="grid gap-8 md:grid-cols-3">
             {STEPS.map(({ icon: Icon, title, text }, i) => (
@@ -167,13 +178,13 @@ export default async function HomePage() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em]">
-                  STEP {i + 1}
+                  {t("home.step", { number: i + 1 })}
                 </p>
                 <h3 className="font-display mt-1 mb-2 text-lg font-bold">
-                  {title}
+                  {t(title)}
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  {text}
+                  {t(text)}
                 </p>
               </div>
             ))}
@@ -184,9 +195,9 @@ export default async function HomePage() {
       {/* Why Alfa — charcoal band */}
       <section className="bg-band text-band-foreground">
         <div className="mx-auto max-w-6xl px-5 py-20">
-          <span className="eyebrow text-band-muted">Why choose Alfa</span>
+          <span className="eyebrow text-band-muted">{t("home.why")}</span>
           <h2 className="font-display mt-3 mb-12 text-3xl font-bold tracking-tight">
-            Built on the family business of keeping Kosovo moving
+            {t("home.whyTitle")}
           </h2>
           <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2">
             {WHY.map(({ icon: Icon, title, text }) => (
@@ -196,10 +207,10 @@ export default async function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-display mb-1.5 text-lg font-bold">
-                    {title}
+                    {t(title)}
                   </h3>
                   <p className="text-band-muted text-sm leading-relaxed">
-                    {text}
+                    {t(text)}
                   </p>
                 </div>
               </div>
@@ -210,9 +221,11 @@ export default async function HomePage() {
 
       {/* Reviews */}
       <section className="mx-auto max-w-6xl px-5 py-20">
-        <span className="eyebrow text-muted-foreground">Reviews</span>
+        <span className="eyebrow text-muted-foreground">
+          {t("home.reviews")}
+        </span>
         <h2 className="font-display mt-3 mb-12 text-3xl font-bold tracking-tight">
-          Drivers who came back
+          {t("home.reviewsTitle")}
         </h2>
         <div className="grid gap-6 md:grid-cols-3">
           {REVIEWS.map((review) => (
@@ -237,11 +250,9 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-5 py-16">
           <div>
             <h2 className="font-display text-3xl font-bold tracking-tight">
-              Ready to drive?
+              {t("home.ctaTitle")}
             </h2>
-            <p className="mt-2 text-white/80">
-              Check availability now — booking takes two minutes.
-            </p>
+            <p className="mt-2 text-white/80">{t("home.ctaText")}</p>
           </div>
           <Button
             size="lg"
@@ -249,7 +260,7 @@ export default async function HomePage() {
             nativeButton={false}
             render={<Link href="/booking" />}
           >
-            Book your vehicle
+            {t("common.bookVehicle")}
           </Button>
         </div>
       </section>

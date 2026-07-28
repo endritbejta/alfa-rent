@@ -1,5 +1,9 @@
+"use client";
+
 import type { ReservationStatus, VehicleStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 type Status = VehicleStatus | ReservationStatus;
 
@@ -33,8 +37,16 @@ const DOT_HUES: Record<Status, string> = {
   CANCELLED: "bg-destructive",
 };
 
-const LABELS: Partial<Record<Status, string>> = {
-  SERVICE: "Maintenance",
+const LABELS: Record<Status, TranslationKey> = {
+  AVAILABLE: "vehicle.available",
+  RENTED: "vehicle.rented",
+  SERVICE: "vehicle.maintenance",
+  INACTIVE: "vehicle.inactive",
+  PENDING: "vehicle.pending",
+  CONFIRMED: "vehicle.confirmed",
+  ACTIVE: "vehicle.active",
+  COMPLETED: "vehicle.completed",
+  CANCELLED: "vehicle.cancelled",
 };
 
 export function StatusBadge({
@@ -44,6 +56,7 @@ export function StatusBadge({
   status: Status;
   variant?: "surface" | "overlay";
 }) {
+  const { t } = useI18n();
   return (
     <span
       className={cn(
@@ -59,7 +72,7 @@ export function StatusBadge({
           variant === "overlay" ? DOT_HUES[status] : "bg-current"
         )}
       />
-      {LABELS[status] ?? status.charAt(0) + status.slice(1).toLowerCase()}
+      {t(LABELS[status])}
     </span>
   );
 }

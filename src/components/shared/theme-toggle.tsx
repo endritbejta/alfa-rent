@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 export function ThemeToggle({
   showLabel = false,
@@ -12,6 +13,7 @@ export function ThemeToggle({
   showLabel?: boolean;
   className?: string;
 }) {
+  const { t } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -23,14 +25,14 @@ export function ThemeToggle({
   }, []);
 
   const dark = mounted ? resolvedTheme === "dark" : true;
-  const action = dark ? "Switch to light mode" : "Switch to dark mode";
+  const action = dark ? t("theme.toLight") : t("theme.toDark");
   const Icon = dark ? Sun : Moon;
 
   return (
     <button
       type="button"
-      aria-label={mounted ? action : "Toggle color theme"}
-      title={mounted ? action : "Toggle color theme"}
+      aria-label={mounted ? action : t("theme.toggle")}
+      title={mounted ? action : t("theme.toggle")}
       onClick={() => setTheme(dark ? "light" : "dark")}
       className={cn(
         "border-band-border text-band-muted hover:text-band-foreground inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 transition-colors hover:bg-white/8",
@@ -40,7 +42,13 @@ export function ThemeToggle({
     >
       <Icon className="h-4 w-4 shrink-0" />
       {showLabel && (
-        <span>{mounted ? (dark ? "Light mode" : "Dark mode") : "Theme"}</span>
+        <span>
+          {mounted
+            ? dark
+              ? t("theme.light")
+              : t("theme.dark")
+            : t("theme.label")}
+        </span>
       )}
     </button>
   );

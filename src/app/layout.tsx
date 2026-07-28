@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/shared/theme-provider";
+import { LocaleProvider } from "@/components/shared/locale-provider";
+import { getI18n } from "@/lib/i18n/server";
 import "./globals.css";
 
 /**
@@ -25,23 +27,26 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Alfa Rent a Car",
-    template: "%s | Alfa Rent a Car",
-  },
-  description:
-    "Premium car rental in Kosovo. Drive premium, travel without limits.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return {
+    title: {
+      default: "Alfa Rent a Car",
+      template: "%s | Alfa Rent a Car",
+    },
+    description: t("home.metaDescription"),
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, dictionary } = await getI18n();
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       style={
@@ -52,12 +57,14 @@ export default function RootLayout({
       }
     >
       <body className="flex min-h-full flex-col">
-        <ThemeProvider>
-          <div className="ambient-background">
-            <div className="ambient-light"></div>
-          </div>
-          {children}
-        </ThemeProvider>
+        <LocaleProvider locale={locale} dictionary={dictionary}>
+          <ThemeProvider>
+            <div className="ambient-background">
+              <div className="ambient-light"></div>
+            </div>
+            {children}
+          </ThemeProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

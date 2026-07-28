@@ -16,24 +16,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse } from "@/types/api";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-const formSchema = z
-  .object({
-    vehicleId: z.string().min(1, "Choose a vehicle"),
-    from: z.string().min(1, "Pickup date is required"),
-    to: z.string().min(1, "Return date is required"),
-    firstName: z.string().trim().min(1, "Required").max(50),
-    lastName: z.string().trim().min(1, "Required").max(50),
-    email: z.email("Enter a valid email"),
-    phone: z.string().trim().min(6, "Enter a valid phone number").max(25),
-    notes: z.string().trim().max(1000).optional(),
-  })
-  .refine((d) => !d.from || !d.to || d.to > d.from, {
-    message: "Return must be after pickup",
-    path: ["to"],
-  });
+const createFormSchema = (t: (key: TranslationKey) => string) =>
+  z
+    .object({
+      vehicleId: z.string().min(1, t("booking.chooseError")),
+      from: z.string().min(1, t("booking.pickupRequired")),
+      to: z.string().min(1, t("booking.returnRequired")),
+      firstName: z.string().trim().min(1, t("booking.required")).max(50),
+      lastName: z.string().trim().min(1, t("booking.required")).max(50),
+      email: z.email(t("booking.validEmail")),
+      phone: z.string().trim().min(6, t("booking.validPhone")).max(25),
+      notes: z.string().trim().max(1000).optional(),
+    })
+    .refine((d) => !d.from || !d.to || d.to > d.from, {
+      message: t("booking.rangeError"),
+      path: ["to"],
+    });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 type VehicleOption = { id: string; slug: string; label: string };
 
@@ -50,6 +53,7 @@ export function BookingForm({
   initialFrom?: string;
   initialTo?: string;
 }) {
+  const { t } = useI18n();
   const [serverError, setServerError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   // Local midnight, not UTC: the old `toISOString()` bound made "today"
@@ -64,7 +68,7 @@ export function BookingForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       vehicleId: preselected?.id ?? "",
       from: initialFrom ?? "",
@@ -106,18 +110,13 @@ export function BookingForm({
       <div className="rounded-2xl border p-8 text-center">
         <CheckCircle2 className="text-status-available mx-auto h-12 w-12" />
         <h2 className="font-display mt-4 text-2xl font-bold">
-          Request received
+          {t("booking.received")}
         </h2>
         <p className="text-muted-foreground mx-auto mt-3 max-w-md text-sm leading-relaxed">
-          Your booking total is{" "}
-          <strong className="text-foreground">
-            {confirmation.totalPrice} EUR
-          </strong>
-          . Our team will confirm by email within business hours — nothing is
-          charged until pickup.
+          {t("booking.confirmation", { total: confirmation.totalPrice })}
         </p>
         <p className="text-muted-foreground mt-2 font-mono text-xs">
-          Reference: {confirmation.id}
+          {t("booking.reference", { id: confirmation.id })}
         </p>
         <Button
           className="mt-6"
@@ -125,7 +124,7 @@ export function BookingForm({
           nativeButton={false}
           render={<Link href="/car" />}
         >
-          Back to the fleet
+          {t("booking.backToFleet")}
         </Button>
       </div>
     );
@@ -137,13 +136,13 @@ export function BookingForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
       <div className="space-y-2">
-        <Label htmlFor="vehicleId">Vehicle</Label>
+        <Label htmlFor="vehicleId">{t("booking.vehicle")}</Label>
         <select
           id="vehicleId"
           {...register("vehicleId")}
           className="border-input focus:ring-ring h-10 w-full rounded-lg border bg-transparent px-3 text-sm outline-none focus:ring-2"
         >
-          <option value="">Choose a vehicle</option>
+          <option value="">{t("booking.chooseVehicle")}</option>
           {vehicles.map((v) => (
             <option key={v.id} value={v.id}>
               {v.label}
@@ -158,7 +157,7 @@ export function BookingForm({
           compares lexicographically, so validation is untouched. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="from">Pickup date</Label>
+          <Label htmlFor="from">{t("booking.pickupDate")}</Label>
           <Controller
             control={control}
             name="from"
@@ -170,14 +169,14 @@ export function BookingForm({
                   field.onChange(date ? toDateValue(date) : "")
                 }
                 minDate={minDate}
-                placeholder="Pickup date"
+                placeholder={t("booking.pickupDate")}
               />
             )}
           />
           {err(errors.from?.message)}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="to">Return date</Label>
+          <Label htmlFor="to">{t("booking.returnDate")}</Label>
           <Controller
             control={control}
             name="to"
@@ -191,7 +190,7 @@ export function BookingForm({
                 // A return before the pickup is not a validation message
                 // worth writing — it is simply not offered.
                 minDate={fromDateValue(pickedFrom) ?? minDate}
-                placeholder="Return date"
+                placeholder={t("booking.returnDate")}
               />
             )}
           />
@@ -201,7 +200,7 @@ export function BookingForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="firstName">First name</Label>
+          <Label htmlFor="firstName">{t("booking.firstName")}</Label>
           <Input
             id="firstName"
             autoComplete="given-name"
@@ -210,7 +209,7 @@ export function BookingForm({
           {err(errors.firstName?.message)}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lastName">Last name</Label>
+          <Label htmlFor="lastName">{t("booking.lastName")}</Label>
           <Input
             id="lastName"
             autoComplete="family-name"
@@ -229,7 +228,7 @@ export function BookingForm({
           {err(errors.email?.message)}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
+          <Label htmlFor="phone">{t("booking.phone")}</Label>
           <Input
             id="phone"
             type="tel"
@@ -242,11 +241,11 @@ export function BookingForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes (optional)</Label>
+        <Label htmlFor="notes">{t("booking.notes")}</Label>
         <Textarea
           id="notes"
           rows={3}
-          placeholder="Child seat, additional driver, anything we should know"
+          placeholder={t("booking.notesPlaceholder")}
           {...register("notes")}
         />
       </div>
@@ -263,10 +262,10 @@ export function BookingForm({
         className="w-full"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Sending request..." : "Send booking request"}
+        {isSubmitting ? t("booking.sending") : t("booking.send")}
       </Button>
       <p className="text-muted-foreground text-center text-xs">
-        No payment now. Our team confirms availability and meets you at pickup.
+        {t("booking.noPayment")}
       </p>
     </form>
   );

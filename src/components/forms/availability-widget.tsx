@@ -11,6 +11,7 @@ import {
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type Quote = { available: boolean; totalPrice: number | null };
 
@@ -30,6 +31,7 @@ export function AvailabilityWidget({
   initialFrom?: string;
   initialTo?: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   // Prefilled from the hero/fleet selection carried through the URL, so a
   // customer who already chose dates lands here with a live quote.
@@ -64,7 +66,7 @@ export function AvailabilityWidget({
         setQuote(json.data);
       } catch {
         if (!cancelled) {
-          setError("Could not check availability. Please try again.");
+          setError(t("availability.error"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -74,7 +76,7 @@ export function AvailabilityWidget({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [from, to, vehicleId]);
+  }, [from, t, to, vehicleId]);
 
   const days =
     from && to && to > from
@@ -87,6 +89,10 @@ export function AvailabilityWidget({
       <DateRangePicker
         tone="light"
         minDate={startOfToday()}
+        labels={{
+          from: t("booking.pickupDate"),
+          to: t("booking.returnDate"),
+        }}
         value={{
           from: from ? parseISO(from) : undefined,
           to: to ? parseISO(to) : undefined,
@@ -99,7 +105,7 @@ export function AvailabilityWidget({
 
       {loading && (
         <p className="text-muted-foreground text-sm">
-          Checking availability...
+          {t("availability.checking")}
         </p>
       )}
       {error && (
@@ -118,19 +124,20 @@ export function AvailabilityWidget({
           {quote.available ? (
             <>
               <p className="text-status-available text-sm font-semibold">
-                Available for your dates
+                {t("availability.available")}
               </p>
               <p className="mt-0.5 text-sm">
-                {days} day{days === 1 ? "" : "s"} -{" "}
-                <span className="font-display font-bold">
-                  {quote.totalPrice} EUR
-                </span>{" "}
-                total
+                {t(
+                  days === 1
+                    ? "availability.summary"
+                    : "availability.summaryPlural",
+                  { count: days, total: quote.totalPrice ?? 0 }
+                )}
               </p>
             </>
           ) : (
             <p className="text-destructive text-sm font-semibold">
-              Already booked for these dates — try adjusting them.
+              {t("availability.booked")}
             </p>
           )}
         </div>
@@ -143,7 +150,7 @@ export function AvailabilityWidget({
           router.push(`/booking?vehicle=${slug}&from=${from}&to=${to}`)
         }
       >
-        Continue to booking
+        {t("availability.continue")}
       </Button>
     </div>
   );

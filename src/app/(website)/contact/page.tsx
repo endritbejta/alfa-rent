@@ -1,61 +1,71 @@
 import type { Metadata } from "next";
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Reach Alfa Rent a Car in Prishtina: phone, email, and opening hours.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return {
+    title: t("contact.metaTitle"),
+    description: t("contact.intro"),
+  };
+}
 
 const ITEMS = [
   {
     icon: MapPin,
-    label: "Address",
+    label: "contact.address",
     lines: ["Prishtina, Kosovo"],
   },
   {
     icon: Phone,
-    label: "Phone",
+    label: "contact.phone",
     lines: ["+383 44 000 000"],
   },
   {
     icon: Mail,
-    label: "Email",
+    label: "contact.email",
     lines: ["info@alfarent.com"],
   },
   {
     icon: Clock,
-    label: "Hours",
-    lines: ["Mon - Sat: 08:00 - 20:00", "Sun: 09:00 - 17:00"],
+    label: "contact.hours",
+    lines: ["contact.weekdays", "contact.sunday"],
+    translatedLines: true,
   },
-];
+] satisfies {
+  icon: typeof MapPin;
+  label: TranslationKey;
+  lines: string[];
+  translatedLines?: boolean;
+}[];
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const { t } = await getI18n();
   return (
     <>
       <section className="bg-band text-band-foreground">
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-10">
-          <span className="eyebrow text-band-muted">Contact</span>
+          <span className="eyebrow text-band-muted">
+            {t("contact.eyebrow")}
+          </span>
           <h1 className="font-display mt-4 text-4xl font-bold tracking-tight">
-            Talk to a human
+            {t("contact.title")}
           </h1>
-          <p className="text-band-muted mt-3 max-w-lg">
-            Questions about a booking, long-term rates, or corporate fleets —
-            call, write, or drop by.
-          </p>
+          <p className="text-band-muted mt-3 max-w-lg">{t("contact.intro")}</p>
         </div>
       </section>
       <section className="mx-auto max-w-6xl px-5 py-14">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {ITEMS.map(({ icon: Icon, label, lines }) => (
+          {ITEMS.map(({ icon: Icon, label, lines, translatedLines }) => (
             <div key={label} className="bg-card rounded-xl border p-6">
               <div className="bg-accent text-accent-foreground mb-4 flex h-10 w-10 items-center justify-center rounded-full">
                 <Icon className="h-5 w-5" />
               </div>
-              <p className="font-display font-bold">{label}</p>
+              <p className="font-display font-bold">{t(label)}</p>
               {lines.map((line) => (
                 <p key={line} className="text-muted-foreground mt-1 text-sm">
-                  {line}
+                  {translatedLines ? t(line as TranslationKey) : line}
                 </p>
               ))}
             </div>

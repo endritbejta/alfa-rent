@@ -8,13 +8,15 @@ import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
 import { cn } from "@/lib/utils";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 export const dynamic = "force-dynamic";
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: "week", label: "Weekly" },
-  { key: "month", label: "Monthly" },
-  { key: "year", label: "Yearly" },
+const PERIODS: { key: Period; label: TranslationKey }[] = [
+  { key: "week", label: "admin.weekly" },
+  { key: "month", label: "admin.monthly" },
+  { key: "year", label: "admin.yearly" },
 ];
 
 export default async function AnalyticsPage({
@@ -23,15 +25,23 @@ export default async function AnalyticsPage({
   searchParams: Promise<{ period?: string }>;
 }) {
   await requireUser();
+  const { t } = await getI18n();
   const { period: raw } = await searchParams;
   const period: Period = PERIODS.some((p) => p.key === raw)
     ? (raw as Period)
     : "month";
   const data = await getAnalytics(period);
+  const periodDescription = t(
+    period === "week"
+      ? "admin.last12Weeks"
+      : period === "month"
+        ? "admin.last12Months"
+        : "admin.last5Years"
+  );
 
   return (
     <PageBody>
-      <PageHeader title="Analytics" description={data.periodLabel}>
+      <PageHeader title={t("admin.analytics")} description={periodDescription}>
         {/* Period switch: a soft navigation, so charts re-render on the
             server without a full page load. */}
         <div className="bg-secondary inline-flex rounded-full border p-0.5">
@@ -47,7 +57,7 @@ export default async function AnalyticsPage({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {p.label}
+              {t(p.label)}
             </Link>
           ))}
         </div>
@@ -57,42 +67,48 @@ export default async function AnalyticsPage({
       <StatStrip
         stats={[
           {
-            label: "Revenue",
+            label: t("admin.revenue"),
             value: `${Math.round(data.totalRevenue).toLocaleString()} EUR`,
           },
-          { label: "Bookings", value: data.totalReservations },
+          { label: t("admin.bookings"), value: data.totalReservations },
           {
-            label: "Cancelled",
+            label: t("admin.cancelled"),
             value: `${data.cancellationRate}%`,
             tone: data.cancellationRate > 25 ? "danger" : "default",
           },
-          { label: "Active fleet", value: data.fleet },
+          { label: t("admin.activeFleet"), value: data.fleet },
         ]}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Revenue" subtitle={data.periodLabel}>
+        <Panel title={t("admin.revenue")} subtitle={periodDescription}>
           <AreaChart data={data.revenueByMonth} suffix=" EUR" />
         </Panel>
-        <Panel title="Bookings" subtitle={data.periodLabel}>
+        <Panel title={t("admin.bookings")} subtitle={periodDescription}>
           <AreaChart data={data.bookingsByMonth} />
         </Panel>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel
-          title="Most booked vehicles"
-          subtitle="Confirmed and completed rentals"
+          title={t("admin.mostBooked")}
+          subtitle={t("admin.confirmedCompleted")}
         >
           <BarList items={data.topVehicles} />
         </Panel>
-        <Panel title="Fleet by category" subtitle="Active vehicles">
+        <Panel
+          title={t("admin.fleetCategory")}
+          subtitle={t("admin.activeVehicles")}
+        >
           <BarList
             items={data.categoryDistribution}
             barClassName="bg-status-reserved"
           />
         </Panel>
-        <Panel title="Customer growth" subtitle="New customers by month">
+        <Panel
+          title={t("admin.customerGrowth")}
+          subtitle={t("admin.newCustomers")}
+        >
           <AreaChart data={data.customerGrowth} height={140} />
         </Panel>
       </div>

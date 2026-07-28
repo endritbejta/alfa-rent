@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,7 @@ export default async function VehiclesPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const user = await requireUser();
+  const { t } = await getI18n();
   const isAdmin = user.role === "ADMIN";
 
   const params = await searchParams;
@@ -166,14 +168,17 @@ export default async function VehiclesPage({
 
   return (
     <PageBody>
-      <PageHeader title="Vehicles" description="Fleet overview and management">
+      <PageHeader
+        title={t("admin.vehicles")}
+        description={t("admin.fleetDescription")}
+      >
         {isAdmin && (
           <Button
             size="sm"
             nativeButton={false}
             render={<Link href="/admin/vehicles/new" />}
           >
-            Add vehicle
+            {t("admin.addVehicle")}
           </Button>
         )}
       </PageHeader>
@@ -186,9 +191,11 @@ export default async function VehiclesPage({
 
       {items.length === 0 ? (
         <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
-          <p className="font-display text-lg font-bold">No matching vehicles</p>
+          <p className="font-display text-lg font-bold">
+            {t("admin.noVehicles")}
+          </p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Try clearing a filter to widen the search.
+            {t("admin.noVehiclesHint")}
           </p>
         </div>
       ) : (

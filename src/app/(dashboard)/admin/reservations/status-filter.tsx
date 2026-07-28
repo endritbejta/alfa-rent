@@ -1,10 +1,18 @@
 import Link from "next/link";
 import { ReservationStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const STATUSES = Object.values(ReservationStatus);
 
-const label = (s: ReservationStatus) => s.charAt(0) + s.slice(1).toLowerCase();
+const STATUS_KEYS: Record<ReservationStatus, TranslationKey> = {
+  PENDING: "vehicle.pending",
+  CONFIRMED: "vehicle.confirmed",
+  ACTIVE: "vehicle.active",
+  COMPLETED: "vehicle.completed",
+  CANCELLED: "vehicle.cancelled",
+};
 
 /**
  * Status filter as a segmented control rather than six summary cards.
@@ -16,20 +24,26 @@ const label = (s: ReservationStatus) => s.charAt(0) + s.slice(1).toLowerCase();
  * Still plain links, so filtering stays a URL the operator can bookmark and
  * share, costs no client JS, and survives a reload.
  */
-export function StatusFilter({
+export async function StatusFilter({
   counts,
   active,
 }: {
   counts: Partial<Record<ReservationStatus, number>>;
   active?: ReservationStatus;
 }) {
+  const { t } = await getI18n();
   const total = STATUSES.reduce((sum, s) => sum + (counts[s] ?? 0), 0);
 
   const options = [
-    { key: undefined, text: "All", count: total, href: "/admin/reservations" },
+    {
+      key: undefined,
+      text: t("common.all"),
+      count: total,
+      href: "/admin/reservations",
+    },
     ...STATUSES.map((s) => ({
       key: s,
-      text: label(s),
+      text: t(STATUS_KEYS[s]),
       count: counts[s] ?? 0,
       href: `/admin/reservations?status=${s}`,
     })),

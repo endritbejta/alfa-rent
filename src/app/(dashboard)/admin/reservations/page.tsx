@@ -18,10 +18,19 @@ import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getReservationTiming } from "@/lib/reservation-lifecycle";
 import { paginationSchema } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 export const dynamic = "force-dynamic";
 
 const STATUSES = Object.values(ReservationStatus);
+const STATUS_KEYS: Record<ReservationStatus, TranslationKey> = {
+  PENDING: "vehicle.pending",
+  CONFIRMED: "vehicle.confirmed",
+  ACTIVE: "vehicle.active",
+  COMPLETED: "vehicle.completed",
+  CANCELLED: "vehicle.cancelled",
+};
 
 export default async function ReservationsPage({
   searchParams,
@@ -29,6 +38,7 @@ export default async function ReservationsPage({
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   await requireUser();
+  const { t } = await getI18n();
   const { status, page: rawPage } = await searchParams;
   const statusFilter = STATUSES.includes(status as ReservationStatus)
     ? (status as ReservationStatus)
@@ -71,9 +81,14 @@ export default async function ReservationsPage({
   return (
     <PageBody>
       <PageHeader
-        title="Reservations"
+        title={t("admin.reservations")}
         count={pendingCount || undefined}
-        description={`${insights.todaysPickups} pickup${insights.todaysPickups === 1 ? "" : "s"} and ${insights.todaysReturns} return${insights.todaysReturns === 1 ? "" : "s"} today - ${insights.overdue} overdue - ${inFlight} rental${inFlight === 1 ? "" : "s"} in flight`}
+        description={t("admin.reservationSummary", {
+          pickups: insights.todaysPickups,
+          returns: insights.todaysReturns,
+          overdue: insights.overdue,
+          active: inFlight,
+        })}
       />
 
       <StatusFilter counts={insights.statusCounts} active={statusFilter} />
@@ -96,8 +111,8 @@ export default async function ReservationsPage({
         <Panel
           title={
             statusFilter
-              ? `${statusFilter.charAt(0)}${statusFilter.slice(1).toLowerCase()} reservations`
-              : "All reservations"
+              ? `${t(STATUS_KEYS[statusFilter])} ${t("admin.reservations").toLowerCase()}`
+              : t("admin.allReservations")
           }
         >
           <div className="md:hidden">
@@ -132,8 +147,8 @@ export default async function ReservationsPage({
       />
 
       <Panel
-        title="Booking activity"
-        subtitle="Requests received, last 14 days"
+        title={t("admin.bookingActivity")}
+        subtitle={t("admin.bookingActivitySubtitle")}
       >
         <AreaChart data={insights.activitySeries} height={64} />
       </Panel>

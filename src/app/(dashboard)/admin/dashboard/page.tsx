@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import { requireUser } from "@/lib/auth/guards";
 import { getDashboardData } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -12,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { RecentReservations } from "./recent-reservations";
 import { PendingQueue } from "../reservations/pending-queue";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   await requireUser();
+  const { locale, t } = await getI18n();
   const {
     kpis,
     revenueSeries,
@@ -29,8 +32,10 @@ export default async function DashboardPage() {
   return (
     <PageBody>
       <PageHeader
-        title="Dashboard"
-        description={format(new Date(), "EEEE, dd MMMM yyyy")}
+        title={t("admin.dashboard")}
+        description={format(new Date(), "EEEE, dd MMMM yyyy", {
+          locale: locale === "sq" ? sq : enUS,
+        })}
       >
         <Button
           size="sm"
@@ -38,7 +43,7 @@ export default async function DashboardPage() {
           nativeButton={false}
           render={<Link href="/admin/reservations?status=PENDING" />}
         >
-          Pending requests
+          {t("admin.pendingRequests")}
           {kpis.pending > 0 && (
             <span className="bg-brand ml-1 rounded-full px-1.5 text-xs font-bold text-white">
               {kpis.pending}
@@ -50,7 +55,7 @@ export default async function DashboardPage() {
           nativeButton={false}
           render={<Link href="/admin/vehicles/new" />}
         >
-          Add vehicle
+          {t("admin.addVehicle")}
         </Button>
       </PageHeader>
 
@@ -74,27 +79,27 @@ export default async function DashboardPage() {
       <StatStrip
         stats={[
           {
-            label: "Rented now",
+            label: t("admin.rentedNow"),
             value: kpis.rentedNow,
-            hint: `of ${kpis.fleetTotal} vehicles`,
+            hint: t("admin.ofVehicles", { count: kpis.fleetTotal }),
           },
           {
-            label: "Utilization",
+            label: t("admin.utilization"),
             value: `${kpis.utilization}%`,
             tone: kpis.utilization > 60 ? "good" : "default",
           },
           {
-            label: "Needs attention",
+            label: t("admin.needsAttention"),
             value: kpis.overdue,
             tone: kpis.overdue > 0 ? "danger" : "default",
           },
-          { label: "Available", value: kpis.available, tone: "good" },
+          { label: t("admin.available"), value: kpis.available, tone: "good" },
           {
-            label: "Revenue this week",
+            label: t("admin.revenueWeek"),
             value: `${kpis.revenueWeek.toLocaleString()} EUR`,
           },
           {
-            label: "Revenue this month",
+            label: t("admin.revenueMonth"),
             value: `${kpis.revenueMonth.toLocaleString()} EUR`,
           },
         ]}
@@ -102,31 +107,37 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Panel
-          title="Revenue trend"
-          subtitle="Booked revenue, last 6 months"
+          title={t("admin.revenueTrend")}
+          subtitle={t("admin.revenueTrendSubtitle")}
           className="lg:col-span-2"
         >
           <AreaChart data={revenueSeries} suffix=" EUR" />
         </Panel>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          <Panel title="Upcoming pickups" subtitle="Next 7 days">
+          <Panel
+            title={t("admin.upcomingPickups")}
+            subtitle={t("admin.nextSevenDays")}
+          >
             <ScheduleList items={upcomingPickups} kind="pickup" />
           </Panel>
-          <Panel title="Upcoming returns" subtitle="Next 7 days">
+          <Panel
+            title={t("admin.upcomingReturns")}
+            subtitle={t("admin.nextSevenDays")}
+          >
             <ScheduleList items={upcomingReturns} kind="return" />
           </Panel>
         </div>
       </div>
 
       <Panel
-        title="Recent reservations"
-        subtitle="Click a row for full detail"
+        title={t("admin.recentReservations")}
+        subtitle={t("admin.clickRow")}
         action={
           <Link
             href="/admin/reservations"
             className="text-brand text-xs font-semibold hover:underline"
           >
-            View all
+            {t("admin.viewAll")}
           </Link>
         }
       >

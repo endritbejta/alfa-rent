@@ -9,6 +9,7 @@ import {
   min,
   startOfMonth,
 } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import { requireUser } from "@/lib/auth/guards";
 import {
   getCalendarReservations,
@@ -20,13 +21,15 @@ import { Panel } from "@/components/dashboard/panel";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
 import { CalendarTimeline } from "@/components/dashboard/calendar-timeline";
 import { vehicleIdentifier } from "@/utils/vehicle";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 export const dynamic = "force-dynamic";
 
-const LEGEND: { status: string; className: string }[] = [
-  { status: "Pending", className: "bg-status-maint/85" },
-  { status: "Confirmed", className: "bg-status-reserved/90" },
-  { status: "Active", className: "bg-status-rented/90" },
+const LEGEND: { status: TranslationKey; className: string }[] = [
+  { status: "vehicle.pending", className: "bg-status-maint/85" },
+  { status: "vehicle.confirmed", className: "bg-status-reserved/90" },
+  { status: "vehicle.active", className: "bg-status-rented/90" },
 ];
 
 /** Hard cap so a stray far-future booking can't render a decade of columns. */
@@ -34,6 +37,8 @@ const MAX_MONTHS = 14;
 
 export default async function CalendarPage() {
   await requireUser();
+  const { locale, t } = await getI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
 
   const today = new Date();
   const bounds = await getReservationDateBounds();
@@ -66,7 +71,7 @@ export default async function CalendarPage() {
   ) {
     months.push({
       key: format(cursor, "yyyy-MM"),
-      label: format(cursor, "MMMM yyyy"),
+      label: format(cursor, "MMMM yyyy", { locale: dateLocale }),
       start: differenceInCalendarDays(cursor, rangeStart),
       days: getDaysInMonth(cursor),
     });
@@ -105,15 +110,18 @@ export default async function CalendarPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Calendar"
-        description={`Fleet availability from ${format(rangeStart, "MMM yyyy")} to ${format(rangeEnd, "MMM yyyy")}`}
+        title={t("admin.calendar")}
+        description={t("admin.calendarDescription", {
+          from: format(rangeStart, "MMM yyyy", { locale: dateLocale }),
+          to: format(rangeEnd, "MMM yyyy", { locale: dateLocale }),
+        })}
       />
 
       <div className="text-muted-foreground flex flex-wrap gap-4 text-xs">
         {LEGEND.map(({ status, className }) => (
           <span key={status} className="flex items-center gap-1.5">
             <span className={`inline-block h-3 w-3 rounded ${className}`} />
-            {status}
+            {t(status)}
           </span>
         ))}
       </div>
@@ -128,10 +136,16 @@ export default async function CalendarPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Panel title="Pickup schedule" subtitle="Next 7 days">
+        <Panel
+          title={t("admin.pickupSchedule")}
+          subtitle={t("admin.nextSevenDays")}
+        >
           <ScheduleList items={dashboard.upcomingPickups} kind="pickup" />
         </Panel>
-        <Panel title="Return schedule" subtitle="Next 7 days">
+        <Panel
+          title={t("admin.returnSchedule")}
+          subtitle={t("admin.nextSevenDays")}
+        >
           <ScheduleList items={dashboard.upcomingReturns} kind="return" />
         </Panel>
       </div>

@@ -14,6 +14,24 @@ import { getPublicVehicleBySlug } from "@/services/vehicle.service";
 import { NotFoundError } from "@/lib/errors";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
+
+const CATEGORY_KEYS = {
+  ECONOMY: "filter.economy",
+  COMPACT: "filter.compact",
+  SEDAN: "filter.sedan",
+  SUV: "filter.suv",
+  LUXURY: "filter.luxury",
+  VAN: "filter.van",
+} as const satisfies Record<string, TranslationKey>;
+
+const FUEL_KEYS = {
+  PETROL: "vehicle.petrol",
+  DIESEL: "vehicle.diesel",
+  HYBRID: "vehicle.hybrid",
+  ELECTRIC: "vehicle.electric",
+} as const satisfies Record<string, TranslationKey>;
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +51,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const vehicle = await loadVehicle(slug);
+  const { t } = await getI18n();
   return {
-    title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — Rent from ${Number(vehicle.pricePerDay)} EUR/day`,
+    title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — ${Number(vehicle.pricePerDay)} EUR/${t("common.perDay")}`,
     description: vehicle.description.slice(0, 155),
     openGraph: vehicle.images[0]
       ? { images: [{ url: vehicle.images[0].url }] }
@@ -51,30 +70,36 @@ export default async function VehiclePage({
 }) {
   const { slug } = await params;
   const { from, to } = await searchParams;
+  const { t } = await getI18n();
   const vehicle = await loadVehicle(slug);
   const [cover, ...rest] = vehicle.images;
 
   const specs = [
     {
       icon: Settings2,
-      label: "Transmission",
-      value: vehicle.transmission === "AUTOMATIC" ? "Automatic" : "Manual",
+      label: t("detail.transmission"),
+      value:
+        vehicle.transmission === "AUTOMATIC"
+          ? t("vehicle.automatic")
+          : t("vehicle.manual"),
     },
     {
       icon: Fuel,
-      label: "Fuel",
-      value:
-        vehicle.fuelType.charAt(0) + vehicle.fuelType.slice(1).toLowerCase(),
+      label: t("detail.fuel"),
+      value: t(FUEL_KEYS[vehicle.fuelType]),
     },
-    { icon: Users, label: "Seats", value: `${vehicle.seats}` },
-    { icon: CalendarRange, label: "Year", value: `${vehicle.year}` },
+    { icon: Users, label: t("detail.seats"), value: `${vehicle.seats}` },
+    { icon: CalendarRange, label: t("detail.year"), value: `${vehicle.year}` },
     {
       icon: Gauge,
-      label: "Category",
-      value:
-        vehicle.category.charAt(0) + vehicle.category.slice(1).toLowerCase(),
+      label: t("detail.category"),
+      value: t(CATEGORY_KEYS[vehicle.category]),
     },
-    { icon: ShieldCheck, label: "Insurance", value: "Included" },
+    {
+      icon: ShieldCheck,
+      label: t("detail.insurance"),
+      value: t("detail.included"),
+    },
   ];
 
   return (
@@ -121,7 +146,7 @@ export default async function VehiclePage({
           )}
 
           <span className="eyebrow text-muted-foreground mt-10">
-            {vehicle.category.toLowerCase()}
+            {t(CATEGORY_KEYS[vehicle.category])}
           </span>
           <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">
             {vehicle.brand} {vehicle.model}
@@ -148,11 +173,11 @@ export default async function VehiclePage({
               {Number(vehicle.pricePerDay)}
               <span className="text-muted-foreground font-sans text-sm font-medium">
                 {" "}
-                EUR / day
+                EUR / {t("common.perDay")}
               </span>
             </p>
             <p className="text-muted-foreground mt-1 text-sm">
-              Insurance included. Confirmed by our team within hours.
+              {t("detail.insuranceText")}
             </p>
             <AvailabilityWidget
               vehicleId={vehicle.id}

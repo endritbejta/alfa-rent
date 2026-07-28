@@ -11,6 +11,7 @@ import { CustomerList } from "./customer-list";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { paginationSchema } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
+import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function CustomersPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   await requireUser();
+  const { t } = await getI18n();
   const { page: rawPage } = await searchParams;
   const { page } = paginationSchema.parse({ page: rawPage, perPage: 25 });
   const [customers, insights] = await Promise.all([
@@ -32,23 +34,23 @@ export default async function CustomersPage({
   return (
     <PageBody>
       <PageHeader
-        title="Customers"
-        description="Everyone who has booked with Alfa"
+        title={t("admin.customers")}
+        description={t("admin.customerDescription")}
       />
 
       {/* "Returning" loses its "more than one booking" hint — the word
           carries it. The top spender keeps theirs: it is their name. */}
       <StatStrip
         stats={[
-          { label: "Customers", value: insights.total },
+          { label: t("admin.customers"), value: insights.total },
           {
-            label: "New this month",
+            label: t("admin.newThisMonth"),
             value: insights.newThisMonth,
             tone: insights.newThisMonth > 0 ? "good" : "default",
           },
-          { label: "Returning", value: insights.returning },
+          { label: t("admin.returning"), value: insights.returning },
           {
-            label: "Top spender",
+            label: t("admin.topSpender"),
             value: insights.topSpenders[0]
               ? `${insights.topSpenders[0].value.toLocaleString()} EUR`
               : "0 EUR",
@@ -58,18 +60,24 @@ export default async function CustomersPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Customer growth" subtitle="New registrations by month">
+        <Panel
+          title={t("admin.customerGrowth")}
+          subtitle={t("admin.newRegistrations")}
+        >
           <AreaChart data={insights.growthSeries} height={140} />
         </Panel>
         <Panel
-          title="Top spending customers"
-          subtitle="Active and completed rentals"
+          title={t("admin.topCustomers")}
+          subtitle={t("admin.activeCompleted")}
         >
           <BarList items={insights.topSpenders} suffix=" EUR" />
         </Panel>
       </div>
 
-      <Panel title="All customers" subtitle="Click a customer for full profile">
+      <Panel
+        title={t("admin.allCustomers")}
+        subtitle={t("admin.clickCustomer")}
+      >
         <CustomerList items={items} />
       </Panel>
       <Pagination

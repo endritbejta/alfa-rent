@@ -7,14 +7,18 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageSelector } from "@/components/shared/language-selector";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/car", label: "Vehicles" },
-  { href: "/contact", label: "Contact" },
-];
+  { href: "/", label: "nav.home" },
+  { href: "/car", label: "nav.vehicles" },
+  { href: "/contact", label: "nav.contact" },
+] satisfies { href: string; label: TranslationKey }[];
 
 export function SiteHeader() {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -45,7 +49,7 @@ export function SiteHeader() {
                     : "text-band-muted hover:text-band-foreground"
                 )}
               >
-                {item.label}
+                {t(item.label)}
                 {active && (
                   <span className="bg-brand mx-auto mt-0.5 block h-0.5 w-5 rounded-full" />
                 )}
@@ -55,18 +59,20 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageSelector compact />
           <ThemeToggle />
           <Button nativeButton={false} render={<Link href="/booking" />}>
-            Book now
+            {t("common.bookNow")}
           </Button>
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageSelector compact />
           <ThemeToggle />
           <button
             type="button"
             className="text-band-foreground"
-            aria-label={open ? "Close menu" : "Open menu"}
+            aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
           >
@@ -85,7 +91,7 @@ export function SiteHeader() {
                 onClick={() => setOpen(false)}
                 className="text-band-muted hover:text-band-foreground rounded-lg px-2 py-2.5 text-sm"
               >
-                {item.label}
+                {t(item.label)}
               </Link>
             ))}
             <Button
@@ -93,7 +99,7 @@ export function SiteHeader() {
               nativeButton={false}
               render={<Link href="/booking" onClick={() => setOpen(false)} />}
             >
-              Book now
+              {t("common.bookNow")}
             </Button>
           </div>
         </nav>

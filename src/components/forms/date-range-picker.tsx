@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { addDays, format, isAfter } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import { CalendarDays, X } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /**
  * Calendar days, not instants.
@@ -49,7 +51,7 @@ export function DatePicker({
   onChange,
   minDate,
   maxDate,
-  placeholder = "Choose a date",
+  placeholder,
   id,
 }: {
   value: Date | undefined;
@@ -59,6 +61,8 @@ export function DatePicker({
   placeholder?: string;
   id?: string;
 }) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const disabled = [
     ...(minDate ? [{ before: minDate }] : []),
     ...(maxDate ? [{ after: maxDate }] : []),
@@ -72,7 +76,9 @@ export function DatePicker({
       >
         <CalendarDays className="text-brand h-3.5 w-3.5 shrink-0" />
         <span className={cn(!value && "text-muted-foreground")}>
-          {value ? format(value, "dd MMM yyyy") : placeholder}
+          {value
+            ? format(value, "dd MMM yyyy", { locale: dateLocale })
+            : (placeholder ?? t("date.choose"))}
         </span>
       </PopoverTrigger>
       <PopoverContent
@@ -87,6 +93,7 @@ export function DatePicker({
           selected={value}
           onSelect={onChange}
           disabled={disabled.length ? disabled : undefined}
+          locale={dateLocale}
           className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
         />
       </PopoverContent>
@@ -122,6 +129,7 @@ export function DateField({
   clearable?: boolean;
   onChange?: (date: Date | undefined) => void;
 }) {
+  const { t } = useI18n();
   const [value, setValue] = useState<Date | undefined>(
     defaultValue ? toLocalDay(defaultValue) : undefined
   );
@@ -145,7 +153,7 @@ export function DateField({
       {clearable && value && (
         <button
           type="button"
-          aria-label="Clear date"
+          aria-label={t("date.clear")}
           onClick={() => updateValue(undefined)}
           className="text-muted-foreground hover:text-destructive shrink-0 cursor-pointer p-1 transition-colors"
         >
@@ -189,6 +197,8 @@ function RangeDateField({
   minDate?: Date;
   disabled?: boolean;
 }) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const [open, setOpen] = useState(false);
   const dark = tone === "dark";
 
@@ -222,7 +232,9 @@ function RangeDateField({
               dark ? "text-band-muted" : "text-brand"
             )}
           />
-          {value ? format(value, "dd MMM yyyy") : "Add date"}
+          {value
+            ? format(value, "dd MMM yyyy", { locale: dateLocale })
+            : t("date.add")}
         </span>
       </PopoverTrigger>
       <PopoverContent
@@ -239,6 +251,7 @@ function RangeDateField({
             setOpen(false);
           }}
           disabled={minDate ? { before: minDate } : undefined}
+          locale={dateLocale}
           className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
         />
       </PopoverContent>
@@ -251,7 +264,7 @@ export function DateRangePicker({
   onChange,
   tone = "dark",
   minDate,
-  labels = { from: "Pickup", to: "Return" },
+  labels,
 }: {
   value: DateRange | undefined;
   onChange: (range: DateRange | undefined) => void;
@@ -259,6 +272,11 @@ export function DateRangePicker({
   minDate?: Date;
   labels?: { from: string; to: string };
 }) {
+  const { t } = useI18n();
+  const resolvedLabels = labels ?? {
+    from: t("booking.pickupDate"),
+    to: t("booking.returnDate"),
+  };
   const dark = tone === "dark";
   const earliestReturn = value?.from ? addDays(value.from, 1) : minDate;
   const returnMinDate =
@@ -276,7 +294,7 @@ export function DateRangePicker({
       )}
     >
       <RangeDateField
-        label={labels.from}
+        label={resolvedLabels.from}
         value={value?.from}
         tone={tone}
         minDate={minDate}
@@ -288,7 +306,7 @@ export function DateRangePicker({
         }
       />
       <RangeDateField
-        label={labels.to}
+        label={resolvedLabels.to}
         value={value?.to}
         tone={tone}
         minDate={returnMinDate}

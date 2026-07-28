@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { VehicleStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 /**
  * Availability as a segmented control, replacing both the Fleet size /
@@ -18,11 +20,15 @@ import { cn } from "@/lib/utils";
  * with `scroll: false` — a plain <Link> would fling the operator back to the
  * top of the page on every filter change.
  */
-const OPTIONS: { key: VehicleStatus; label: string; dot: string }[] = [
-  { key: "AVAILABLE", label: "Free", dot: "bg-status-available" },
-  { key: "RENTED", label: "Taken", dot: "bg-status-rented" },
-  { key: "SERVICE", label: "In service", dot: "bg-status-maint" },
-  { key: "INACTIVE", label: "Retired", dot: "bg-status-inactive" },
+const OPTIONS: {
+  key: VehicleStatus;
+  label: TranslationKey;
+  dot: string;
+}[] = [
+  { key: "AVAILABLE", label: "admin.free", dot: "bg-status-available" },
+  { key: "RENTED", label: "admin.taken", dot: "bg-status-rented" },
+  { key: "SERVICE", label: "admin.inService", dot: "bg-status-maint" },
+  { key: "INACTIVE", label: "admin.retired", dot: "bg-status-inactive" },
 ];
 
 export function FleetStatusFilter({
@@ -30,6 +36,7 @@ export function FleetStatusFilter({
 }: {
   counts: Record<string, number>;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const active = params.get("status");
@@ -60,7 +67,7 @@ export function FleetStatusFilter({
         <Segment
           selected={!active}
           onSelect={() => select(null)}
-          label="All"
+          label={t("common.all")}
           count={total}
         />
         {OPTIONS.map((option) => (
@@ -68,7 +75,7 @@ export function FleetStatusFilter({
             key={option.key}
             selected={active === option.key}
             onSelect={() => select(option.key)}
-            label={option.label}
+            label={t(option.label)}
             count={counts[option.key] ?? 0}
             dot={option.dot}
           />

@@ -4,32 +4,56 @@ import { ArrowRight, Cog, Fuel, Users } from "lucide-react";
 import type { PublicVehicle } from "@/services/vehicle.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { getI18n } from "@/lib/i18n/server";
+import type { TranslationKey } from "@/lib/i18n/translations";
+
+const CATEGORY_KEYS = {
+  ECONOMY: "filter.economy",
+  COMPACT: "filter.compact",
+  SEDAN: "filter.sedan",
+  SUV: "filter.suv",
+  LUXURY: "filter.luxury",
+  VAN: "filter.van",
+} satisfies Record<PublicVehicle["category"], TranslationKey>;
+
+const FUEL_KEYS = {
+  PETROL: "vehicle.petrol",
+  DIESEL: "vehicle.diesel",
+  HYBRID: "vehicle.hybrid",
+  ELECTRIC: "vehicle.electric",
+} satisfies Record<PublicVehicle["fuelType"], TranslationKey>;
 
 /**
  * Flagship card. `query` carries the hero's date/category selection through
  * to the detail page so the customer never re-enters their dates.
  */
-export function VehicleCard({
+export async function VehicleCard({
   vehicle,
   query,
 }: {
   vehicle: PublicVehicle;
   query?: string;
 }) {
+  const { t } = await getI18n();
   const cover = vehicle.images[0];
   const href = `/car/${vehicle.slug}${query ? `?${query}` : ""}`;
 
   const pills = [
     {
       icon: Cog,
-      label: vehicle.transmission === "AUTOMATIC" ? "Automatic" : "Manual",
+      label:
+        vehicle.transmission === "AUTOMATIC"
+          ? t("vehicle.automatic")
+          : t("vehicle.manual"),
     },
     {
       icon: Fuel,
-      label:
-        vehicle.fuelType.charAt(0) + vehicle.fuelType.slice(1).toLowerCase(),
+      label: t(FUEL_KEYS[vehicle.fuelType]),
     },
-    { icon: Users, label: `${vehicle.seats} seats` },
+    {
+      icon: Users,
+      label: t("vehicle.seats", { count: vehicle.seats }),
+    },
   ];
 
   return (
@@ -58,7 +82,7 @@ export function VehicleCard({
 
       <div className="p-5">
         <p className="text-muted-foreground text-[11px] font-semibold tracking-[0.12em] uppercase">
-          {vehicle.category.toLowerCase()}
+          {t(CATEGORY_KEYS[vehicle.category])}
         </p>
         <div className="mt-0.5 flex items-baseline justify-between gap-2">
           <h3 className="font-display text-lg font-bold">
@@ -81,7 +105,7 @@ export function VehicleCard({
             {Number(vehicle.pricePerDay)}
             <span className="text-muted-foreground font-sans text-xs font-medium">
               {" "}
-              EUR / day
+              EUR / {t("common.perDay")}
             </span>
           </p>
           <Button
@@ -90,7 +114,7 @@ export function VehicleCard({
             className="bg-foreground text-background hover:bg-foreground/85 px-4 shadow-sm transition-transform duration-150 hover:scale-[1.04] active:scale-100"
             render={<Link href={href} />}
           >
-            Details
+            {t("vehicle.details")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>

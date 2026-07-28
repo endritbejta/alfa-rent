@@ -12,15 +12,29 @@ import {
   ChartNoAxesColumn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const NAV = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/vehicles", label: "Vehicles", icon: Car },
-  { href: "/admin/reservations", label: "Reservations", icon: ClipboardList },
-  { href: "/admin/customers", label: "Customers", icon: Users },
-  { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/admin/analytics", label: "Analytics", icon: ChartNoAxesColumn },
-];
+  {
+    href: "/admin/dashboard",
+    label: "admin.dashboard",
+    icon: LayoutDashboard,
+  },
+  { href: "/admin/vehicles", label: "admin.vehicles", icon: Car },
+  {
+    href: "/admin/reservations",
+    label: "admin.reservations",
+    icon: ClipboardList,
+  },
+  { href: "/admin/customers", label: "admin.customers", icon: Users },
+  { href: "/admin/calendar", label: "admin.calendar", icon: CalendarDays },
+  {
+    href: "/admin/analytics",
+    label: "admin.analytics",
+    icon: ChartNoAxesColumn,
+  },
+] satisfies { href: string; label: TranslationKey; icon: typeof Car }[];
 
 export function AdminNav({
   pendingCount = 0,
@@ -29,6 +43,7 @@ export function AdminNav({
   pendingCount?: number;
   collapsed?: boolean;
 }) {
+  const { t } = useI18n();
   const pathname = usePathname();
 
   return (
@@ -42,7 +57,7 @@ export function AdminNav({
             <Link
               href={href}
               aria-current={active ? "page" : undefined}
-              aria-label={collapsed ? label : undefined}
+              aria-label={collapsed ? t(label) : undefined}
               className={cn(
                 "relative flex items-center rounded-lg text-sm transition-colors",
                 collapsed ? "h-10 w-10 justify-center" : "gap-3 px-3 py-2",
@@ -55,7 +70,7 @@ export function AdminNav({
                 <span className="bg-sidebar-primary absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full" />
               )}
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="flex-1">{label}</span>}
+              {!collapsed && <span className="flex-1">{t(label)}</span>}
               {badge && !collapsed && (
                 <span className="bg-brand rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
                   {pendingCount}
@@ -77,7 +92,7 @@ export function AdminNav({
               <Tooltip.Portal>
                 <Tooltip.Positioner side="right" sideOffset={10}>
                   <Tooltip.Popup className="bg-popover text-popover-foreground rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-md">
-                    {label}
+                    {t(label)}
                     {badge && (
                       <span className="text-brand ml-1.5 font-bold tabular-nums">
                         {pendingCount}

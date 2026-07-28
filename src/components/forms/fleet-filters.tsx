@@ -3,12 +3,24 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { VehicleCategory, Transmission } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
+
+const CATEGORY_KEYS: Record<VehicleCategory, TranslationKey> = {
+  ECONOMY: "filter.economy",
+  COMPACT: "filter.compact",
+  SEDAN: "filter.sedan",
+  SUV: "filter.suv",
+  LUXURY: "filter.luxury",
+  VAN: "filter.van",
+};
 
 /**
  * Filters write to the URL, the server component reads them — the URL
  * is the single source of truth, so filtered views are shareable.
  */
 export function FleetFilters() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
 
@@ -35,14 +47,14 @@ export function FleetFilters() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground mr-1 w-24 text-xs font-semibold tracking-[0.12em] uppercase">
-          Category
+          {t("filter.category")}
         </span>
         <button
           type="button"
           className={chip(!params.get("category"))}
           onClick={() => set("category", null)}
         >
-          All
+          {t("common.all")}
         </button>
         {Object.values(VehicleCategory).map((c) => (
           <button
@@ -51,28 +63,30 @@ export function FleetFilters() {
             className={chip(params.get("category") === c)}
             onClick={() => set("category", c)}
           >
-            {c.charAt(0) + c.slice(1).toLowerCase()}
+            {t(CATEGORY_KEYS[c])}
           </button>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground mr-1 w-24 text-xs font-semibold tracking-[0.12em] uppercase">
-          Gearbox
+          {t("filter.gearbox")}
         </span>
-        {Object.values(Transmission).map((t) => (
+        {Object.values(Transmission).map((transmission) => (
           <button
-            key={t}
+            key={transmission}
             type="button"
-            className={chip(params.get("transmission") === t)}
-            onClick={() => set("transmission", t)}
+            className={chip(params.get("transmission") === transmission)}
+            onClick={() => set("transmission", transmission)}
           >
-            {t.charAt(0) + t.slice(1).toLowerCase()}
+            {transmission === "AUTOMATIC"
+              ? t("vehicle.automatic")
+              : t("vehicle.manual")}
           </button>
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground mr-1 w-24 text-xs font-semibold tracking-[0.12em] uppercase">
-          Budget
+          {t("filter.budget")}
         </span>
         {[40, 60, 100].map((cap) => (
           <button
@@ -81,7 +95,7 @@ export function FleetFilters() {
             className={chip(params.get("maxPrice") === String(cap))}
             onClick={() => set("maxPrice", String(cap))}
           >
-            Under {cap} EUR
+            {t("filter.under", { amount: cap })}
           </button>
         ))}
       </div>

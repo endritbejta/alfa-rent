@@ -12,6 +12,8 @@ import {
   SIDEBAR_MAX_AGE,
 } from "./sidebar-state";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageSelector } from "@/components/shared/language-selector";
+import { useI18n } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,7 @@ function SidebarChrome({
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <>
       <div
@@ -51,7 +54,7 @@ function SidebarChrome({
                 ALFA <span className="text-sidebar-primary">RENT</span>
               </p>
               <p className="text-sidebar-foreground/50 text-xs">
-                Staff dashboard
+                {t("admin.staffDashboard")}
               </p>
             </>
           )}
@@ -60,8 +63,12 @@ function SidebarChrome({
           <button
             type="button"
             onClick={onToggleCollapsed}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={`${collapsed ? "Expand" : "Collapse"} sidebar  [`}
+            aria-label={
+              collapsed ? t("admin.expandSidebar") : t("admin.collapseSidebar")
+            }
+            title={`${
+              collapsed ? t("admin.expandSidebar") : t("admin.collapseSidebar")
+            }  [`}
             className={cn(
               "border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground relative flex shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-colors hover:bg-white/8",
               collapsed ? "h-6 w-6" : "h-7 w-7"
@@ -96,19 +103,32 @@ function SidebarChrome({
           showLabel={!collapsed}
           className={cn("mb-2 w-full", collapsed && "px-0")}
         />
+        <LanguageSelector
+          compact={collapsed}
+          className={cn(
+            "text-sidebar-foreground mb-2 w-full",
+            collapsed && "justify-center px-1"
+          )}
+        />
         <form action={signOutAction}>
           <Button
             type="submit"
             variant="outline"
             size="sm"
-            aria-label={collapsed ? "Sign out" : undefined}
-            title={collapsed ? `Sign out — ${user.name}` : undefined}
+            aria-label={collapsed ? t("admin.signOut") : undefined}
+            title={
+              collapsed ? `${t("admin.signOut")} — ${user.name}` : undefined
+            }
             className={cn(
               "w-full border-neutral-700 bg-transparent text-neutral-200 hover:bg-white/8 hover:text-white",
               collapsed && "px-0"
             )}
           >
-            {collapsed ? <LogOut className="h-3.5 w-3.5" /> : "Sign out"}
+            {collapsed ? (
+              <LogOut className="h-3.5 w-3.5" />
+            ) : (
+              t("admin.signOut")
+            )}
           </Button>
         </form>
       </div>
@@ -132,6 +152,7 @@ export function AdminShell({
   banner?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
@@ -208,14 +229,14 @@ export function AdminShell({
           <div className="fixed inset-0 z-50 lg:hidden">
             <button
               type="button"
-              aria-label="Close menu"
+              aria-label={t("admin.closeMenu")}
               className="absolute inset-0 bg-black/50"
               onClick={() => setOpen(false)}
             />
             <aside className="bg-sidebar text-sidebar-foreground animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-72 flex-col shadow-xl duration-200">
               <button
                 type="button"
-                aria-label="Close menu"
+                aria-label={t("admin.closeMenu")}
                 className="text-sidebar-foreground/70 absolute top-4 right-4"
                 onClick={() => setOpen(false)}
               >
@@ -241,7 +262,7 @@ export function AdminShell({
             </p>
             <button
               type="button"
-              aria-label="Open menu"
+              aria-label={t("admin.openMenu")}
               onClick={() => setOpen(true)}
               className="relative"
             >

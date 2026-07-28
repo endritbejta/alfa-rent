@@ -9,8 +9,10 @@ import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/components/shared/locale-provider";
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
   const {
@@ -23,7 +25,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
     setAuthError(null);
     const result = await signIn("credentials", { ...data, redirect: false });
     if (result?.error) {
-      setAuthError("Invalid email or password");
+      setAuthError(t("auth.invalid"));
       return;
     }
     router.push(callbackUrl);
@@ -45,7 +47,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         )}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("auth.password")}</Label>
         <Input
           id="password"
           type="password"
@@ -62,7 +64,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting ? t("auth.signingIn") : t("auth.signIn")}
       </Button>
     </form>
   );

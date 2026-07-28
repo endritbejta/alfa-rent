@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /**
  * URL-driven pagination shared by admin lists. Page lives in the query so
@@ -24,6 +25,7 @@ export function Pagination({
   basePath: string;
   label?: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
 
@@ -56,6 +58,7 @@ export function Pagination({
       <div className="flex items-center gap-1">
         <Arrow
           direction="prev"
+          label={t("common.previous")}
           disabled={page <= 1}
           onClick={() => go(page - 1)}
         />
@@ -86,6 +89,7 @@ export function Pagination({
         )}
         <Arrow
           direction="next"
+          label={t("common.next")}
           disabled={page >= totalPages}
           onClick={() => go(page + 1)}
         />
@@ -96,10 +100,12 @@ export function Pagination({
 
 function Arrow({
   direction,
+  label,
   disabled,
   onClick,
 }: {
   direction: "prev" | "next";
+  label: string;
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -107,7 +113,7 @@ function Arrow({
   return (
     <button
       type="button"
-      aria-label={direction === "prev" ? "Previous page" : "Next page"}
+      aria-label={label}
       disabled={disabled}
       onClick={onClick}
       className="bg-card hover:text-foreground text-muted-foreground h-8 cursor-pointer rounded-lg border px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40"

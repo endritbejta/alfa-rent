@@ -52,7 +52,7 @@ export function ConfirmDialog({
         type="button"
         aria-label="Cancel"
         onClick={onCancel}
-        className="absolute inset-0 animate-[overlay-in_150ms_ease-out] cursor-default bg-black/50"
+        className="bg-overlay-modal absolute inset-0 animate-[overlay-in_150ms_ease-out] cursor-default"
       />
       <div
         ref={panelRef}

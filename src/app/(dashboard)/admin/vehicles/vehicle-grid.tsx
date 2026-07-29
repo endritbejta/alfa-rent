@@ -33,9 +33,9 @@ export function VehicleGrid({ items }: { items: Item[] }) {
         <Link
           key={v.id}
           href={`/admin/vehicles/${v.id}/edit`}
-          className="glass-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-sm transition-all hover:shadow-md"
+          className="bg-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-sm transition-all hover:shadow-md"
         >
-          <div className="relative aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800">
+          <div className="bg-media relative aspect-[16/10]">
             {v.image ? (
               <Image
                 src={v.image}
@@ -47,7 +47,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
               />
             ) : (
-              <span className="absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] text-neutral-500 uppercase">
+              <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
                 {v.brand}
               </span>
             )}

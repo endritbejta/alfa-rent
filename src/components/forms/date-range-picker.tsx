@@ -72,7 +72,7 @@ export function DatePicker({
     <Popover>
       <PopoverTrigger
         id={id}
-        className="border-input bg-card hover:bg-secondary focus-visible:ring-brand flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
       >
         <CalendarDays className="text-brand h-3.5 w-3.5 shrink-0" />
         <span className={cn(!value && "text-muted-foreground")}>
@@ -81,10 +81,7 @@ export function DatePicker({
             : (placeholder ?? t("date.choose"))}
         </span>
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-auto rounded-2xl p-2 shadow-2xl"
-      >
+      <PopoverContent align="start" className="w-auto rounded-xl p-2">
         <Calendar
           mode="single"
           // Open where the choice actually is, not on today — an extension
@@ -207,8 +204,8 @@ function RangeDateField({
       <PopoverTrigger
         disabled={disabled}
         className={cn(
-          "w-full cursor-pointer px-4 py-2.5 text-left transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45",
-          dark ? "hover:bg-white/[0.04]" : "hover:bg-secondary"
+          "disabled:bg-skeleton disabled:text-muted-foreground w-full cursor-pointer px-4 py-2.5 text-left transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:outline-none disabled:cursor-not-allowed",
+          dark ? "hover:bg-white/[0.04]" : "hover:bg-surface-hover"
         )}
       >
         <span
@@ -290,7 +287,7 @@ export function DateRangePicker({
         "grid flex-1 grid-cols-2 divide-x overflow-hidden rounded-xl",
         dark
           ? "divide-white/10 bg-white/[0.06] ring-1 ring-white/10"
-          : "border-input divide-input bg-card border"
+          : "border-input divide-input bg-control border"
       )}
     >
       <RangeDateField

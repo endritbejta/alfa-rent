@@ -112,14 +112,7 @@ function Segment({
     >
       {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />}
       {label}
-      <span
-        className={cn(
-          "tabular-nums",
-          selected ? "text-muted-foreground" : "text-muted-foreground/60"
-        )}
-      >
-        {count}
-      </span>
+      <span className="text-muted-foreground tabular-nums">{count}</span>
     </button>
   );
 }

@@ -62,7 +62,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             e.preventDefault();
             openReservation(r.id);
           }}
-          className="hover:bg-secondary/70 focus-visible:ring-ring/40 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:outline-none"
+          className="hover:bg-surface-hover focus-visible:ring-ring/40 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:outline-none"
         >
           <TableCell>
             <p className="font-medium">
@@ -133,7 +133,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
               e.preventDefault();
               openReservation(r.id);
             }}
-            className="hover:bg-secondary/70 focus-visible:ring-ring/40 cursor-pointer rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="hover:bg-surface-hover focus-visible:ring-ring/40 cursor-pointer rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

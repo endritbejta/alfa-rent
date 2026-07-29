@@ -43,7 +43,7 @@ function VehicleTable({
   dense?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
       <Table>
         <TableHeader>
           <TableRow>
@@ -69,7 +69,7 @@ function VehicleTable({
                       className="h-12 w-20 rounded object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-20 items-center justify-center rounded bg-neutral-200 text-[10px] text-neutral-500">
+                    <div className="bg-skeleton text-muted-foreground flex h-12 w-20 items-center justify-center rounded text-[10px]">
                       No image
                     </div>
                   )}

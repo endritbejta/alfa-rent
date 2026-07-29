@@ -334,7 +334,7 @@ export function MediaGrid({
               "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors",
               dragging
                 ? "border-brand bg-brand/[0.06]"
-                : "border-input hover:border-brand/40 hover:bg-secondary/60"
+                : "border-input hover:border-brand/40 hover:bg-surface-hover"
             )}
           >
             <span
@@ -383,7 +383,7 @@ export function MediaGrid({
                     type="button"
                     onClick={open}
                     aria-label="Add photos"
-                    className="border-input hover:border-brand/50 hover:bg-secondary/60 text-muted-foreground hover:text-brand flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors"
+                    className="border-input text-muted-foreground hover:border-brand/50 hover:bg-surface-hover hover:text-brand flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
@@ -442,7 +442,7 @@ function Tile({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "group relative overflow-hidden rounded-lg border bg-neutral-900",
+        "bg-media group relative overflow-hidden rounded-lg border",
         // The cover photo is what the fleet grid and search results show,
         // so it earns the space that makes it obviously different.
         cover ? "col-span-2 row-span-2 aspect-square" : "aspect-square",

@@ -80,11 +80,7 @@ export async function StatusFilter({
               <span
                 className={cn(
                   "tabular-nums",
-                  urgent
-                    ? "text-brand"
-                    : selected
-                      ? "text-muted-foreground"
-                      : "text-muted-foreground/60"
+                  urgent ? "text-brand" : "text-muted-foreground"
                 )}
               >
                 {option.count}

@@ -140,7 +140,7 @@ export function BookingForm({
         <select
           id="vehicleId"
           {...register("vehicleId")}
-          className="border-input focus:ring-ring h-10 w-full rounded-lg border bg-transparent px-3 text-sm outline-none focus:ring-2"
+          className="border-input bg-control focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
         >
           <option value="">{t("booking.chooseVehicle")}</option>
           {vehicles.map((v) => (

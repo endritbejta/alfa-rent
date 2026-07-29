@@ -75,7 +75,7 @@ export function DetailDrawer({
         onClick={onClose}
         data-drawer-overlay
         className={cn(
-          "absolute inset-0 cursor-default bg-black/40 backdrop-blur-[1px]",
+          "bg-overlay-modal absolute inset-0 cursor-default backdrop-blur-[1px]",
           closing
             ? "animate-[overlay-out_var(--motion-panel-exit)_var(--ease-exit)_forwards]"
             : "animate-[overlay-in_var(--motion-panel)_var(--ease-standard)]"

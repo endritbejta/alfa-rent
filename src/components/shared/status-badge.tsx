@@ -62,7 +62,7 @@ export function StatusBadge({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
         variant === "overlay"
-          ? "border-white/25 bg-neutral-950/90 text-white shadow-lg backdrop-blur-sm"
+          ? "bg-media/95 border-white/25 text-white shadow-md backdrop-blur-sm"
           : cn("border-current/15", SURFACE_HUES[status])
       )}
     >

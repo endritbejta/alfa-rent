@@ -187,7 +187,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
         type="button"
         aria-label="Close search"
         onClick={close}
-        className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-[2px]"
+        className="bg-overlay-modal absolute inset-0 cursor-default backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}
@@ -251,7 +251,9 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
                   onMouseEnter={() => setActive(i)}
                   className={cn(
                     "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-                    i === active ? "bg-secondary" : "hover:bg-secondary/60"
+                    i === active
+                      ? "bg-surface-selected"
+                      : "hover:bg-surface-hover"
                   )}
                 >
                   <Icon className="text-muted-foreground h-4 w-4 shrink-0" />

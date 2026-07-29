@@ -32,7 +32,7 @@ export default function WebsiteError({
           <Button
             variant="outline"
             nativeButton={false}
-            className="border-band-border text-band-foreground hover:bg-white/10"
+            className="border-band-border text-band-foreground hover:border-band-muted hover:text-band-foreground bg-transparent hover:bg-white/10"
             render={<Link href="/" />}
           >
             Back home

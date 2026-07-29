@@ -43,7 +43,7 @@ export function ScheduleList({
             <button
               type="button"
               onClick={() => openReservation(item.id)}
-              className="hover:bg-secondary flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors"
+              className="hover:bg-surface-hover flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors"
             >
               <span
                 className={

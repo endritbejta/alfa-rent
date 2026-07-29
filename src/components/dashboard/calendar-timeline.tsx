@@ -188,7 +188,7 @@ export function CalendarTimeline({
               type="button"
               aria-label="Previous month"
               onClick={() => jumpMonth(-1)}
-              className="hover:bg-secondary cursor-pointer rounded-full p-1.5 transition-colors"
+              className="hover:bg-surface-hover cursor-pointer rounded-full p-1.5 transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -199,7 +199,7 @@ export function CalendarTimeline({
               type="button"
               aria-label="Next month"
               onClick={() => jumpMonth(1)}
-              className="hover:bg-secondary cursor-pointer rounded-full p-1.5 transition-colors"
+              className="hover:bg-surface-hover cursor-pointer rounded-full p-1.5 transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -285,7 +285,7 @@ export function CalendarTimeline({
                 style={{ width: rowW(gridW) }}
               >
                 <div
-                  className="bg-card sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r px-3 py-1.5 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)]"
+                  className="bg-card shadow-sticky sticky left-0 z-20 flex shrink-0 flex-col justify-center border-r px-3 py-1.5"
                   style={{ width: NAME_W }}
                 >
                   <span className="truncate text-sm font-medium">
@@ -455,7 +455,7 @@ function BookingModal({
   };
 
   const field =
-    "border-input focus:ring-ring h-10 w-full rounded-lg border bg-transparent px-3 text-sm outline-none focus:ring-2";
+    "border-input bg-control focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2";
   const STATUS: {
     value: NewReservationStatus;
     label: string;
@@ -470,10 +470,10 @@ function BookingModal({
       <button
         type="button"
         aria-label="Close"
-        className="absolute inset-0 bg-black/50"
+        className="bg-overlay-modal absolute inset-0"
         onClick={onClose}
       />
-      <div className="bg-card relative z-10 w-full max-w-md rounded-2xl border p-6 shadow-xl">
+      <div className="bg-card relative z-10 w-full max-w-md rounded-xl border p-6 shadow-lg">
         <div className="mb-5 flex items-start justify-between">
           <div>
             <h2 className="font-display text-lg font-bold">Add reservation</h2>
@@ -551,7 +551,7 @@ function BookingModal({
                     "flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-semibold transition-colors",
                     form.status === s.value
                       ? "border-foreground bg-secondary"
-                      : "text-muted-foreground hover:bg-secondary"
+                      : "text-muted-foreground hover:bg-surface-hover"
                   )}
                 >
                   <span className={cn("h-2 w-2 rounded-full", s.dot)} />

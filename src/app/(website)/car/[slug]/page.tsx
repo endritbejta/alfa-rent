@@ -14,6 +14,7 @@ import { getPublicVehicleBySlug } from "@/services/vehicle.service";
 import { NotFoundError } from "@/lib/errors";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
+import { MobileBookingBar } from "@/components/forms/mobile-booking-bar";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
@@ -106,7 +107,7 @@ export default async function VehiclePage({
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-12">
+    <div className="mx-auto max-w-6xl px-5 pt-12 pb-28 lg:py-12">
       <div className="grid gap-10 lg:grid-cols-[1.5fr_1fr]">
         <div>
           {/* Gallery */}
@@ -158,22 +159,29 @@ export default async function VehiclePage({
             {description}
           </p>
 
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
             {specs.map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
-                className="bg-card rounded-xl border p-4 shadow-xs"
+                className="bg-card min-w-0 rounded-xl border p-3 shadow-xs sm:p-4"
               >
-                <Icon className="text-brand mb-2 h-5 w-5" />
-                <p className="text-muted-foreground text-xs">{label}</p>
-                <p className="text-sm font-semibold">{value}</p>
+                <Icon className="text-brand mb-1.5 h-4 w-4 sm:mb-2 sm:h-5 sm:w-5" />
+                <p className="text-muted-foreground text-[10px] leading-tight sm:text-xs">
+                  {label}
+                </p>
+                <p className="mt-1 text-xs leading-tight font-semibold break-words sm:mt-0 sm:text-sm">
+                  {value}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Booking rail */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside
+          id="booking"
+          className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start"
+        >
           <div className="bg-card rounded-2xl border p-6 shadow-sm">
             <p className="font-display text-3xl font-bold">
               {Number(vehicle.pricePerDay)}
@@ -194,6 +202,12 @@ export default async function VehiclePage({
           </div>
         </aside>
       </div>
+
+      <MobileBookingBar
+        pricePerDay={Number(vehicle.pricePerDay)}
+        perDayLabel={t("common.perDay")}
+        bookLabel={t("common.bookVehicle")}
+      />
     </div>
   );
 }

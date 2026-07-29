@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { LocaleProvider } from "@/components/shared/locale-provider";
+import { NavigationScrollReset } from "@/components/shared/navigation-scroll-reset";
 import { getI18n } from "@/lib/i18n/server";
 import "./globals.css";
 
@@ -60,6 +61,7 @@ export default async function RootLayout({
         <LocaleProvider locale={locale} dictionary={dictionary}>
           <ThemeProvider>
             <div className="ambient-background" />
+            <NavigationScrollReset />
             {children}
           </ThemeProvider>
         </LocaleProvider>

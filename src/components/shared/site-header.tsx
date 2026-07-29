@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LanguageSelector } from "@/components/shared/language-selector";
 import { useI18n } from "@/components/shared/locale-provider";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const NAV = [
@@ -25,11 +26,8 @@ export function SiteHeader() {
   return (
     <header className="bg-band text-band-foreground border-band-border sticky top-0 z-40 border-b">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <Link
-          href="/"
-          className="font-display text-lg font-bold tracking-tight"
-        >
-          ALFA <span className="text-brand">RENT</span>
+        <Link href="/" aria-label="Alfa Rent">
+          <BrandLogo className="text-lg" preload />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

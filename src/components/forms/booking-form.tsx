@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -78,6 +78,11 @@ export function BookingForm({
 
   /** useWatch, not watch(): the latter cannot be memoized safely. */
   const pickedFrom = useWatch({ control, name: "from" });
+
+  useEffect(() => {
+    if (!confirmation) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [confirmation]);
 
   const onSubmit = async (data: FormValues) => {
     setServerError(null);

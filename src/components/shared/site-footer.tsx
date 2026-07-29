@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export async function SiteFooter() {
   const { t } = await getI18n();
@@ -7,9 +8,7 @@ export async function SiteFooter() {
     <footer className="bg-band text-band-muted border-band-border border-t">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="font-display text-band-foreground text-lg font-bold">
-            ALFA <span className="text-brand">RENT</span>
-          </p>
+          <BrandLogo className="text-band-foreground text-lg" />
           <p className="mt-3 max-w-xs text-sm">{t("footer.tagline")}</p>
         </div>
         <div>

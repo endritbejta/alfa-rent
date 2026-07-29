@@ -188,7 +188,7 @@ function ReservationBody({
             className="object-cover"
           />
         ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] text-neutral-500 uppercase">
+          <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
             {detail.vehicle.brand}
           </span>
         )}
@@ -332,7 +332,7 @@ function ReservationBody({
                     {inspection.photos.map((photo) => (
                       <div
                         key={photo.id}
-                        className="relative aspect-square overflow-hidden rounded-lg bg-neutral-900"
+                        className="bg-media relative aspect-square overflow-hidden rounded-lg"
                       >
                         <Image
                           src={photo.url}

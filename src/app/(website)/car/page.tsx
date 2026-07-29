@@ -99,8 +99,13 @@ export default async function FleetPage({
         ) : (
           <>
             <div className="grid gap-6 pb-8 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((vehicle) => (
-                <VehicleCard key={vehicle.id} vehicle={vehicle} query={query} />
+              {items.map((vehicle, index) => (
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  query={query}
+                  preload={index === 0}
+                />
               ))}
             </div>
             <Pagination

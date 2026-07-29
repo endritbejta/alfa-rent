@@ -128,7 +128,7 @@ export function VehicleForm({
       className="space-y-5 pb-4"
     >
       {/* Sticky action bar — the decisions travel with the operator. */}
-      <div className="bg-background/85 sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <div className="bg-card/90 sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 shadow-xs backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="min-w-0">
           <h1 className="font-display truncate text-xl font-bold tracking-tight">
             {vehicle ? `${vehicle.brand} ${vehicle.model}` : "New vehicle"}
@@ -586,7 +586,7 @@ function Select({
   return (
     <select
       {...props}
-      className="border-input bg-card focus:border-ring focus:ring-ring/30 h-9 w-full cursor-pointer rounded-lg border px-3 text-sm transition-colors outline-none focus:ring-2"
+      className="border-input bg-control focus:border-ring focus:ring-ring/30 h-9 w-full cursor-pointer rounded-lg border px-3 text-sm transition-colors outline-none focus:ring-2"
     >
       {children}
     </select>

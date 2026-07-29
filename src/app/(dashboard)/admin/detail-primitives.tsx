@@ -34,7 +34,7 @@ export function DrawerSkeleton() {
   return (
     <div className="space-y-3">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="bg-secondary h-16 animate-pulse rounded-lg" />
+        <div key={i} className="bg-skeleton h-16 animate-pulse rounded-lg" />
       ))}
     </div>
   );

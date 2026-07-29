@@ -44,7 +44,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
               className="object-cover"
             />
           ) : (
-            <span className="absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] text-neutral-500 uppercase">
+            <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
               {vehicle.brand}
             </span>
           )}
@@ -57,7 +57,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
             {rest.slice(0, 4).map((img) => (
               <div
                 key={img.id}
-                className="relative aspect-[16/10] overflow-hidden rounded-md bg-neutral-900"
+                className="bg-media relative aspect-[16/10] overflow-hidden rounded-md"
               >
                 <Image
                   src={img.url}

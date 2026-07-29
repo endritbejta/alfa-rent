@@ -33,7 +33,7 @@ export function CustomerList({ items }: { items: Item[] }) {
             <button
               type="button"
               onClick={() => openCustomer(c.id)}
-              className="hover:bg-secondary w-full cursor-pointer rounded-lg px-2 py-3 text-left transition-colors"
+              className="hover:bg-surface-hover w-full cursor-pointer rounded-lg px-2 py-3 text-left transition-colors"
             >
               <p className="text-sm font-semibold">
                 {c.firstName} {c.lastName}
@@ -62,7 +62,7 @@ export function CustomerList({ items }: { items: Item[] }) {
               <TableRow
                 key={c.id}
                 onClick={() => openCustomer(c.id)}
-                className="hover:bg-secondary cursor-pointer transition-colors"
+                className="hover:bg-surface-hover cursor-pointer transition-colors"
               >
                 <TableCell className="font-medium">
                   {c.firstName} {c.lastName}

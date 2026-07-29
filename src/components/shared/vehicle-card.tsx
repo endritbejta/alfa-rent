@@ -30,9 +30,11 @@ const FUEL_KEYS = {
 export async function VehicleCard({
   vehicle,
   query,
+  preload = false,
 }: {
   vehicle: PublicVehicle;
   query?: string;
+  preload?: boolean;
 }) {
   const { t } = await getI18n();
   const cover = vehicle.images[0];
@@ -57,7 +59,7 @@ export async function VehicleCard({
   ];
 
   return (
-    <article className="glass-card group overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md">
+    <article className="fleet-card bg-card group overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md">
       <Link
         href={href}
         className="relative block aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800"
@@ -67,11 +69,12 @@ export async function VehicleCard({
             src={cover.url}
             alt={`${vehicle.brand} ${vehicle.model}`}
             fill
+            preload={preload}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
           />
         ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] text-neutral-500 uppercase">
+          <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
             {vehicle.brand}
           </span>
         )}

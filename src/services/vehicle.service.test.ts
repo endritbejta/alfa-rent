@@ -31,7 +31,14 @@ describe("public vehicle payload", () => {
   });
 
   it("still exposes what the storefront needs", () => {
-    for (const field of ["slug", "brand", "model", "pricePerDay", "status"]) {
+    for (const field of [
+      "slug",
+      "brand",
+      "model",
+      "pricePerDay",
+      "description",
+      "status",
+    ]) {
       expect(publicVehicleFields).toContain(field);
     }
   });

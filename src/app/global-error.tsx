@@ -21,8 +21,8 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0e0d0d",
-          color: "#f5f3f2",
+          background: "var(--band, #0e0d0d)",
+          color: "var(--band-foreground, #f5f3f2)",
           fontFamily: "system-ui, sans-serif",
           textAlign: "center",
           padding: "1rem",
@@ -32,7 +32,12 @@ export default function GlobalError({
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700 }}>
             Alfa Rent is temporarily unavailable
           </h1>
-          <p style={{ color: "#a5a09f", fontSize: "0.875rem" }}>
+          <p
+            style={{
+              color: "var(--band-muted, #a5a09f)",
+              fontSize: "0.875rem",
+            }}
+          >
             Please try again in a moment.
             {error.digest ? ` Reference: ${error.digest}` : ""}
           </p>
@@ -43,8 +48,8 @@ export default function GlobalError({
               padding: "0.5rem 1.25rem",
               borderRadius: "999px",
               border: "none",
-              background: "#dc2028",
-              color: "#fff",
+              background: "var(--brand, #dc2028)",
+              color: "var(--primary-foreground, #fff)",
               fontWeight: 600,
               cursor: "pointer",
             }}

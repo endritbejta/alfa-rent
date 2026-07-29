@@ -58,7 +58,10 @@ export default async function ContactPage() {
       <section className="mx-auto max-w-6xl px-5 py-14">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {ITEMS.map(({ icon: Icon, label, lines, translatedLines }) => (
-            <div key={label} className="bg-card rounded-xl border p-6">
+            <div
+              key={label}
+              className="bg-card rounded-xl border p-6 shadow-xs"
+            >
               <div className="bg-accent text-accent-foreground mb-4 flex h-10 w-10 items-center justify-center rounded-full">
                 <Icon className="h-5 w-5" />
               </div>

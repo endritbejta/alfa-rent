@@ -120,7 +120,7 @@ function SidebarChrome({
               collapsed ? `${t("admin.signOut")} — ${user.name}` : undefined
             }
             className={cn(
-              "w-full border-neutral-700 bg-transparent text-neutral-200 hover:bg-white/8 hover:text-white",
+              "border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full bg-transparent",
               collapsed && "px-0"
             )}
           >
@@ -230,10 +230,10 @@ export function AdminShell({
             <button
               type="button"
               aria-label={t("admin.closeMenu")}
-              className="absolute inset-0 bg-black/50"
+              className="bg-overlay-modal absolute inset-0"
               onClick={() => setOpen(false)}
             />
-            <aside className="bg-sidebar text-sidebar-foreground animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-72 flex-col shadow-xl duration-200">
+            <aside className="bg-sidebar text-sidebar-foreground animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-72 flex-col shadow-lg duration-200">
               <button
                 type="button"
                 aria-label={t("admin.closeMenu")}
@@ -256,7 +256,7 @@ export function AdminShell({
               it here (unlike the desktop rail). Translucent charcoal, not the
               light popover glass: the bar is the brand surface and its text is
               near-white, which would vanish on a light frost. */}
-          <header className="text-sidebar-foreground sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/10 bg-[color-mix(in_srgb,var(--sidebar)_82%,transparent)] px-4 backdrop-blur-xl lg:hidden">
+          <header className="text-sidebar-foreground border-sidebar-border sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-[color-mix(in_srgb,var(--sidebar)_88%,transparent)] px-4 backdrop-blur-xl lg:hidden">
             <p className="font-display font-bold">
               ALFA <span className="text-sidebar-primary">RENT</span>
             </p>

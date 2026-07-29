@@ -43,7 +43,7 @@ export function LanguageSelector({
             router.refresh();
           });
         }}
-        className="cursor-pointer appearance-none bg-transparent pr-3 font-semibold outline-none disabled:cursor-wait [&>option]:text-neutral-900"
+        className="[&>option]:bg-card [&>option]:text-card-foreground cursor-pointer appearance-none bg-transparent pr-3 font-semibold outline-none disabled:cursor-wait"
       >
         <option value="sq">{compact ? "SQ" : t("language.sq")}</option>
         <option value="en">{compact ? "EN" : t("language.en")}</option>

@@ -35,7 +35,7 @@ export function RecentReservations({ items }: { items: Item[] }) {
             <button
               type="button"
               onClick={() => openReservation(r.id)}
-              className="hover:bg-secondary flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-3 text-left transition-colors"
+              className="hover:bg-surface-hover flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-3 text-left transition-colors"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">
@@ -67,7 +67,7 @@ export function RecentReservations({ items }: { items: Item[] }) {
               <TableRow
                 key={r.id}
                 onClick={() => openReservation(r.id)}
-                className="hover:bg-secondary cursor-pointer transition-colors"
+                className="hover:bg-surface-hover cursor-pointer transition-colors"
               >
                 <TableCell>
                   {r.customer.firstName} {r.customer.lastName}

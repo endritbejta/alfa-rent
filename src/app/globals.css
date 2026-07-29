@@ -78,13 +78,14 @@
   /*
    * Elevation, warmed. A pure-black shadow on warm graphite reads as grey
    * grime; these carry the same ~2% red bias as the neutral ramp, so a
-   * lifted sheet looks lit rather than dirty. Four steps, no more — the
-   * ladder in the design doc maps onto exactly these.
+   * lifted sheet looks lit rather than dirty. Four elevation steps, plus a
+   * directional seam shadow for frozen/sticky columns.
    */
   --shadow-xs: var(--elev-xs);
   --shadow-sm: var(--elev-sm);
   --shadow-md: var(--elev-md);
   --shadow-lg: var(--elev-lg);
+  --shadow-sticky: var(--elev-sticky);
 
   /* Brand band (charcoal surfaces shared by hero, sidebar, footer) */
   --color-band: var(--band);
@@ -92,8 +93,22 @@
   --color-band-muted: var(--band-muted);
   --color-band-border: var(--band-border);
   --color-brand: var(--brand);
+  --color-brand-fill: var(--brand-fill);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-brand-hover: var(--brand-hover);
+
+  /* Semantic light/dark surface and interaction roles */
+  --color-control: var(--control);
+  --color-divider: var(--divider);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-selected: var(--surface-selected);
+  --color-skeleton: var(--skeleton);
+  --color-skeleton-highlight: var(--skeleton-highlight);
+  --color-overlay-soft: var(--overlay-soft);
+  --color-overlay-modal: var(--overlay-modal);
+  --color-media: var(--media);
+  --color-media-foreground: var(--media-foreground);
 
   /* Status hues — vehicle + reservation lifecycle */
   --color-status-available: var(--st-available);
@@ -126,9 +141,10 @@
   --popover-foreground: #161414;
   --primary: #dc2028; /* Alfa red 600 */
   --primary-foreground: #ffffff;
+  --brand-hover: #b8161f;
   --secondary: #f7f6f5; /* N-50 */
   --secondary-foreground: #161414;
-  --muted: #f7f6f5;
+  --muted: #ebe8e7;
   --muted-foreground: #5b5655; /* N-600 */
   --accent: #fef1f1; /* Red-50 */
   --accent-foreground: #b8161f; /* Red-700 */
@@ -139,9 +155,21 @@
    * ground — solid N-200 went muddy the moment a surface wasn't pure white.
    * --input stays a shade stronger: a field has to read as enterable.
    */
-  --border: rgba(22, 20, 20, 0.09);
-  --input: rgba(22, 20, 20, 0.14);
+  --border: rgba(22, 20, 20, 0.1);
+  --divider: rgba(22, 20, 20, 0.07);
+  /* A control boundary must remain identifiable against both white sheets
+     and the warm canvas. This solid warm neutral clears 3:1 on white. */
+  --input: #918b89;
+  --control: #ffffff;
   --ring: #dc2028;
+  --surface-hover: rgba(22, 20, 20, 0.06);
+  --surface-selected: rgba(22, 20, 20, 0.1);
+  --skeleton: #dedad8;
+  --skeleton-highlight: #ebe8e7;
+  --overlay-soft: rgba(14, 13, 13, 0.18);
+  --overlay-modal: rgba(14, 13, 13, 0.44);
+  --media: #161414;
+  --media-foreground: #8f8987;
 
   /* Elevation ramp — warm, four steps. See --shadow-* in @theme. */
   --elev-xs: 0 1px 2px rgba(22, 12, 12, 0.05);
@@ -151,6 +179,7 @@
     0 12px 28px -8px rgba(22, 12, 12, 0.14), 0 2px 6px rgba(22, 12, 12, 0.05);
   --elev-lg:
     0 32px 64px -16px rgba(22, 12, 12, 0.22), 0 4px 12px rgba(22, 12, 12, 0.06);
+  --elev-sticky: 2px 0 5px -2px rgba(22, 12, 12, 0.1);
 
   /*
    * 12px, down from 14. One knob: every radius derives from it, so the whole
@@ -208,6 +237,7 @@
   --band-muted: #a5a09f;
   --band-border: #2a2727;
   --brand: #dc2028;
+  --brand-fill: #dc2028;
   /* Confirmation green — semantic, deliberately not the brand accent, so
      "this is the safe forward action" reads differently from "this is Alfa". */
   --success: #0f7a4a;
@@ -217,7 +247,7 @@
   --st-reserved: #2563eb;
   --st-rented: #6d28d9;
   --st-maint: #b45309;
-  --st-inactive: #7d7877;
+  --st-inactive: #6a6463;
 }
 
 .dark {
@@ -230,6 +260,7 @@
   --popover-foreground: #f1efee;
   --primary: #e8535c; /* desaturated red for charcoal grounds */
   --primary-foreground: #ffffff;
+  --brand-hover: #f06a72;
   --secondary: #1e1c1c;
   --secondary-foreground: #f1efee;
   --muted: #1e1c1c;
@@ -238,8 +269,18 @@
   --accent-foreground: #f3b7ba;
   --destructive: #e36065;
   --border: rgba(255, 255, 255, 0.1);
+  --divider: rgba(255, 255, 255, 0.07);
   --input: rgba(255, 255, 255, 0.16);
+  --control: #1e1c1c;
   --ring: #e8535c;
+  --surface-hover: rgba(255, 255, 255, 0.07);
+  --surface-selected: rgba(255, 255, 255, 0.11);
+  --skeleton: #2a2727;
+  --skeleton-highlight: #343030;
+  --overlay-soft: rgba(0, 0, 0, 0.28);
+  --overlay-modal: rgba(0, 0, 0, 0.58);
+  --media: #080707;
+  --media-foreground: #8a8584;
 
   /* Shadows do almost nothing on near-black, so dark leans on the ground
      tone for hierarchy and keeps these mainly for overlay layers. */
@@ -248,6 +289,7 @@
   --elev-md: 0 12px 28px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
   --elev-lg:
     0 32px 64px -16px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --elev-sticky: 2px 0 5px -2px rgba(0, 0, 0, 0.5);
 
   --sidebar: #080707;
   --sidebar-foreground: #efedec;
@@ -263,6 +305,7 @@
   --band-muted: #a5a09f;
   --band-border: #2a2727;
   --brand: #e8535c;
+  --brand-fill: #dc2028;
   --success: #1aa36a;
   --success-foreground: #ffffff;
 
@@ -358,21 +401,6 @@
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
   }
-  /*
-   * Frosted product card: translucent enough that the moving field reads
-   * through it, opaque enough (68%) that the name and price stay legible over
-   * it. The image half of a card is an opaque photo, so only the body frosts.
-   */
-  .glass-card {
-    background: color-mix(
-      in srgb,
-      var(--card) var(--glass-card-fill),
-      transparent
-    );
-    -webkit-backdrop-filter: blur(18px) saturate(1.4);
-    backdrop-filter: blur(18px) saturate(1.4);
-  }
-
   .glass-l3 {
     --glass-fill: 72%;
     --glass-blur: 20px;
@@ -500,9 +528,6 @@
     background: var(--popover);
     border-color: var(--border);
   }
-  .glass-card {
-    background: var(--card);
-  }
 }
 @media (prefers-reduced-transparency: reduce) {
   .glass-l3,
@@ -511,11 +536,6 @@
   .glass-l6 {
     background: var(--popover);
     border-color: var(--border);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-  .glass-card {
-    background: var(--card);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -532,19 +552,14 @@
  * reduced-motion.
  */
 :root {
-  --ambient-canvas: #ecebe9;
+  --ambient-canvas: var(--background);
   --ambient-blob: 148 146 144;
-  --ambient-alpha: 0.55;
-  /* Card translucency, per theme. Dark glass tolerates more see-through
-     because light text holds contrast over a dark field; light glass needs
-     to stay denser to keep dark text legible. */
-  --glass-card-fill: 68%;
+  --ambient-alpha: 0.22;
 }
 .dark {
-  --ambient-canvas: #08080a;
+  --ambient-canvas: var(--background);
   --ambient-blob: 150 152 168;
   --ambient-alpha: 0.16;
-  --glass-card-fill: 46%;
 }
 
 .ambient-background {
@@ -569,10 +584,13 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 200vw;
-  height: 200vh;
-  /* Heavy blur is what turns the gradients into soft blobs. */
-  filter: blur(90px);
+  width: 160vw;
+  height: 160vh;
+  /*
+   * Radial gradients already provide soft edges. Filtering two 200vw ×
+   * 200vh layers forced mobile browsers to continuously rasterize enormous
+   * blurred textures while scrolling.
+   */
   transform: translate(-50%, -50%);
   will-change: transform;
 }
@@ -636,4 +654,42 @@
   .ambient-background::after {
     animation: none;
   }
+}
+
+/*
+ * Mobile fleet pages can be taller than ten viewports. Keep their backdrop
+ * static and cheap: no oversized animated layers competing with image decode
+ * and card paint during a touch scroll.
+ */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .ambient-background {
+    background:
+      radial-gradient(
+        circle at 18% 14%,
+        rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.42)),
+        transparent 48%
+      ),
+      radial-gradient(
+        circle at 82% 76%,
+        rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.32)),
+        transparent 52%
+      ),
+      var(--ambient-canvas);
+  }
+
+  .ambient-background::before,
+  .ambient-background::after {
+    content: none;
+    animation: none;
+    will-change: auto;
+  }
+}
+
+/*
+ * The browser can skip layout and paint for fleet cards that are several
+ * screens away, while reserving a stable estimate to avoid scroll jumps.
+ */
+.fleet-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 407px;
 }

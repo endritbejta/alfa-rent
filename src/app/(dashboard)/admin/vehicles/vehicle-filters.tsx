@@ -193,7 +193,7 @@ export function VehicleFilters({
 }
 
 const selectClass =
-  "border-input bg-card focus:ring-ring h-9 w-full cursor-pointer rounded-lg border px-3 text-sm outline-none transition-colors focus:ring-2";
+  "border-input bg-control focus:ring-ring h-9 w-full cursor-pointer rounded-lg border px-3 text-sm outline-none transition-colors focus:ring-2";
 
 function Group({
   label,

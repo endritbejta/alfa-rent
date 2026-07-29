@@ -8,13 +8,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-[#b8161f]",
+        default: "bg-primary text-primary-foreground hover:bg-brand-hover",
         outline:
-          "border-border bg-background hover:border-muted-foreground/60 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-control hover:border-muted-foreground/60 hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-selected aria-expanded:text-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-secondary text-secondary-foreground hover:bg-muted aria-expanded:bg-muted aria-expanded:text-secondary-foreground",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-selected aria-expanded:text-foreground",
         // The quiet tier (design doc C+, §1): ink-alpha tint, so it reads as
         // translucent on any ground without blur. For secondary actions —
         // never for filled semantic buttons, whose colour must stay stable.

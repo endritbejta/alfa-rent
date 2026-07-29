@@ -66,7 +66,7 @@ export function HeroSearch() {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as VehicleCategory | "")}
-          className="h-11 w-full cursor-pointer rounded-xl border-0 bg-white/10 px-3 text-sm text-white ring-1 ring-white/15 outline-none focus:ring-2 focus:ring-[var(--brand)] [&>option]:text-neutral-900"
+          className="[&>option]:bg-card [&>option]:text-card-foreground h-11 w-full cursor-pointer rounded-xl border-0 bg-white/10 px-3 text-sm text-white ring-1 ring-white/15 outline-none focus:ring-2 focus:ring-[var(--brand)]"
         >
           <option value="">{t("filter.anyCategory")}</option>
           {Object.values(VehicleCategory).map((c) => (
@@ -79,7 +79,7 @@ export function HeroSearch() {
 
       <button
         type="submit"
-        className="bg-brand flex h-11 cursor-pointer items-center justify-center gap-2 self-end rounded-xl px-7 text-sm font-semibold text-white transition-transform duration-150 hover:scale-[1.03] hover:bg-[#b8161f] active:scale-100"
+        className="bg-brand hover:bg-brand-hover flex h-11 cursor-pointer items-center justify-center gap-2 self-end rounded-xl px-7 text-sm font-semibold text-white transition-transform duration-150 hover:scale-[1.03] active:scale-100"
       >
         <Search className="h-4 w-4" />
         {t("common.search")}

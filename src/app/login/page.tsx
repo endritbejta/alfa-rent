@@ -35,8 +35,8 @@ export default async function LoginPage({
   if (session?.user) redirect(target);
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-neutral-950 p-4">
-      <LanguageSelector className="absolute top-4 right-4 text-neutral-200" />
+    <main className="bg-band relative flex min-h-screen items-center justify-center p-4">
+      <LanguageSelector className="text-band-muted absolute top-4 right-4" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Alfa Rent a Car</CardTitle>

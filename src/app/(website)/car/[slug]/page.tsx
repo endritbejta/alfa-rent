@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
 
 const CATEGORY_KEYS = {
   ECONOMY: "filter.economy",
@@ -51,10 +52,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const vehicle = await loadVehicle(slug);
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
+  const description = getVehicleDescription(vehicle, locale);
   return {
     title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — ${Number(vehicle.pricePerDay)} EUR/${t("common.perDay")}`,
-    description: vehicle.description.slice(0, 155),
+    description: description.slice(0, 155),
     openGraph: vehicle.images[0]
       ? { images: [{ url: vehicle.images[0].url }] }
       : undefined,
@@ -70,8 +72,9 @@ export default async function VehiclePage({
 }) {
   const { slug } = await params;
   const { from, to } = await searchParams;
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   const vehicle = await loadVehicle(slug);
+  const description = getVehicleDescription(vehicle, locale);
   const [cover, ...rest] = vehicle.images;
 
   const specs = [
@@ -118,7 +121,7 @@ export default async function VehiclePage({
                 className="object-cover"
               />
             ) : (
-              <span className="absolute inset-0 flex items-center justify-center text-sm tracking-[0.16em] text-neutral-500 uppercase">
+              <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-sm tracking-[0.16em] uppercase">
                 {vehicle.brand} {vehicle.model}
               </span>
             )}
@@ -131,7 +134,7 @@ export default async function VehiclePage({
               {rest.slice(0, 4).map((image) => (
                 <div
                   key={image.id}
-                  className="relative aspect-[16/10] overflow-hidden rounded-lg bg-neutral-900"
+                  className="bg-media relative aspect-[16/10] overflow-hidden rounded-lg"
                 >
                   <Image
                     src={image.url}
@@ -152,12 +155,15 @@ export default async function VehiclePage({
             {vehicle.brand} {vehicle.model}
           </h1>
           <p className="text-muted-foreground mt-4 max-w-2xl leading-relaxed">
-            {vehicle.description}
+            {description}
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {specs.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="bg-card rounded-xl border p-4">
+              <div
+                key={label}
+                className="bg-card rounded-xl border p-4 shadow-xs"
+              >
                 <Icon className="text-brand mb-2 h-5 w-5" />
                 <p className="text-muted-foreground text-xs">{label}</p>
                 <p className="text-sm font-semibold">{value}</p>

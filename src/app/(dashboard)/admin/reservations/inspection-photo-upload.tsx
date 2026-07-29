@@ -166,7 +166,7 @@ export function InspectionPhotoUpload({
         {items.map((item) => (
           <div
             key={item.id}
-            className="relative aspect-square overflow-hidden rounded-lg border bg-neutral-900"
+            className="bg-media relative aspect-square overflow-hidden rounded-lg border"
           >
             <Image
               src={item.preview}

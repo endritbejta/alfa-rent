@@ -59,9 +59,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         <LocaleProvider locale={locale} dictionary={dictionary}>
           <ThemeProvider>
-            <div className="ambient-background">
-              <div className="ambient-light"></div>
-            </div>
+            <div className="ambient-background" />
             {children}
           </ThemeProvider>
         </LocaleProvider>

@@ -246,7 +246,7 @@ export default async function HomePage() {
       </section>
 
       {/* CTA band — the one red ground */}
-      <section className="bg-gradient-to-r from-[#B8161F] to-[#DC2028] text-white">
+      <section className="bg-brand-fill text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-5 py-16">
           <div>
             <h2 className="font-display text-3xl font-bold tracking-tight">
@@ -256,7 +256,7 @@ export default async function HomePage() {
           </div>
           <Button
             size="lg"
-            className="bg-white px-8 text-[#B8161F] hover:bg-white/90"
+            className="bg-card text-foreground hover:bg-secondary px-8"
             nativeButton={false}
             render={<Link href="/booking" />}
           >

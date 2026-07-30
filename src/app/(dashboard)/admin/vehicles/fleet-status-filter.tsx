@@ -61,7 +61,7 @@ export function FleetStatusFilter({
     <div className="-mx-1 overflow-x-auto px-1 pb-1">
       <div
         role="group"
-        aria-label="Filter by availability"
+        aria-label={t("admin.filterAvailability")}
         className="bg-secondary inline-flex w-max rounded-full border p-0.5"
       >
         <Segment

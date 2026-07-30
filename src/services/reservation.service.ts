@@ -8,9 +8,14 @@ import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { calculateTotalPrice, rentalDays } from "@/utils/pricing";
 import { latestUnder, withTimeOfDay } from "@/utils/rental-dates";
-import { getReservationTiming } from "@/lib/reservation-lifecycle";
+import {
+  getReservationTiming,
+  rentalCalendarDay,
+} from "@/lib/reservation-lifecycle";
 import { findOrCreateCustomerByEmail } from "@/services/customer.service";
 import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
+import { createPaymentAccessToken } from "@/lib/payments/access-token";
+import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 import type {
   AvailabilityInput,
   CreateBookingInput,
@@ -101,14 +106,53 @@ export async function getQuote({
 }
 
 /**
+ * Public booking constraints for one vehicle.
+ *
+ * Returned as calendar-day strings so the server and browser use the same
+ * half-open interval contract without timezone conversion at the RSC boundary.
+ */
+export async function getVehicleBookingCalendar(
+  vehicleId: string
+): Promise<VehicleBookingCalendar> {
+  const [vehicle, reservations] = await prisma.$transaction([
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      select: { registrationExpiry: true },
+    }),
+    prisma.reservation.findMany({
+      where: {
+        vehicleId,
+        status: { in: BLOCKING_STATUSES },
+        returnDate: { gt: new Date() },
+      },
+      orderBy: { pickupDate: "asc" },
+      select: { pickupDate: true, returnDate: true },
+    }),
+  ]);
+
+  if (!vehicle) throw new NotFoundError("Vehicle");
+
+  return {
+    blockedRanges: reservations.map((reservation) => ({
+      from: rentalCalendarDay(reservation.pickupDate),
+      to: rentalCalendarDay(reservation.returnDate),
+    })),
+    latestReturnDate: vehicle.registrationExpiry
+      ? rentalCalendarDay(vehicle.registrationExpiry)
+      : null,
+  };
+}
+
+/**
  * Public booking request. Created as PENDING — staff confirm it in the
  * dashboard. The availability check here is advisory UX; the authoritative
  * guard is the DB exclusion constraint, enforced when a reservation
  * becomes CONFIRMED.
  */
-export async function createReservation(
-  input: CreateBookingInput
-): Promise<Reservation> {
+export async function createReservation(input: CreateBookingInput): Promise<{
+  reservation: Reservation;
+  paymentAccessToken: string;
+}> {
   const { available } = await checkAvailability(input);
   if (!available) {
     throw new ConflictError("Vehicle is already booked for the selected dates");
@@ -116,7 +160,8 @@ export async function createReservation(
 
   const customer = await findOrCreateCustomerByEmail(input.customer);
 
-  return prisma.$transaction(async (tx) => {
+  const paymentAccess = createPaymentAccessToken();
+  const reservation = await prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({
       where: { id: input.vehicleId },
       select: {
@@ -144,9 +189,11 @@ export async function createReservation(
         ),
         notes: input.notes,
         status: "PENDING",
+        paymentAccessTokenHash: paymentAccess.hash,
       },
     });
   });
+  return { reservation, paymentAccessToken: paymentAccess.token };
 }
 
 /**

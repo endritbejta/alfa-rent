@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2 } from "lucide-react";
+import { addDays } from "date-fns";
+import {
+  ArrowLeftRight,
+  CalendarDays,
+  CheckCircle2,
+  Users,
+} from "lucide-react";
 import {
   DatePicker,
   fromDateValue,
@@ -18,6 +25,11 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import {
+  isBookingDayBlocked,
+  isBookingRangeAvailable,
+  type VehicleBookingCalendar,
+} from "@/lib/booking-calendar";
 
 const createFormSchema = (t: (key: TranslationKey) => string) =>
   z
@@ -31,53 +43,99 @@ const createFormSchema = (t: (key: TranslationKey) => string) =>
       phone: z.string().trim().min(6, t("booking.validPhone")).max(25),
       notes: z.string().trim().max(1000).optional(),
     })
-    .refine((d) => !d.from || !d.to || d.to > d.from, {
+    .refine((data) => !data.from || !data.to || data.to > data.from, {
       message: t("booking.rangeError"),
       path: ["to"],
     });
 
 type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
-type VehicleOption = { id: string; slug: string; label: string };
+type VehicleOption = {
+  id: string;
+  label: string;
+  category: string;
+  transmission: string;
+  seats: number;
+  pricePerDay: number;
+  imageUrl?: string;
+};
 
-type Confirmation = { id: string; totalPrice: number };
+type Confirmation = {
+  id: string;
+  totalPrice: number;
+  /** Held in memory for the future hosted-checkout step; never persisted. */
+  paymentAccessToken: string;
+};
 
 export function BookingForm({
-  vehicles,
-  preselectedSlug,
+  vehicle,
   initialFrom,
   initialTo,
+  initialRangeAvailable,
+  bookingCalendar,
+  changeVehicleHref,
 }: {
-  vehicles: VehicleOption[];
-  preselectedSlug?: string;
+  vehicle: VehicleOption;
   initialFrom?: string;
   initialTo?: string;
+  initialRangeAvailable: boolean;
+  bookingCalendar: VehicleBookingCalendar;
+  changeVehicleHref: string;
 }) {
   const { t } = useI18n();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(
+    initialFrom && initialTo && !initialRangeAvailable
+      ? t("availability.booked")
+      : null
+  );
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
-  // Local midnight, not UTC: the old `toISOString()` bound made "today"
-  // yesterday for anyone whose local date was already ahead of UTC.
   const now = new Date();
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const preselected = vehicles.find((v) => v.slug === preselectedSlug);
+  const latestReturnDate = fromDateValue(
+    bookingCalendar.latestReturnDate ?? undefined
+  );
+  const latestPickupDate = latestReturnDate
+    ? addDays(latestReturnDate, -1)
+    : undefined;
 
   const {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
-      vehicleId: preselected?.id ?? "",
-      from: initialFrom ?? "",
-      to: initialTo ?? "",
+      vehicleId: vehicle.id,
+      from: initialRangeAvailable ? (initialFrom ?? "") : "",
+      to: initialRangeAvailable ? (initialTo ?? "") : "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      notes: "",
     },
   });
 
-  /** useWatch, not watch(): the latter cannot be memoized safely. */
   const pickedFrom = useWatch({ control, name: "from" });
+  const pickedTo = useWatch({ control, name: "to" });
+
+  const rentalDays =
+    pickedFrom && pickedTo && pickedTo > pickedFrom
+      ? Math.round(
+          (Date.parse(`${pickedTo}T00:00:00Z`) -
+            Date.parse(`${pickedFrom}T00:00:00Z`)) /
+            86_400_000
+        )
+      : null;
+  const estimatedTotal = rentalDays ? vehicle.pricePerDay * rentalDays : null;
+  const unavailablePickup = (date: Date) =>
+    isBookingDayBlocked(toDateValue(date), bookingCalendar.blockedRanges);
+  const unavailableReturn = (date: Date) =>
+    pickedFrom
+      ? !isBookingRangeAvailable(pickedFrom, toDateValue(date), bookingCalendar)
+      : false;
 
   useEffect(() => {
     if (!confirmation) return;
@@ -86,7 +144,7 @@ export function BookingForm({
 
   const onSubmit = async (data: FormValues) => {
     setServerError(null);
-    const res = await fetch("/api/bookings", {
+    const response = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -102,7 +160,7 @@ export function BookingForm({
         notes: data.notes || undefined,
       }),
     });
-    const json: ApiResponse<Confirmation> = await res.json();
+    const json: ApiResponse<Confirmation> = await response.json();
     if (!json.success) {
       setServerError(json.error.message);
       return;
@@ -112,16 +170,21 @@ export function BookingForm({
 
   if (confirmation) {
     return (
-      <div className="rounded-2xl border p-8 text-center">
-        <CheckCircle2 className="text-status-available mx-auto h-12 w-12" />
-        <h2 className="font-display mt-4 text-2xl font-bold">
+      <div className="bg-card mx-auto max-w-2xl rounded-3xl p-8 text-center shadow-md motion-safe:animate-[modal-in_var(--motion-panel)_var(--ease-standard)]">
+        <span className="bg-status-available/10 text-status-available mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+          <CheckCircle2 className="h-8 w-8" />
+        </span>
+        <h2 className="font-display mt-5 text-2xl font-bold">
           {t("booking.received")}
         </h2>
         <p className="text-muted-foreground mx-auto mt-3 max-w-md text-sm leading-relaxed">
           {t("booking.confirmation", { total: confirmation.totalPrice })}
         </p>
-        <p className="text-muted-foreground mt-2 font-mono text-xs">
+        <p className="bg-muted mx-auto mt-5 w-fit rounded-full px-4 py-2 font-mono text-xs">
           {t("booking.reference", { id: confirmation.id })}
+        </p>
+        <p className="text-muted-foreground mx-auto mt-4 max-w-md text-xs leading-relaxed">
+          {t("booking.responseTime")}
         </p>
         <Button
           className="mt-6"
@@ -135,143 +198,318 @@ export function BookingForm({
     );
   }
 
-  const err = (message?: string) =>
-    message ? <p className="text-destructive text-sm">{message}</p> : null;
+  const fieldError = (name: keyof FormValues) => {
+    const message = errors[name]?.message;
+    if (!message) return null;
+    return (
+      <p id={`${name}-error`} role="alert" className="text-destructive text-sm">
+        {message}
+      </p>
+    );
+  };
+
+  const fieldA11y = (name: keyof FormValues) => ({
+    "aria-invalid": errors[name] ? (true as const) : undefined,
+    "aria-describedby": errors[name] ? `${name}-error` : undefined,
+  });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-      <div className="space-y-2">
-        <Label htmlFor="vehicleId">{t("booking.vehicle")}</Label>
-        <select
-          id="vehicleId"
-          {...register("vehicleId")}
-          className="border-input bg-control focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]"
+      noValidate
+    >
+      <div className="min-w-0 space-y-6">
+        <section className="bg-card min-w-0 rounded-2xl p-5 shadow-sm sm:p-7">
+          <SectionHeading
+            number="01"
+            title={t("booking.tripSection")}
+            description={t("booking.tripSectionText")}
+          />
+
+          <div className="mt-6 space-y-3">
+            <input type="hidden" {...register("vehicleId")} />
+            <div className="border-border flex items-center gap-3 rounded-xl border p-3">
+              <span className="bg-media relative h-14 w-20 shrink-0 overflow-hidden rounded-lg">
+                {vehicle.imageUrl && (
+                  <Image
+                    src={vehicle.imageUrl}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">
+                  {vehicle.label}
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-xs">
+                  {vehicle.category} · {vehicle.transmission} · {vehicle.seats}{" "}
+                  {t("detail.seats").toLocaleLowerCase()}
+                </span>
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                nativeButton={false}
+                className="text-muted-foreground shrink-0"
+                render={<Link href={changeVehicleHref} />}
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">
+                  {t("booking.changeVehicle")}
+                </span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="from">{t("booking.pickupDate")}</Label>
+              <Controller
+                control={control}
+                name="from"
+                render={({ field }) => (
+                  <DatePicker
+                    id="from"
+                    value={fromDateValue(field.value)}
+                    onChange={(date) => {
+                      const nextFrom = date ? toDateValue(date) : "";
+                      field.onChange(nextFrom);
+                      setServerError(null);
+                      if (
+                        pickedTo &&
+                        !isBookingRangeAvailable(
+                          nextFrom,
+                          pickedTo,
+                          bookingCalendar
+                        )
+                      ) {
+                        setValue("to", "", {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }
+                    }}
+                    minDate={minDate}
+                    maxDate={latestPickupDate}
+                    unavailableDates={unavailablePickup}
+                    placeholder={t("booking.pickupDate")}
+                    {...fieldA11y("from")}
+                  />
+                )}
+              />
+              {fieldError("from")}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="to">{t("booking.returnDate")}</Label>
+              <Controller
+                control={control}
+                name="to"
+                render={({ field }) => (
+                  <DatePicker
+                    id="to"
+                    value={fromDateValue(field.value)}
+                    onChange={(date) => {
+                      field.onChange(date ? toDateValue(date) : "");
+                      setServerError(null);
+                    }}
+                    minDate={fromDateValue(pickedFrom) ?? minDate}
+                    maxDate={latestReturnDate}
+                    unavailableDates={unavailableReturn}
+                    placeholder={t("booking.returnDate")}
+                    {...fieldA11y("to")}
+                  />
+                )}
+              />
+              {fieldError("to")}
+            </div>
+          </div>
+          {bookingCalendar.blockedRanges.length > 0 && (
+            <p className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
+              <span className="bg-destructive/70 h-2 w-2 rounded-full" />
+              {t("availability.unavailableDates")}
+            </p>
+          )}
+        </section>
+
+        <section className="bg-card rounded-2xl p-5 shadow-sm sm:p-7">
+          <SectionHeading
+            number="02"
+            title={t("booking.detailsSection")}
+            description={t("booking.detailsSectionText")}
+          />
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <FormField
+              label={t("booking.firstName")}
+              name="firstName"
+              error={fieldError("firstName")}
+            >
+              <Input
+                id="firstName"
+                autoComplete="given-name"
+                {...register("firstName")}
+                {...fieldA11y("firstName")}
+              />
+            </FormField>
+            <FormField
+              label={t("booking.lastName")}
+              name="lastName"
+              error={fieldError("lastName")}
+            >
+              <Input
+                id="lastName"
+                autoComplete="family-name"
+                {...register("lastName")}
+                {...fieldA11y("lastName")}
+              />
+            </FormField>
+            <FormField
+              label={t("booking.email")}
+              name="email"
+              error={fieldError("email")}
+            >
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                {...register("email")}
+                {...fieldA11y("email")}
+              />
+            </FormField>
+            <FormField
+              label={t("booking.phone")}
+              name="phone"
+              error={fieldError("phone")}
+            >
+              <Input
+                id="phone"
+                type="tel"
+                autoComplete="tel"
+                placeholder="+383 44 …"
+                {...register("phone")}
+                {...fieldA11y("phone")}
+              />
+            </FormField>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="notes">{t("booking.notes")}</Label>
+            <Textarea
+              id="notes"
+              rows={3}
+              placeholder={t("booking.notesPlaceholder")}
+              {...register("notes")}
+              {...fieldA11y("notes")}
+            />
+            {fieldError("notes")}
+          </div>
+        </section>
+      </div>
+
+      <aside className="bg-card top-24 rounded-2xl p-5 shadow-sm lg:sticky">
+        <h2 className="font-display font-bold">{t("booking.summary")}</h2>
+        <div className="mt-4">
+          <div className="bg-media relative aspect-[16/9] overflow-hidden rounded-xl">
+            {vehicle.imageUrl && (
+              <Image
+                src={vehicle.imageUrl}
+                alt={vehicle.label}
+                fill
+                sizes="320px"
+                className="object-cover"
+              />
+            )}
+          </div>
+          <p className="mt-4 font-semibold">{vehicle.label}</p>
+          <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+            <Users className="h-3.5 w-3.5" />
+            {vehicle.seats} {t("detail.seats").toLocaleLowerCase()}
+            <span aria-hidden="true">·</span>
+            {vehicle.transmission}
+          </p>
+          <div className="border-divider mt-4 space-y-3 border-t pt-4 text-sm">
+            {(pickedFrom || pickedTo) && (
+              <p className="text-muted-foreground flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" />
+                {pickedFrom || "—"} → {pickedTo || "—"}
+              </p>
+            )}
+            <div className="flex items-end justify-between gap-3">
+              <span className="text-muted-foreground">
+                {estimatedTotal
+                  ? `${rentalDays} × ${vehicle.pricePerDay} EUR`
+                  : t("booking.estimated")}
+              </span>
+              <strong className="font-display text-xl">
+                {estimatedTotal ?? vehicle.pricePerDay} EUR
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        {serverError && (
+          <p role="alert" className="text-destructive mt-4 text-sm">
+            {serverError}
+          </p>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-5 w-full"
+          disabled={isSubmitting}
         >
-          <option value="">{t("booking.chooseVehicle")}</option>
-          {vehicles.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-        {err(errors.vehicleId?.message)}
-      </div>
-
-      {/* Controller, not register: the picker is a button, not an input.
-          The field value stays the same "yyyy-MM-dd" string the schema
-          compares lexicographically, so validation is untouched. */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="from">{t("booking.pickupDate")}</Label>
-          <Controller
-            control={control}
-            name="from"
-            render={({ field }) => (
-              <DatePicker
-                id="from"
-                value={fromDateValue(field.value)}
-                onChange={(date) =>
-                  field.onChange(date ? toDateValue(date) : "")
-                }
-                minDate={minDate}
-                placeholder={t("booking.pickupDate")}
-              />
-            )}
-          />
-          {err(errors.from?.message)}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="to">{t("booking.returnDate")}</Label>
-          <Controller
-            control={control}
-            name="to"
-            render={({ field }) => (
-              <DatePicker
-                id="to"
-                value={fromDateValue(field.value)}
-                onChange={(date) =>
-                  field.onChange(date ? toDateValue(date) : "")
-                }
-                // A return before the pickup is not a validation message
-                // worth writing — it is simply not offered.
-                minDate={fromDateValue(pickedFrom) ?? minDate}
-                placeholder={t("booking.returnDate")}
-              />
-            )}
-          />
-          {err(errors.to?.message)}
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">{t("booking.firstName")}</Label>
-          <Input
-            id="firstName"
-            autoComplete="given-name"
-            {...register("firstName")}
-          />
-          {err(errors.firstName?.message)}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">{t("booking.lastName")}</Label>
-          <Input
-            id="lastName"
-            autoComplete="family-name"
-            {...register("lastName")}
-          />
-          {err(errors.lastName?.message)}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register("email")}
-          />
-          {err(errors.email?.message)}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">{t("booking.phone")}</Label>
-          <Input
-            id="phone"
-            type="tel"
-            autoComplete="tel"
-            placeholder="+383 44 ..."
-            {...register("phone")}
-          />
-          {err(errors.phone?.message)}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="notes">{t("booking.notes")}</Label>
-        <Textarea
-          id="notes"
-          rows={3}
-          placeholder={t("booking.notesPlaceholder")}
-          {...register("notes")}
-        />
-      </div>
-
-      {serverError && (
-        <p role="alert" className="text-destructive text-sm">
-          {serverError}
+          {isSubmitting ? t("booking.sending") : t("booking.send")}
+        </Button>
+        <p className="text-muted-foreground mt-3 text-center text-xs leading-relaxed">
+          {t("booking.noPayment")}
         </p>
-      )}
-
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? t("booking.sending") : t("booking.send")}
-      </Button>
-      <p className="text-muted-foreground text-center text-xs">
-        {t("booking.noPayment")}
-      </p>
+      </aside>
     </form>
+  );
+}
+
+function SectionHeading({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex gap-3">
+      <span className="bg-foreground text-background flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+        {number}
+      </span>
+      <div>
+        <h2 className="font-display text-lg font-bold">{title}</h2>
+        <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  name,
+  error,
+  children,
+}: {
+  label: string;
+  name: string;
+  error: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={name}>{label}</Label>
+      {children}
+      {error}
+    </div>
   );
 }

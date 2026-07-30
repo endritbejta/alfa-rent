@@ -55,7 +55,7 @@ export async function StatusFilter({
     <div className="-mx-1 overflow-x-auto px-1 pb-1">
       <div
         role="group"
-        aria-label="Filter by status"
+        aria-label={t("admin.filterStatus")}
         className="bg-secondary inline-flex w-max rounded-full border p-0.5"
       >
         {options.map((option) => {

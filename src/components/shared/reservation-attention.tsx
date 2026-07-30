@@ -1,11 +1,18 @@
+"use client";
+
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
-const LABELS: Record<NonNullable<ReservationTiming["attention"]>, string> = {
-  PICKUP_TODAY: "Pickup today",
-  PICKUP_OVERDUE: "Pickup overdue",
-  RETURN_TODAY: "Return today",
-  RETURN_OVERDUE: "Return overdue",
+const LABELS: Record<
+  NonNullable<ReservationTiming["attention"]>,
+  TranslationKey
+> = {
+  PICKUP_TODAY: "admin.pickupToday",
+  PICKUP_OVERDUE: "admin.pickupOverdue",
+  RETURN_TODAY: "admin.returnToday",
+  RETURN_OVERDUE: "admin.returnOverdue",
 };
 
 export function ReservationAttention({
@@ -13,6 +20,7 @@ export function ReservationAttention({
 }: {
   attention: ReservationTiming["attention"];
 }) {
+  const { t } = useI18n();
   if (!attention) return null;
   const overdue = attention.endsWith("OVERDUE");
 
@@ -25,7 +33,7 @@ export function ReservationAttention({
           : "bg-status-maint/14 text-status-maint"
       )}
     >
-      {LABELS[attention]}
+      {t(LABELS[attention])}
     </span>
   );
 }

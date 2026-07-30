@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
+import { useI18n } from "@/components/shared/locale-provider";
 
 export function InspectionAction({
   reservationId,
@@ -35,6 +36,7 @@ export function InspectionAction({
   signerName: string;
   onSuccess?: () => void;
 }) {
+  const { t } = useI18n();
   const type = status === "CONFIRMED" ? "PICKUP" : "RETURN";
   const visible = status === "CONFIRMED" || status === "ACTIVE";
   const disabled = type === "PICKUP" && !timing.canStart;
@@ -68,6 +70,16 @@ export function InspectionAction({
 
   const submit = (formData: FormData) => {
     setError(null);
+    if (
+      !String(formData.get("mileage") ?? "").trim() ||
+      !String(formData.get("signerName") ?? "").trim() ||
+      formData.get("customerAcknowledged") !== "on" ||
+      (formData.get("damageFound") === "on" &&
+        !String(formData.get("damageNotes") ?? "").trim())
+    ) {
+      setError(t("admin.requiredField"));
+      return;
+    }
     startTransition(async () => {
       const result = await recordRentalInspectionAction(
         reservationId,
@@ -88,32 +100,42 @@ export function InspectionAction({
         size="sm"
         variant="success"
         disabled={disabled}
-        title={disabled ? (timing.startBlockedReason ?? undefined) : undefined}
+        title={
+          disabled
+            ? timing.startBlockedReason === "Rental window has ended"
+              ? t("admin.rentalWindowEnded")
+              : t("admin.availablePickupDate")
+            : undefined
+        }
         onClick={() => setOpen(true)}
       >
         <ClipboardCheck className="h-3.5 w-3.5" />
-        {type === "PICKUP" ? "Start rental" : "Complete rental"}
+        {type === "PICKUP" ? t("admin.startRental") : t("admin.completeRental")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
-              {type === "PICKUP" ? "Pickup inspection" : "Return inspection"}
+              {type === "PICKUP"
+                ? t("admin.pickupInspection")
+                : t("admin.returnInspection")}
             </DialogTitle>
             <DialogDescription>
               {type === "PICKUP"
-                ? "Record the vehicle condition before handing over the keys."
-                : "Record the final condition before completing the rental."}
+                ? t("admin.pickupInspectionHelp")
+                : t("admin.returnInspectionHelp")}
             </DialogDescription>
           </DialogHeader>
 
-          <form action={submit} className="space-y-4">
+          <form action={submit} noValidate className="space-y-4">
             <input type="hidden" name="type" value={type} />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor={`${reservationId}-mileage`}>Mileage (km)</Label>
+                <Label htmlFor={`${reservationId}-mileage`}>
+                  {t("admin.mileage")}
+                </Label>
                 <Input
                   id={`${reservationId}-mileage`}
                   name="mileage"
@@ -122,13 +144,15 @@ export function InspectionAction({
                   max={2_000_000}
                   step={1}
                   required
-                  placeholder="e.g. 84250"
+                  placeholder={t("admin.mileagePlaceholder")}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor={`${reservationId}-fuel`}>Fuel level</Label>
+                  <Label htmlFor={`${reservationId}-fuel`}>
+                    {t("admin.fuelLevel")}
+                  </Label>
                   <span className="text-muted-foreground text-xs tabular-nums">
                     {fuel}%
                   </span>
@@ -155,24 +179,24 @@ export function InspectionAction({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor={`${reservationId}-exterior`}>
-                  Exterior condition
+                  {t("admin.exteriorCondition")}
                 </Label>
                 <Textarea
                   id={`${reservationId}-exterior`}
                   name="exteriorNotes"
                   maxLength={1000}
-                  placeholder="Scratches, dents, glass, tyres…"
+                  placeholder={t("admin.exteriorPlaceholder")}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={`${reservationId}-interior`}>
-                  Interior condition
+                  {t("admin.interiorCondition")}
                 </Label>
                 <Textarea
                   id={`${reservationId}-interior`}
                   name="interiorNotes"
                   maxLength={1000}
-                  placeholder="Cleanliness, seats, controls…"
+                  placeholder={t("admin.interiorPlaceholder")}
                 />
               </div>
             </div>
@@ -187,8 +211,8 @@ export function InspectionAction({
                   className="accent-brand h-4 w-4"
                 />
                 {type === "PICKUP"
-                  ? "Existing damage recorded"
-                  : "New damage found"}
+                  ? t("admin.existingDamage")
+                  : t("admin.newDamage")}
               </label>
               {damage && (
                 <Textarea
@@ -196,14 +220,14 @@ export function InspectionAction({
                   required
                   maxLength={1500}
                   className="mt-3"
-                  placeholder="Describe the location and severity of the damage"
+                  placeholder={t("admin.damagePlaceholder")}
                 />
               )}
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor={`${reservationId}-signer`}>
-                Customer acknowledgement
+                {t("admin.customerAcknowledgement")}
               </Label>
               <Input
                 id={`${reservationId}-signer`}
@@ -220,8 +244,7 @@ export function InspectionAction({
                   required
                   className="accent-brand mt-0.5 h-4 w-4 shrink-0"
                 />
-                The customer has reviewed and acknowledged this inspection
-                record.
+                {t("admin.acknowledgementHelp")}
               </label>
             </div>
 
@@ -237,7 +260,7 @@ export function InspectionAction({
                 variant="outline"
                 onClick={() => setOpen(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
@@ -245,14 +268,14 @@ export function InspectionAction({
                 disabled={pending || uploading || uploadErrors}
               >
                 {uploading
-                  ? "Uploading photos…"
+                  ? t("admin.uploadingPhotos")
                   : uploadErrors
-                    ? "Resolve photo errors"
+                    ? t("admin.resolvePhotoErrors")
                     : pending
-                      ? "Saving inspection…"
+                      ? t("admin.savingInspection")
                       : type === "PICKUP"
-                        ? "Save and start rental"
-                        : "Save and complete rental"}
+                        ? t("admin.saveStartRental")
+                        : t("admin.saveCompleteRental")}
               </Button>
             </DialogFooter>
           </form>
@@ -261,7 +284,9 @@ export function InspectionAction({
 
       {disabled && timing.startBlockedReason && (
         <p className="text-muted-foreground max-w-52 text-right text-xs">
-          {timing.startBlockedReason}
+          {timing.startBlockedReason === "Rental window has ended"
+            ? t("admin.rentalWindowEnded")
+            : t("admin.availablePickupDate")}
         </p>
       )}
     </>

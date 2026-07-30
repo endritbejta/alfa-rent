@@ -30,15 +30,21 @@ const FUEL_KEYS = {
 export async function VehicleCard({
   vehicle,
   query,
+  bookingReady = false,
   preload = false,
 }: {
   vehicle: PublicVehicle;
   query?: string;
+  bookingReady?: boolean;
   preload?: boolean;
 }) {
   const { t } = await getI18n();
   const cover = vehicle.images[0];
-  const href = `/car/${vehicle.slug}${query ? `?${query}` : ""}`;
+  const detailHref = `/car/${vehicle.slug}${query ? `?${query}` : ""}`;
+  const bookingParams = new URLSearchParams(query);
+  bookingParams.set("vehicle", vehicle.slug);
+  const bookingHref = `/booking?${bookingParams.toString()}`;
+  const primaryHref = bookingReady ? bookingHref : detailHref;
 
   const pills = [
     {
@@ -61,7 +67,7 @@ export async function VehicleCard({
   return (
     <article className="fleet-card bg-card group overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md">
       <Link
-        href={href}
+        href={detailHref}
         className="relative block aspect-[16/10] bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800"
       >
         {cover ? (
@@ -71,7 +77,7 @@ export async function VehicleCard({
             fill
             preload={preload}
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+            className="vehicle-cover object-cover transition-transform duration-[var(--motion-hover)] ease-[var(--ease-standard)] motion-reduce:transition-none"
           />
         ) : (
           <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
@@ -114,10 +120,10 @@ export async function VehicleCard({
           <Button
             size="sm"
             nativeButton={false}
-            className="bg-foreground text-background hover:bg-foreground/85 px-4 shadow-sm transition-transform duration-150 hover:scale-[1.04] active:scale-100"
-            render={<Link href={href} />}
+            className="bg-foreground text-background hover:bg-foreground/85 px-4 shadow-sm"
+            render={<Link href={primaryHref} />}
           >
-            {t("vehicle.details")}
+            {t(bookingReady ? "common.bookNow" : "vehicle.details")}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>

@@ -16,6 +16,7 @@ import { LanguageSelector } from "@/components/shared/language-selector";
 import { useI18n } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 
 type ShellUser = { name: string; role: string };
 
@@ -209,7 +210,7 @@ export function AdminShell({
         */}
         <aside
           className={cn(
-            "sticky top-0 hidden h-screen shrink-0 p-3 transition-[width] duration-[var(--motion-panel)] ease-[var(--ease-standard)] lg:block",
+            "sticky top-0 hidden h-screen shrink-0 p-3 lg:block",
             collapsed ? "w-[88px]" : "w-[264px]"
           )}
         >
@@ -225,31 +226,25 @@ export function AdminShell({
         </aside>
 
         {/* Mobile drawer — never collapsed; on a phone there is no in-between. */}
-        {open && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="bg-sidebar text-sidebar-foreground border-sidebar-border w-72 gap-0 p-0 lg:hidden"
+          >
+            <SheetClose
               aria-label={t("admin.closeMenu")}
-              className="bg-overlay-modal absolute inset-0"
-              onClick={() => setOpen(false)}
+              className="text-sidebar-foreground/70 hover:text-sidebar-foreground absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </SheetClose>
+            <SidebarChrome
+              user={user}
+              signOutAction={signOutAction}
+              pendingCount={pendingCount}
             />
-            <aside className="bg-sidebar text-sidebar-foreground animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-72 flex-col shadow-lg duration-200">
-              <button
-                type="button"
-                aria-label={t("admin.closeMenu")}
-                className="text-sidebar-foreground/70 absolute top-4 right-4"
-                onClick={() => setOpen(false)}
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <SidebarChrome
-                user={user}
-                signOutAction={signOutAction}
-                pendingCount={pendingCount}
-              />
-            </aside>
-          </div>
-        )}
+          </SheetContent>
+        </Sheet>
 
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Mobile topbar — glass, because content genuinely scrolls under

@@ -8,6 +8,8 @@ import { DateField } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useI18n } from "@/components/shared/locale-provider";
+import { enUS, sq } from "date-fns/locale";
 
 type Repair = {
   id: string;
@@ -44,6 +46,8 @@ export function RepairsPanel({
   repairs: Repair[];
   stats: Stats;
 }) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -67,9 +71,11 @@ export function RepairsPanel({
         "input[name]"
       ) ?? []
     );
-    const invalidField = fields.find((field) => !field.checkValidity());
+    const invalidField = fields.find(
+      (field) => field.required && !field.value.trim()
+    );
     if (invalidField) {
-      invalidField.reportValidity();
+      setError(t("admin.requiredField"));
       return;
     }
 
@@ -80,21 +86,25 @@ export function RepairsPanel({
 
   const summary = [
     {
-      label: "Lifetime",
+      label: t("admin.lifetime"),
       value: eur(stats.totalCost),
-      hint: `${stats.count} repairs`,
+      hint: t("admin.repairCount", { count: stats.count }),
     },
     {
-      label: "This year",
+      label: t("admin.thisYear"),
       value: eur(stats.costThisYear),
-      hint: `${stats.countThisYear} repairs`,
+      hint: t("admin.repairCount", { count: stats.countThisYear }),
     },
     {
-      label: "This month",
+      label: t("admin.thisMonth"),
       value: eur(stats.costThisMonth),
-      hint: `${stats.countThisMonth} repairs`,
+      hint: t("admin.repairCount", { count: stats.countThisMonth }),
     },
-    { label: "Average", value: eur(stats.averageCost), hint: "per repair" },
+    {
+      label: t("admin.average"),
+      value: eur(stats.averageCost),
+      hint: t("admin.perRepair"),
+    },
   ];
 
   return (
@@ -106,10 +116,10 @@ export function RepairsPanel({
         <div>
           <h2 className="font-display flex items-center gap-2 text-sm font-bold">
             <Wrench className="text-brand h-4 w-4" />
-            Repairs
+            {t("admin.repairsTitle")}
           </h2>
           <p className="text-muted-foreground mt-0.5 text-xs">
-            Unplanned costs only — routine servicing is tracked separately
+            {t("admin.repairsSubtitle")}
           </p>
         </div>
         <Button
@@ -119,7 +129,7 @@ export function RepairsPanel({
           onClick={() => setOpen((v) => !v)}
         >
           <Plus className="h-4 w-4" />
-          Add repair
+          {t("admin.addRepair")}
         </Button>
       </div>
 
@@ -144,7 +154,7 @@ export function RepairsPanel({
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">{t("admin.date")}</Label>
               {/* Required, so no clear: an empty date has no meaning here. */}
               <DateField
                 id="date"
@@ -154,7 +164,7 @@ export function RepairsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cost">Cost (EUR)</Label>
+              <Label htmlFor="cost">{t("admin.cost")}</Label>
               <Input
                 id="cost"
                 name="cost"
@@ -166,25 +176,25 @@ export function RepairsPanel({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="description">What was done</Label>
+            <Label htmlFor="description">{t("admin.workDone")}</Label>
             <Input
               id="description"
               name="description"
               required
-              placeholder="Brake pads and discs replaced"
+              placeholder={t("admin.workPlaceholder")}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="reference">Invoice reference</Label>
+              <Label htmlFor="reference">{t("admin.invoiceReference")}</Label>
               <Input id="reference" name="reference" placeholder="INV-1234" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">{t("admin.notes")}</Label>
               <Input
                 id="notes"
                 name="notes"
-                placeholder="Parts sourced locally"
+                placeholder={t("admin.partsPlaceholder")}
               />
             </div>
           </div>
@@ -200,14 +210,14 @@ export function RepairsPanel({
             disabled={pending}
             onClick={submitFields}
           >
-            {pending ? "Saving..." : "Save repair"}
+            {pending ? t("admin.saving") : t("admin.saveRepair")}
           </Button>
         </div>
       )}
 
       {repairs.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center text-sm">
-          No repairs recorded — this one has been trouble-free.
+          {t("admin.noRepairs")}
         </p>
       ) : (
         <ul className="divide-y">
@@ -216,7 +226,9 @@ export function RepairsPanel({
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{r.description}</p>
                 <p className="text-muted-foreground text-xs">
-                  {format(new Date(r.date), "dd MMM yyyy")}
+                  {format(new Date(r.date), "dd MMM yyyy", {
+                    locale: dateLocale,
+                  })}
                   {r.reference && ` - ${r.reference}`}
                   {r.notes && ` - ${r.notes}`}
                 </p>
@@ -226,7 +238,7 @@ export function RepairsPanel({
               </p>
               <button
                 type="button"
-                aria-label="Delete repair"
+                aria-label={t("admin.deleteRepair")}
                 className="text-muted-foreground hover:text-destructive cursor-pointer transition-colors"
                 onClick={() =>
                   startTransition(async () => {

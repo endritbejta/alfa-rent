@@ -123,12 +123,16 @@ export default async function ReservationsPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Dates</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("admin.customer")}</TableHead>
+                  <TableHead>{t("admin.vehicle")}</TableHead>
+                  <TableHead>{t("admin.dates")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("admin.total")}
+                  </TableHead>
+                  <TableHead>{t("admin.status")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("admin.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <ReservationRows rows={rows} />
@@ -143,7 +147,7 @@ export default async function ReservationsPage({
         total={total}
         perPage={perPage}
         basePath="/admin/reservations"
-        label="reservations"
+        labelKey="common.reservations"
       />
 
       <Panel

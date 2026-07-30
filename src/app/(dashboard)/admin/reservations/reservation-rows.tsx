@@ -10,6 +10,7 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { InspectionAction } from "./inspection-action";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /**
  * Plain props: totalPrice is a Decimal on the model and cannot cross into a
@@ -35,13 +36,14 @@ export type Row = {
  */
 export function ReservationRows({ rows }: { rows: Row[] }) {
   const { openReservation } = useDetailDrawer();
+  const { t } = useI18n();
 
   if (rows.length === 0) {
     return (
       <TableBody>
         <TableRow>
           <TableCell colSpan={6} className="text-muted-foreground text-center">
-            No reservations
+            {t("admin.noReservations")}
           </TableCell>
         </TableRow>
       </TableBody>
@@ -55,7 +57,9 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
           key={r.id}
           role="button"
           tabIndex={0}
-          aria-label={`Open reservation for ${r.customer.firstName} ${r.customer.lastName}`}
+          aria-label={t("admin.openReservation", {
+            name: `${r.customer.firstName} ${r.customer.lastName}`,
+          })}
           onClick={() => openReservation(r.id)}
           onKeyDown={(e) => {
             if (e.key !== "Enter" && e.key !== " ") return;
@@ -110,11 +114,12 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
 /** Mobile equivalent — same rule: the card is the target, buttons are not. */
 export function ReservationCards({ rows }: { rows: Row[] }) {
   const { openReservation } = useDetailDrawer();
+  const { t } = useI18n();
 
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground py-6 text-center text-sm">
-        No reservations
+        {t("admin.noReservations")}
       </p>
     );
   }
@@ -126,7 +131,9 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
           <div
             role="button"
             tabIndex={0}
-            aria-label={`Open reservation for ${r.customer.firstName} ${r.customer.lastName}`}
+            aria-label={t("admin.openReservation", {
+              name: `${r.customer.firstName} ${r.customer.lastName}`,
+            })}
             onClick={() => openReservation(r.id)}
             onKeyDown={(e) => {
               if (e.key !== "Enter" && e.key !== " ") return;

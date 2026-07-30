@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /**
  * A plain, already-serialized vehicle — deliberately not Prisma's
@@ -78,6 +79,7 @@ export function VehicleForm({
   onDeleteVehicle,
   repairsPanel,
 }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function VehicleForm({
       renewingRegistration &&
       !formData.get("registrationExpiry")
     ) {
-      setError("Choose the new registration expiry date before saving.");
+      setError(t("admin.chooseExpiryError"));
       return;
     }
     startTransition(async () => {
@@ -131,17 +133,19 @@ export function VehicleForm({
       <div className="bg-card/90 sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 shadow-xs backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="min-w-0">
           <h1 className="font-display truncate text-xl font-bold tracking-tight">
-            {vehicle ? `${vehicle.brand} ${vehicle.model}` : "New vehicle"}
+            {vehicle
+              ? `${vehicle.brand} ${vehicle.model}`
+              : t("admin.newVehicle")}
           </h1>
           <p className="text-muted-foreground text-xs">
             {vehicle?.plate ? (
               <span className="font-mono">{vehicle.plate}</span>
             ) : (
-              "Fleet details"
+              t("admin.fleetDetails")
             )}
             {dirty && (
               <span className="text-status-maint ml-2 font-semibold">
-                Unsaved changes
+                {t("admin.unsavedChanges")}
               </span>
             )}
           </p>
@@ -156,7 +160,9 @@ export function VehicleForm({
               onClick={() => setConfirm("delete")}
             >
               <Trash2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Delete vehicle</span>
+              <span className="hidden sm:inline">
+                {t("admin.deleteVehicle")}
+              </span>
             </Button>
           )}
           <Button
@@ -165,14 +171,14 @@ export function VehicleForm({
             size="sm"
             onClick={() => (dirty ? setConfirm("discard") : leave())}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button type="submit" variant="success" size="sm" disabled={pending}>
             {pending
-              ? "Saving..."
+              ? t("admin.saving")
               : vehicle
-                ? "Save changes"
-                : "Create vehicle"}
+                ? t("admin.saveChanges")
+                : t("admin.createVehicle")}
           </Button>
         </div>
       </div>
@@ -197,9 +203,9 @@ export function VehicleForm({
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         {/* Independent stacks prevent a tall card from opening a hole opposite it. */}
         <div className="space-y-5">
-          <Card title="Specifications" icon={Car}>
+          <Card title={t("admin.specifications")} icon={Car}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Brand" htmlFor="brand" icon={Car}>
+              <Field label={t("admin.brand")} htmlFor="brand" icon={Car}>
                 <Input
                   id="brand"
                   name="brand"
@@ -207,7 +213,7 @@ export function VehicleForm({
                   required
                 />
               </Field>
-              <Field label="Model" htmlFor="model" icon={Car}>
+              <Field label={t("admin.model")} htmlFor="model" icon={Car}>
                 <Input
                   id="model"
                   name="model"
@@ -215,7 +221,7 @@ export function VehicleForm({
                   required
                 />
               </Field>
-              <Field label="Year" htmlFor="year" icon={CalendarDays}>
+              <Field label={t("admin.year")} htmlFor="year" icon={CalendarDays}>
                 <Input
                   id="year"
                   name="year"
@@ -226,7 +232,11 @@ export function VehicleForm({
                   required
                 />
               </Field>
-              <Field label="Category" htmlFor="category" icon={Layers}>
+              <Field
+                label={t("admin.category")}
+                htmlFor="category"
+                icon={Layers}
+              >
                 <Select
                   id="category"
                   name="category"
@@ -234,12 +244,20 @@ export function VehicleForm({
                 >
                   {Object.values(VehicleCategory).map((c) => (
                     <option key={c} value={c}>
-                      {c.charAt(0) + c.slice(1).toLowerCase()}
+                      {t(
+                        `filter.${c.toLowerCase()}` as
+                          | "filter.economy"
+                          | "filter.compact"
+                          | "filter.sedan"
+                          | "filter.suv"
+                          | "filter.luxury"
+                          | "filter.van"
+                      )}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field label="Seats" htmlFor="seats" icon={Users}>
+              <Field label={t("admin.seats")} htmlFor="seats" icon={Users}>
                 <Input
                   id="seats"
                   name="seats"
@@ -251,7 +269,7 @@ export function VehicleForm({
                 />
               </Field>
               <Field
-                label="Price per day"
+                label={t("admin.pricePerDay")}
                 htmlFor="pricePerDay"
                 icon={Euro}
                 hint="EUR"
@@ -268,7 +286,11 @@ export function VehicleForm({
               </Field>
             </div>
 
-            <Field label="Description" htmlFor="description" className="mt-4">
+            <Field
+              label={t("admin.description")}
+              htmlFor="description"
+              className="mt-4"
+            >
               <Textarea
                 id="description"
                 name="description"
@@ -276,7 +298,7 @@ export function VehicleForm({
                 defaultValue={vehicle?.description}
                 required
                 minLength={10}
-                placeholder="What makes this one worth renting?"
+                placeholder={t("admin.descriptionPlaceholder")}
               />
             </Field>
           </Card>
@@ -286,9 +308,13 @@ export function VehicleForm({
 
         {/* Right: operational, legal, and routine service status. */}
         <div className="space-y-5">
-          <Card title="Operational status" icon={CircleGauge}>
+          <Card title={t("admin.operationalStatus")} icon={CircleGauge}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Status" htmlFor="status" icon={CircleGauge}>
+              <Field
+                label={t("admin.status")}
+                htmlFor="status"
+                icon={CircleGauge}
+              >
                 <Select
                   id="status"
                   name="status"
@@ -296,12 +322,22 @@ export function VehicleForm({
                 >
                   {Object.values(VehicleStatus).map((s) => (
                     <option key={s} value={s}>
-                      {s.charAt(0) + s.slice(1).toLowerCase()}
+                      {s === "AVAILABLE"
+                        ? t("vehicle.available")
+                        : s === "RENTED"
+                          ? t("vehicle.rented")
+                          : s === "SERVICE"
+                            ? t("vehicle.maintenance")
+                            : t("vehicle.inactive")}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field label="Registration plate" htmlFor="plate" icon={Hash}>
+              <Field
+                label={t("admin.registrationPlate")}
+                htmlFor="plate"
+                icon={Hash}
+              >
                 <Input
                   id="plate"
                   name="plate"
@@ -310,20 +346,26 @@ export function VehicleForm({
                   className="font-mono uppercase"
                 />
               </Field>
-              <Field label="Transmission" htmlFor="transmission" icon={Cog}>
+              <Field
+                label={t("admin.transmission")}
+                htmlFor="transmission"
+                icon={Cog}
+              >
                 <Select
                   id="transmission"
                   name="transmission"
                   defaultValue={vehicle?.transmission ?? "MANUAL"}
                 >
-                  {Object.values(Transmission).map((t) => (
-                    <option key={t} value={t}>
-                      {t.charAt(0) + t.slice(1).toLowerCase()}
+                  {Object.values(Transmission).map((transmission) => (
+                    <option key={transmission} value={transmission}>
+                      {transmission === "AUTOMATIC"
+                        ? t("vehicle.automatic")
+                        : t("vehicle.manual")}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field label="Fuel" htmlFor="fuelType" icon={FuelIcon}>
+              <Field label={t("admin.fuel")} htmlFor="fuelType" icon={FuelIcon}>
                 <Select
                   id="fuelType"
                   name="fuelType"
@@ -331,7 +373,13 @@ export function VehicleForm({
                 >
                   {Object.values(FuelType).map((f) => (
                     <option key={f} value={f}>
-                      {f.charAt(0) + f.slice(1).toLowerCase()}
+                      {t(
+                        `vehicle.${f.toLowerCase()}` as
+                          | "vehicle.petrol"
+                          | "vehicle.diesel"
+                          | "vehicle.hybrid"
+                          | "vehicle.electric"
+                      )}
                     </option>
                   ))}
                 </Select>
@@ -341,7 +389,7 @@ export function VehicleForm({
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21rem),1fr))] gap-5">
             <Card
-              title="Registration"
+              title={t("admin.registration")}
               icon={ShieldCheck}
               action={
                 vehicle ? (
@@ -354,15 +402,15 @@ export function VehicleForm({
                     onClick={() => setRenewingRegistration((value) => !value)}
                   >
                     {renewingRegistration
-                      ? "Cancel renewal"
-                      : "Renew registration"}
+                      ? t("admin.cancelRenewal")
+                      : t("admin.renewRegistration")}
                   </Button>
                 ) : undefined
               }
             >
               <div className="grid gap-4">
                 <Field
-                  label="Registered on"
+                  label={t("admin.registeredOn")}
                   htmlFor="registrationDate"
                   icon={CalendarDays}
                 >
@@ -374,16 +422,16 @@ export function VehicleForm({
                   />
                 </Field>
                 {vehicle ? (
-                  <Field label="Current expiry" icon={CalendarDays}>
+                  <Field label={t("admin.currentExpiry")} icon={CalendarDays}>
                     <div className="border-input bg-secondary/50 flex h-9 items-center rounded-lg border px-3 text-sm">
                       {currentRegistrationExpiry
                         ? format(currentRegistrationExpiry, "dd MMM yyyy")
-                        : "Not recorded"}
+                        : t("admin.notRecorded")}
                     </div>
                   </Field>
                 ) : (
                   <Field
-                    label="Expires"
+                    label={t("admin.expires")}
                     htmlFor="registrationExpiry"
                     icon={CalendarDays}
                   >
@@ -414,7 +462,7 @@ export function VehicleForm({
                   className="border-brand/25 bg-brand/[0.06] mt-4 rounded-lg border p-4"
                 >
                   <Field
-                    label="New expiry date"
+                    label={t("admin.newExpiryDate")}
                     htmlFor="registrationExpiry"
                     icon={CalendarDays}
                   >
@@ -422,26 +470,26 @@ export function VehicleForm({
                       id="registrationExpiry"
                       name="registrationExpiry"
                       minDate={renewalMinDate}
-                      placeholder="Choose the new end date"
+                      placeholder={t("admin.chooseNewExpiry")}
                       clearable={false}
                       onChange={() => setDirty(true)}
                     />
                   </Field>
                   <p className="text-muted-foreground mt-2 text-xs">
-                    Choose the renewed registration end date, then save changes.
+                    {t("admin.renewalHelp")}
                   </p>
                 </div>
               )}
             </Card>
 
             <Card
-              title="Service"
+              title={t("admin.service")}
               icon={Wrench}
-              subtitle="Routine upkeep — repairs are logged alongside"
+              subtitle={t("admin.serviceSubtitle")}
             >
               <div className="grid gap-4">
                 <Field
-                  label="Last service"
+                  label={t("admin.lastService")}
                   htmlFor="lastServiceDate"
                   icon={CalendarDays}
                 >
@@ -453,7 +501,7 @@ export function VehicleForm({
                   />
                 </Field>
                 <Field
-                  label="Next due"
+                  label={t("admin.nextDue")}
                   htmlFor="nextServiceDate"
                   icon={CalendarDays}
                 >
@@ -466,7 +514,7 @@ export function VehicleForm({
                 </Field>
               </div>
               <Field
-                label="Service notes"
+                label={t("admin.serviceNotes")}
                 htmlFor="serviceNotes"
                 className="mt-4"
               >
@@ -475,7 +523,7 @@ export function VehicleForm({
                   name="serviceNotes"
                   rows={2}
                   defaultValue={vehicle?.serviceNotes ?? ""}
-                  placeholder="Oil and filters replaced, brake fluid due next time"
+                  placeholder={t("admin.serviceNotesPlaceholder")}
                 />
               </Field>
             </Card>
@@ -486,10 +534,10 @@ export function VehicleForm({
       <ConfirmDialog
         open={confirm === "discard"}
         tone="neutral"
-        title="Discard your changes?"
-        body="You have unsaved changes to this vehicle. Leaving now will lose them."
-        confirmLabel="Discard changes"
-        cancelLabel="Keep editing"
+        title={t("admin.discardTitle")}
+        body={t("admin.discardBody")}
+        confirmLabel={t("admin.discardChanges")}
+        cancelLabel={t("admin.keepEditing")}
         onCancel={() => setConfirm(null)}
         onConfirm={leave}
       />
@@ -497,9 +545,9 @@ export function VehicleForm({
       <ConfirmDialog
         open={confirm === "delete"}
         pending={deleting}
-        title="Delete this vehicle?"
-        body="This action cannot be undone. Vehicles with rental history are retired instead, so past reservations stay intact."
-        confirmLabel="Delete vehicle"
+        title={t("admin.deleteVehicleTitle")}
+        body={t("admin.deleteVehicleBody")}
+        confirmLabel={t("admin.deleteVehicle")}
         onCancel={() => setConfirm(null)}
         onConfirm={() =>
           startDelete(async () => {

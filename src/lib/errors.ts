@@ -53,6 +53,12 @@ export class TooManyRequestsError extends AppError {
   }
 }
 
+export class ServiceUnavailableError extends AppError {
+  constructor(message = "This service is not available yet") {
+    super(message, "SERVICE_UNAVAILABLE", 503);
+  }
+}
+
 /**
  * Map any thrown value to a response-ready shape. The generic fallback
  * deliberately hides internals: raw error messages can leak schema or

@@ -8,6 +8,8 @@ import {
 import { paginationSchema } from "./common";
 
 export const vehicleFilterSchema = paginationSchema.extend({
+  q: z.string().trim().max(80).optional(),
+  sort: z.enum(["newest", "price-asc", "price-desc"]).optional(),
   category: z.enum(VehicleCategory).optional(),
   transmission: z.enum(Transmission).optional(),
   minPrice: z.coerce.number().min(0).optional(),

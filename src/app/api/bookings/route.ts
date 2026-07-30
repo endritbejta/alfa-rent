@@ -28,12 +28,13 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   }
 
   const input = createBookingSchema.parse(await request.json());
-  const reservation = await createReservation(input);
+  const { reservation, paymentAccessToken } = await createReservation(input);
   return ok(
     {
       id: reservation.id,
       status: reservation.status,
       totalPrice: Number(reservation.totalPrice),
+      paymentAccessToken,
     },
     { status: 201 }
   );

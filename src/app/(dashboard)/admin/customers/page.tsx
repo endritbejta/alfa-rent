@@ -86,7 +86,7 @@ export default async function CustomersPage({
         total={total}
         perPage={perPage}
         basePath="/admin/customers"
-        label="customers"
+        labelKey="common.customers"
       />
     </PageBody>
   );

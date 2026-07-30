@@ -12,8 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useI18n } from "@/components/shared/locale-provider";
 
 export function DeleteVehicleButton({ vehicleId }: { vehicleId: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -31,15 +33,13 @@ export function DeleteVehicleButton({ vehicleId }: { vehicleId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="destructive" size="sm" />}>
-        Delete
+        {t("admin.delete")}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete vehicle?</DialogTitle>
+          <DialogTitle>{t("admin.deleteVehicleShort")}</DialogTitle>
           <DialogDescription>
-            Vehicles with rental history are retired instead of deleted, so past
-            reservations stay intact. Vehicles without history are removed
-            permanently along with their images.
+            {t("admin.deleteVehicleExplanation")}
           </DialogDescription>
         </DialogHeader>
         {error && (
@@ -49,10 +49,10 @@ export function DeleteVehicleButton({ vehicleId }: { vehicleId: string }) {
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="destructive" onClick={confirm} disabled={pending}>
-            {pending ? "Deleting..." : "Delete"}
+            {pending ? t("admin.deleting") : t("admin.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -54,6 +54,15 @@ enum InspectionType {
   RETURN
 }
 
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
 model User {
   id             String             @id @default(cuid())
   name           String
@@ -164,24 +173,28 @@ model Customer {
 }
 
 model Reservation {
-  id          String            @id @default(cuid())
-  vehicleId   String
-  customerId  String
-  pickupDate  DateTime
-  returnDate  DateTime
-  status      ReservationStatus @default(PENDING)
-  totalPrice  Decimal           @db.Decimal(10, 2)
-  notes       String?
+  id                     String            @id @default(cuid())
+  vehicleId              String
+  customerId             String
+  pickupDate             DateTime
+  returnDate             DateTime
+  status                 ReservationStatus @default(PENDING)
+  totalPrice             Decimal           @db.Decimal(10, 2)
+  notes                  String?
+  /// Hash of the customer-held capability token required to start payment.
+  /// The raw token is returned once and is never stored.
+  paymentAccessTokenHash String?           @unique
   /// Actual handover and return timestamps. Scheduled dates remain unchanged
   /// so punctuality and overdue rentals can be audited later.
-  startedAt   DateTime?
-  completedAt DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  startedAt              DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 
   vehicle     Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   customer    Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
   inspections RentalInspection[]
+  payments    Payment[]
 
   @@index([vehicleId, pickupDate, returnDate])
   @@index([customerId])
@@ -190,6 +203,52 @@ model Reservation {
   @@index([status, returnDate])
   @@index([createdAt])
   @@map("reservations")
+}
+
+/// Payment attempts are deliberately separate from reservations: a customer
+/// may retry, while each attempt keeps its own immutable amount and provider
+/// reference for reconciliation. Card data must never be stored here.
+model Payment {
+  id                String        @id @default(cuid())
+  reservationId     String
+  provider          String
+  providerPaymentId String?       @unique
+  idempotencyKey    String        @unique
+  status            PaymentStatus @default(PENDING)
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("EUR") @db.VarChar(3)
+  checkoutUrl       String?
+  expiresAt         DateTime?
+  paidAt            DateTime?
+  lastEventAt       DateTime?
+  failureCode       String?
+  failureMessage    String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  reservation Reservation    @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  events      PaymentEvent[]
+
+  @@index([reservationId, createdAt])
+  @@index([status])
+  @@map("payments")
+}
+
+/// Normalized, idempotent gateway events. Raw webhook bodies are intentionally
+/// not retained because banks may include sensitive customer/payment fields.
+model PaymentEvent {
+  id              String        @id @default(cuid())
+  paymentId       String
+  providerEventId String        @unique
+  type            String
+  status          PaymentStatus
+  occurredAt      DateTime
+  createdAt       DateTime      @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, occurredAt])
+  @@map("payment_events")
 }
 
 /// Immutable condition record captured at the actual vehicle handover or

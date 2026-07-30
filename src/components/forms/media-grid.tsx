@@ -33,6 +33,7 @@ import {
   type VehicleImageItem,
 } from "@/lib/validations/image";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 export type ExistingImage = { id: string; url: string };
 
@@ -125,6 +126,7 @@ export function MediaGrid({
   signUpload: SignFn;
   onDirty?: () => void;
 }) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const draftIdRef = useRef<string | null>(null);
   const [items, setItems] = useState<Item[]>(() =>
@@ -213,7 +215,7 @@ export function MediaGrid({
           // impossible to diagnose from the operator's side.
           patch(item.key, {
             status: "error",
-            message: result?.error?.message ?? "Upload failed",
+            message: result?.error?.message ?? t("admin.uploadFailed"),
           });
           resolve();
           return;
@@ -230,7 +232,7 @@ export function MediaGrid({
       };
 
       xhr.onerror = () => {
-        patch(item.key, { status: "error", message: "Network error" });
+        patch(item.key, { status: "error", message: t("admin.networkError") });
         resolve();
       };
 
@@ -245,11 +247,16 @@ export function MediaGrid({
 
     Array.from(list).forEach((file) => {
       if (!ACCEPTED.includes(file.type)) {
-        bad.push(`${file.name} — unsupported format`);
+        bad.push(t("admin.unsupportedFormat", { name: file.name }));
       } else if (file.size > MAX_BYTES) {
-        bad.push(`${file.name} — over 10 MB`);
+        bad.push(t("admin.overSize", { name: file.name }));
       } else if (staged.length >= room) {
-        bad.push(`${file.name} — limit is ${MAX_VEHICLE_IMAGES} photos`);
+        bad.push(
+          t("admin.photoLimit", {
+            name: file.name,
+            count: MAX_VEHICLE_IMAGES,
+          })
+        );
       } else {
         staged.push({
           key: crypto.randomUUID(),
@@ -300,14 +307,17 @@ export function MediaGrid({
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
         <h2 className="font-display flex items-center gap-2 text-sm font-bold">
           <ImagePlus className="text-brand h-4 w-4" />
-          Media
+          {t("admin.media")}
         </h2>
         <p className="text-muted-foreground text-xs">
           {uploading > 0
-            ? `Uploading ${uploading}…`
+            ? t("admin.uploadingCount", { count: uploading })
             : items.length === 0
-              ? "None yet"
-              : `${items.length} of ${MAX_VEHICLE_IMAGES} — drag to reorder, first is the cover`}
+              ? t("admin.noneYet")
+              : t("admin.mediaCount", {
+                  count: items.length,
+                  max: MAX_VEHICLE_IMAGES,
+                })}
         </p>
       </div>
 
@@ -346,10 +356,10 @@ export function MediaGrid({
               <Upload className="h-5 w-5" />
             </span>
             <p className="text-sm font-semibold">
-              {dragging ? "Drop to upload" : "Drag photos here"}
+              {dragging ? t("admin.dropUpload") : t("admin.dragPhotos")}
             </p>
             <p className="text-muted-foreground mt-1 text-xs">
-              or click to browse — JPEG, PNG, WebP or AVIF, up to 10 MB each
+              {t("admin.browsePhotos")}
             </p>
           </div>
         ) : (
@@ -382,7 +392,7 @@ export function MediaGrid({
                   <button
                     type="button"
                     onClick={open}
-                    aria-label="Add photos"
+                    aria-label={t("admin.addPhotos")}
                     className="border-input text-muted-foreground hover:border-brand/50 hover:bg-surface-hover hover:text-brand flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors"
                   >
                     <Plus className="h-5 w-5" />
@@ -426,6 +436,7 @@ function Tile({
   cover: boolean;
   onRemove: () => void;
 }) {
+  const { t } = useI18n();
   const {
     attributes,
     listeners,
@@ -466,13 +477,13 @@ function Tile({
       <div
         {...attributes}
         {...listeners}
-        aria-label="Reorder photo"
+        aria-label={t("admin.reorderPhoto")}
         className="absolute inset-0 cursor-grab active:cursor-grabbing"
       />
 
       {cover && !failed && (
         <span className="pointer-events-none absolute top-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-          Cover
+          {t("admin.cover")}
         </span>
       )}
 
@@ -500,7 +511,7 @@ function Tile({
 
       <button
         type="button"
-        aria-label="Remove photo"
+        aria-label={t("admin.removePhoto")}
         onClick={onRemove}
         className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
       >

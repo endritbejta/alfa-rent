@@ -1,21 +1,22 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
-import { useFocusTrap } from "@/lib/use-focus-trap";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useI18n } from "@/components/shared/locale-provider";
 
-/**
- * One confirmation for every irreversible action. The trap lands focus on
- * the first focusable — Cancel, by DOM order — and Escape cancels, so the
- * destructive path always takes a deliberate act.
- */
+/** Shared, focus-managed confirmation for irreversible actions. */
 export function ConfirmDialog({
   open,
   title,
   body,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   tone = "danger",
   pending = false,
   onConfirm,
@@ -31,36 +32,18 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  // The trap owns focus placement and restore; Cancel is first in DOM order,
-  // so the safe choice gets focus without naming it.
-  useFocusTrap(panelRef, open);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
-
-  if (!open) return null;
-
+  const { t } = useI18n();
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <button
-        type="button"
-        aria-label="Cancel"
-        onClick={onCancel}
-        className="bg-overlay-modal absolute inset-0 animate-[overlay-in_150ms_ease-out] cursor-default"
-      />
-      <div
-        ref={panelRef}
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !pending) onCancel();
+      }}
+    >
+      <DialogContent
         role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-title"
-        tabIndex={-1}
-        className="glass-l6 relative z-10 w-full max-w-sm rounded-2xl p-6 shadow-lg outline-none motion-safe:animate-[modal-in_var(--motion-modal)_var(--ease-standard)]"
+        showCloseButton={false}
+        className="max-w-sm rounded-2xl p-6"
       >
         <div className="flex gap-4">
           <span
@@ -73,22 +56,22 @@ export function ConfirmDialog({
             <AlertTriangle className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h2 id="confirm-title" className="font-display text-base font-bold">
+            <DialogTitle className="font-display text-base font-bold">
               {title}
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            </DialogTitle>
+            <DialogDescription className="mt-1 leading-relaxed">
               {body}
-            </p>
+            </DialogDescription>
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-2 flex justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={onCancel}
             disabled={pending}
           >
-            {cancelLabel}
+            {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button
             variant={tone === "danger" ? "destructive-solid" : "default"}
@@ -96,10 +79,12 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={pending}
           >
-            {pending ? "Working..." : confirmLabel}
+            {pending
+              ? t("admin.working")
+              : (confirmLabel ?? t("admin.confirm"))}
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

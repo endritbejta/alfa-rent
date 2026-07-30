@@ -6,6 +6,7 @@ import { getPendingCount } from "@/services/reservation.service";
 import { getRegistrationAlerts } from "@/services/fleet.service";
 import { PendingBanner } from "@/components/dashboard/pending-banner";
 import { AdminShell } from "./admin-shell";
+import { getI18n } from "@/lib/i18n/server";
 
 export default async function AdminLayout({
   children,
@@ -16,11 +17,13 @@ export default async function AdminLayout({
   // render independently — never rely on a single boundary.
   const user = await requireUser();
   // Operational alerts live in the layout so they follow staff everywhere.
-  const [pendingCount, registrationAlerts, cookieStore] = await Promise.all([
-    getPendingCount(),
-    getRegistrationAlerts(),
-    cookies(),
-  ]);
+  const [pendingCount, registrationAlerts, cookieStore, i18n] =
+    await Promise.all([
+      getPendingCount(),
+      getRegistrationAlerts(),
+      cookies(),
+      getI18n(),
+    ]);
 
   // Read on the server so the first paint already has the right sidebar.
   const collapsed =
@@ -33,7 +36,7 @@ export default async function AdminLayout({
 
   return (
     <AdminShell
-      user={{ name: user.name ?? "Staff", role: user.role }}
+      user={{ name: user.name ?? i18n.t("admin.staff"), role: user.role }}
       signOutAction={signOutAction}
       pendingCount={pendingCount}
       defaultCollapsed={collapsed}

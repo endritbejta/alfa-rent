@@ -104,6 +104,7 @@ export default async function FleetPage({
                   key={vehicle.id}
                   vehicle={vehicle}
                   query={query}
+                  bookingReady={Boolean(dateRange)}
                   preload={index === 0}
                 />
               ))}
@@ -114,7 +115,7 @@ export default async function FleetPage({
               total={total}
               perPage={perPage}
               basePath="/car"
-              label="vehicles"
+              labelKey="common.vehicles"
             />
           </>
         )}

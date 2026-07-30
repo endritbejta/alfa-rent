@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
 import { updateReservationStatusAction } from "./actions";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 const NEXT_ACTIONS: Partial<
   Record<
@@ -12,10 +14,10 @@ const NEXT_ACTIONS: Partial<
   >
 > = {
   PENDING: [
-    { label: "Confirm", to: "CONFIRMED" },
-    { label: "Cancel", to: "CANCELLED", destructive: true },
+    { label: "admin.confirm", to: "CONFIRMED" },
+    { label: "common.cancel", to: "CANCELLED", destructive: true },
   ],
-  CONFIRMED: [{ label: "Cancel", to: "CANCELLED", destructive: true }],
+  CONFIRMED: [{ label: "common.cancel", to: "CANCELLED", destructive: true }],
 };
 
 export function StatusActions({
@@ -28,6 +30,7 @@ export function StatusActions({
   /** Fired once the transition lands — drawers use it to dismiss. */
   onSuccess?: () => void;
 }) {
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const actions = NEXT_ACTIONS[status] ?? [];
@@ -58,7 +61,7 @@ export function StatusActions({
               });
             }}
           >
-            {action.label}
+            {t(action.label as TranslationKey)}
           </Button>
         ))}
       </div>

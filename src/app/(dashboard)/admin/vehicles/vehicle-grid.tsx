@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Cog, Fuel, Users } from "lucide-react";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type Item = {
   id: string;
@@ -27,13 +28,14 @@ type Item = {
  * straight to the edit page rather than a read-only drawer.
  */
 export function VehicleGrid({ items }: { items: Item[] }) {
+  const { t } = useI18n();
   return (
     <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
       {items.map((v) => (
         <Link
           key={v.id}
           href={`/admin/vehicles/${v.id}/edit`}
-          className="bg-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-sm transition-all hover:shadow-md"
+          className="bg-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-sm transition-[border-color,box-shadow] duration-[var(--motion-hover)] hover:shadow-md"
         >
           <div className="bg-media relative aspect-[16/10]">
             {v.image ? (
@@ -44,7 +46,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 // Must track the column count above, or every card downloads
                 // an image sized for a wider slot than it renders in.
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                className="object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                className="object-cover"
               />
             ) : (
               <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
@@ -63,8 +65,8 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 }
               >
                 {v.registrationExpired
-                  ? "Registration expired"
-                  : "Registration due"}
+                  ? t("admin.registrationExpired")
+                  : t("admin.registrationDue")}
               </span>
             )}
           </div>
@@ -82,14 +84,21 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 {
                   icon: Cog,
                   label:
-                    v.transmission === "AUTOMATIC" ? "Automatic" : "Manual",
+                    v.transmission === "AUTOMATIC"
+                      ? t("vehicle.automatic")
+                      : t("vehicle.manual"),
                 },
                 {
                   icon: Fuel,
-                  label:
-                    v.fuelType.charAt(0) + v.fuelType.slice(1).toLowerCase(),
+                  label: t(
+                    `vehicle.${v.fuelType.toLowerCase()}` as
+                      | "vehicle.petrol"
+                      | "vehicle.diesel"
+                      | "vehicle.hybrid"
+                      | "vehicle.electric"
+                  ),
                 },
-                { icon: Users, label: `${v.seats} seats` },
+                { icon: Users, label: t("vehicle.seats", { count: v.seats }) },
               ].map(({ icon: Icon, label }) => (
                 <span
                   key={label}
@@ -104,7 +113,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
               {Number(v.pricePerDay)}
               <span className="text-muted-foreground font-sans text-xs font-medium">
                 {" "}
-                EUR / day
+                {t("admin.perDay")}
               </span>
             </p>
           </div>

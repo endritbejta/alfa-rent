@@ -116,7 +116,6 @@ database on your laptop, so production needs a hosted one.
    | `AUTH_SECRET`                                                            | `openssl rand -base64 32`                                                  |
    | `AUTH_URL`                                                               | `https://<your-app>.vercel.app` (no trailing slash)                        |
    | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | from Cloudinary                                                            |
-   | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`                                      | same cloud name                                                            |
 
    The pooled URL serves requests; the direct URL exists because
    migrations cannot run through PgBouncer.

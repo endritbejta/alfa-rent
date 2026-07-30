@@ -8,6 +8,7 @@ import { createManualReservationAction } from "@/app/(dashboard)/admin/calendar/
 import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/shared/locale-provider";
 import { cn } from "@/lib/utils";
 
 type BarStatus = "PENDING" | "CONFIRMED" | "ACTIVE";
@@ -78,6 +79,7 @@ export function CalendarTimeline({
   rows,
   vehicleOptions,
 }: Props) {
+  const { t } = useI18n();
   const { openReservation } = useDetailDrawer();
   const [zoom, setZoom] = useState<Zoom>("compact");
   const dayW = ZOOMS[zoom];
@@ -153,18 +155,18 @@ export function CalendarTimeline({
         <Button
           size="sm"
           onClick={() => openFromIndex("", todayIndex ?? 0)}
-          className="transition-transform duration-150 hover:scale-[1.03] active:scale-100"
+          className="transition-transform duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-none"
         >
           <Plus className="h-4 w-4" />
-          Add reservation
+          {t("admin.addReservation")}
         </Button>
 
         <div className="flex items-center gap-2">
           <div className="bg-secondary inline-flex rounded-full border p-0.5">
             {(
               [
-                ["compact", "Month"],
-                ["comfortable", "Week"],
+                ["compact", t("admin.month")],
+                ["comfortable", t("admin.week")],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -186,7 +188,7 @@ export function CalendarTimeline({
           <div className="bg-card flex items-center gap-1 rounded-full border p-0.5">
             <button
               type="button"
-              aria-label="Previous month"
+              aria-label={t("admin.previousMonth")}
               onClick={() => jumpMonth(-1)}
               className="hover:bg-surface-hover cursor-pointer rounded-full p-1.5 transition-colors"
             >
@@ -197,7 +199,7 @@ export function CalendarTimeline({
             </span>
             <button
               type="button"
-              aria-label="Next month"
+              aria-label={t("admin.nextMonth")}
               onClick={() => jumpMonth(1)}
               className="hover:bg-surface-hover cursor-pointer rounded-full p-1.5 transition-colors"
             >
@@ -208,9 +210,7 @@ export function CalendarTimeline({
       </div>
 
       <p className="text-muted-foreground mb-2 text-xs">
-        Scroll sideways to move through months. Click a rental to trace its
-        dates, or an empty date to book. Keyboard users can press Enter on a
-        rental to open its details.
+        {t("admin.calendarHelp")}
       </p>
 
       <div
@@ -246,7 +246,7 @@ export function CalendarTimeline({
                 className="bg-card text-muted-foreground sticky left-0 z-40 shrink-0 border-r p-2 text-xs font-semibold"
                 style={{ width: NAME_W }}
               >
-                Vehicle
+                {t("admin.vehicle")}
               </div>
               <div className="relative" style={{ width: gridW }}>
                 <div className="flex">
@@ -306,7 +306,10 @@ export function CalendarTimeline({
                     <button
                       key={date}
                       type="button"
-                      aria-label={`Book ${row.name} on ${date}`}
+                      aria-label={t("admin.bookVehicleDate", {
+                        vehicle: row.name,
+                        date,
+                      })}
                       onClick={() => openFromIndex(row.id, index)}
                       className="hover:bg-brand/5 focus-visible:ring-brand absolute inset-y-0 z-0 cursor-copy focus-visible:z-20 focus-visible:ring-2 focus-visible:outline-none"
                       style={{ left: index * dayW, width: dayW }}
@@ -336,7 +339,15 @@ export function CalendarTimeline({
                         key={r.id}
                         type="button"
                         aria-pressed={active}
-                        title={`${r.customerName} (${r.status.toLowerCase()}) — double-click or press Enter for details`}
+                        title={t("admin.openRentalDetails", {
+                          customer: r.customerName,
+                          status: t(
+                            `vehicle.${r.status.toLowerCase()}` as
+                              | "vehicle.pending"
+                              | "vehicle.confirmed"
+                              | "vehicle.active"
+                          ),
+                        })}
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelected(
@@ -418,6 +429,7 @@ function BookingModal({
   vehicleOptions: { id: string; name: string }[];
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   type NewReservationStatus = "PENDING" | "CONFIRMED";
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -461,30 +473,36 @@ function BookingModal({
     label: string;
     dot: string;
   }[] = [
-    { value: "PENDING", label: "Pending", dot: "bg-status-maint" },
-    { value: "CONFIRMED", label: "Confirmed", dot: "bg-status-reserved" },
+    { value: "PENDING", label: t("vehicle.pending"), dot: "bg-status-maint" },
+    {
+      value: "CONFIRMED",
+      label: t("vehicle.confirmed"),
+      dot: "bg-status-reserved",
+    },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("common.close")}
         className="bg-overlay-modal absolute inset-0"
         onClick={onClose}
       />
       <div className="bg-card relative z-10 w-full max-w-md rounded-xl border p-6 shadow-lg">
         <div className="mb-5 flex items-start justify-between">
           <div>
-            <h2 className="font-display text-lg font-bold">Add reservation</h2>
+            <h2 className="font-display text-lg font-bold">
+              {t("admin.addReservation")}
+            </h2>
             <p className="text-muted-foreground text-xs">
-              Log a phone or walk-in booking
+              {t("admin.manualReservationHelp")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className="cursor-pointer"
           >
             <X className="text-muted-foreground h-5 w-5" />
@@ -493,13 +511,15 @@ function BookingModal({
 
         <div className="space-y-4">
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold">Vehicle</span>
+            <span className="mb-1 block text-xs font-semibold">
+              {t("admin.vehicle")}
+            </span>
             <select
               className={cn(field, "cursor-pointer")}
               value={form.vehicleId}
               onChange={(e) => set("vehicleId", e.target.value)}
             >
-              <option value="">Choose a vehicle</option>
+              <option value="">{t("admin.chooseVehicle")}</option>
               {vehicleOptions.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
@@ -510,21 +530,23 @@ function BookingModal({
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold">
-              Customer name
+              {t("admin.customerName")}
             </span>
             <input
               className={field}
               value={form.customerName}
               onChange={(e) => set("customerName", e.target.value)}
-              placeholder="e.g. Arben Krasniqi"
+              placeholder={t("admin.customerNamePlaceholder")}
             />
           </label>
 
           <div>
-            <span className="mb-1.5 block text-xs font-semibold">Dates</span>
+            <span className="mb-1.5 block text-xs font-semibold">
+              {t("admin.dates")}
+            </span>
             <DateRangePicker
               tone="light"
-              labels={{ from: "Start", to: "End" }}
+              labels={{ from: t("common.from"), to: t("common.to") }}
               value={{
                 from: form.from ? parseISO(form.from) : undefined,
                 to: form.to ? parseISO(form.to) : undefined,
@@ -540,7 +562,9 @@ function BookingModal({
           </div>
 
           <div>
-            <span className="mb-1.5 block text-xs font-semibold">Status</span>
+            <span className="mb-1.5 block text-xs font-semibold">
+              {t("admin.status")}
+            </span>
             <div className="grid grid-cols-2 gap-2">
               {STATUS.map((s) => (
                 <button
@@ -562,12 +586,14 @@ function BookingModal({
           </div>
 
           <label className="block">
-            <span className="mb-1 block text-xs font-semibold">Notes</span>
+            <span className="mb-1 block text-xs font-semibold">
+              {t("admin.notes")}
+            </span>
             <input
               className={field}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Phone reservation"
+              placeholder={t("admin.phoneReservation")}
             />
           </label>
 
@@ -584,7 +610,7 @@ function BookingModal({
             }
             onClick={submit}
           >
-            {pending ? "Saving..." : "Create reservation"}
+            {pending ? t("admin.saving") : t("admin.createReservation")}
           </Button>
         </div>
       </div>

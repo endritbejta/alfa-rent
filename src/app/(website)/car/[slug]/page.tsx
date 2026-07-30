@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getPublicVehicleBySlug } from "@/services/vehicle.service";
+import { getVehicleBookingCalendar } from "@/services/reservation.service";
 import { NotFoundError } from "@/lib/errors";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
@@ -18,6 +19,7 @@ import { MobileBookingBar } from "@/components/forms/mobile-booking-bar";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
+import { isBookingRangeAvailable } from "@/lib/booking-calendar";
 
 const CATEGORY_KEYS = {
   ECONOMY: "filter.economy",
@@ -75,6 +77,12 @@ export default async function VehiclePage({
   const { from, to } = await searchParams;
   const { locale, t } = await getI18n();
   const vehicle = await loadVehicle(slug);
+  const bookingCalendar = await getVehicleBookingCalendar(vehicle.id);
+  const initialRangeAvailable = isBookingRangeAvailable(
+    from,
+    to,
+    bookingCalendar
+  );
   const description = getVehicleDescription(vehicle, locale);
   const [cover, ...rest] = vehicle.images;
 
@@ -196,8 +204,11 @@ export default async function VehiclePage({
             <AvailabilityWidget
               vehicleId={vehicle.id}
               slug={vehicle.slug}
+              pricePerDay={Number(vehicle.pricePerDay)}
               initialFrom={from}
               initialTo={to}
+              initialRangeAvailable={initialRangeAvailable}
+              bookingCalendar={bookingCalendar}
             />
           </div>
         </aside>

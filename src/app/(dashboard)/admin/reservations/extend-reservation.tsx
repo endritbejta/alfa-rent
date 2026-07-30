@@ -11,6 +11,8 @@ import {
   toLocalDay,
 } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/shared/locale-provider";
+import { enUS, sq } from "date-fns/locale";
 
 const addDays = (d: Date, n: number) =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
@@ -36,6 +38,8 @@ export function ExtendReservation({
   extension: ExtensionWindow;
   onExtended: () => void;
 }) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<Date | undefined>();
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +49,15 @@ export function ExtendReservation({
     return (
       <p className="text-muted-foreground mt-3 flex items-start gap-1.5 text-xs">
         <Info className="mt-0.5 h-3 w-3 shrink-0" />
-        {extension.reason}
+        {extension.reason === "Confirm this request before extending it."
+          ? t("admin.confirmBeforeExtend")
+          : extension.reason ===
+              "The vehicle is booked again immediately after this rental."
+            ? t("admin.bookedImmediately")
+            : extension.reason ===
+                "The vehicle's registration expires at the end of this rental."
+              ? t("admin.registrationEnds")
+              : t("admin.cannotExtend")}
       </p>
     );
   }
@@ -95,7 +107,7 @@ export function ExtendReservation({
           onClick={() => setOpen(true)}
         >
           <CalendarPlus className="h-4 w-4" />
-          Extend rental
+          {t("admin.extendRental")}
         </Button>
       </div>
     );
@@ -108,7 +120,7 @@ export function ExtendReservation({
           htmlFor="extend-return"
           className="text-muted-foreground mb-1.5 block text-[11px] font-semibold tracking-[0.06em] uppercase"
         >
-          New return date
+          {t("admin.newReturnDate")}
         </label>
         <DatePicker
           id="extend-return"
@@ -119,21 +131,23 @@ export function ExtendReservation({
           }}
           minDate={minDate}
           maxDate={maxDate}
-          placeholder="Choose a return date"
+          placeholder={t("admin.chooseReturnDate")}
         />
         <p className="text-muted-foreground mt-1.5 text-xs">
           {extension.latestReturn ? (
             <>
-              Available until{" "}
-              <span className="text-foreground font-semibold">
-                {format(extension.latestReturn, "dd MMM yyyy")}
-              </span>
+              {t("admin.availableUntil", {
+                date: format(extension.latestReturn, "dd MMM yyyy", {
+                  locale: dateLocale,
+                }),
+              })}{" "}
+              —{" "}
               {extension.limitedBy === "booking"
-                ? " — booked after that"
-                : " — registration expires"}
+                ? t("admin.bookedAfter")
+                : t("admin.registrationExpires")}
             </>
           ) : (
-            "No later booking on this vehicle."
+            t("admin.noLaterBooking")
           )}
         </p>
       </div>
@@ -141,14 +155,16 @@ export function ExtendReservation({
       {extraDays > 0 && (
         <dl className="space-y-1 text-xs">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Added</dt>
+            <dt className="text-muted-foreground">{t("admin.added")}</dt>
             <dd className="font-semibold tabular-nums">
-              {extraDays} day{extraDays === 1 ? "" : "s"}
+              {t(extraDays === 1 ? "admin.dayCount" : "admin.dayCountPlural", {
+                count: extraDays,
+              })}
             </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">
-              At {pricePerDay.toFixed(2)} EUR/day
+              {t("admin.ratePerDay", { rate: pricePerDay.toFixed(2) })}
             </dt>
             <dd className="font-display font-bold tabular-nums">
               +{addedPrice.toFixed(2)} EUR
@@ -171,7 +187,7 @@ export function ExtendReservation({
           disabled={pending}
           onClick={reset}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           type="button"
@@ -181,10 +197,12 @@ export function ExtendReservation({
           onClick={submit}
         >
           {pending
-            ? "Extending..."
+            ? t("admin.extending")
             : value && extraDays > 0
-              ? `Extend to ${format(value, "dd MMM")}`
-              : "Extend"}
+              ? t("admin.extendTo", {
+                  date: format(value, "dd MMM", { locale: dateLocale }),
+                })
+              : t("admin.extend")}
         </Button>
       </div>
     </div>

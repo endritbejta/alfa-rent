@@ -1,4 +1,7 @@
+"use client";
+
 import type { SeriesPoint } from "@/services/analytics.service";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /**
  * Dependency-free SVG area chart. Server-rendered, theme-aware via
@@ -13,6 +16,7 @@ export function AreaChart({
   suffix?: string;
   height?: number;
 }) {
+  const { t } = useI18n();
   if (data.length === 0) return null;
   const w = 600;
   const h = height;
@@ -37,7 +41,9 @@ export function AreaChart({
         viewBox={`0 0 ${w} ${h}`}
         className="text-brand h-auto w-full"
         role="img"
-        aria-label={`Trend chart, latest value ${data[data.length - 1].value}${suffix}`}
+        aria-label={t("admin.trendChart", {
+          value: `${data[data.length - 1].value}${suffix}`,
+        })}
       >
         {gridYs.map((gy) => (
           <line

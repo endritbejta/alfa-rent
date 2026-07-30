@@ -75,11 +75,3 @@ export function clientIp(headers: Headers): string {
 export async function resetRateLimit(key: string): Promise<void> {
   await prisma.rateLimit.deleteMany({ where: { key } });
 }
-
-/** Drops expired windows. Cheap enough to run opportunistically. */
-export async function sweepRateLimits(): Promise<number> {
-  const { count } = await prisma.rateLimit.deleteMany({
-    where: { expiresAt: { lt: new Date() } },
-  });
-  return count;
-}

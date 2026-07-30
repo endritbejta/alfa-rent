@@ -16,29 +16,32 @@ import { useDetailDrawer } from "./reservation-detail";
 import type { SearchHit } from "@/services/search.service";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 type Row =
   | { type: "hit"; hit: SearchHit }
   | { type: "route"; label: string; href: string; icon: React.ElementType };
 
-const ROUTES: Extract<Row, { type: "route" }>[] = [
+const ROUTE_DEFS: {
+  labelKey: TranslationKey;
+  href: string;
+  icon: React.ElementType;
+}[] = [
   {
-    type: "route",
-    label: "Dashboard",
+    labelKey: "admin.dashboard",
     href: "/admin/dashboard",
     icon: LayoutDashboard,
   },
-  { type: "route", label: "Vehicles", href: "/admin/vehicles", icon: Car },
+  { labelKey: "admin.vehicles", href: "/admin/vehicles", icon: Car },
   {
-    type: "route",
-    label: "Reservations",
+    labelKey: "admin.reservations",
     href: "/admin/reservations",
     icon: ClipboardList,
   },
-  { type: "route", label: "Customers", href: "/admin/customers", icon: Users },
+  { labelKey: "admin.customers", href: "/admin/customers", icon: Users },
   {
-    type: "route",
-    label: "Add vehicle",
+    labelKey: "admin.addVehicle",
     href: "/admin/vehicles/new",
     icon: Plus,
   },
@@ -51,10 +54,10 @@ const KIND_ICON = {
 } as const;
 
 const KIND_LABEL = {
-  reservation: "Reservations",
-  vehicle: "Vehicles",
-  customer: "Customers",
-} as const;
+  reservation: "admin.reservations",
+  vehicle: "admin.vehicles",
+  customer: "admin.customers",
+} satisfies Record<SearchHit["kind"], TranslationKey>;
 
 /**
  * ⌘K — jump to any vehicle, reservation or customer without navigating.
@@ -69,6 +72,7 @@ const KIND_LABEL = {
  * there and still yours.
  */
 export function CommandPalette({ pendingCount }: { pendingCount: number }) {
+  const { t } = useI18n();
   const router = useRouter();
   const { openReservation, openVehicle, openCustomer } = useDetailDrawer();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,9 +88,15 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
   // returns focus wherever ⌘K was pressed from.
   useFocusTrap(panelRef, open);
 
+  const routes: Row[] = ROUTE_DEFS.map((route) => ({
+    type: "route",
+    label: t(route.labelKey),
+    href: route.href,
+    icon: route.icon,
+  }));
   const rows: Row[] =
     query.trim().length < 2
-      ? ROUTES
+      ? routes
       : hits.map((hit) => ({ type: "hit" as const, hit }));
 
   // ⌘K / Ctrl+K anywhere, including from inside an input — that's the point
@@ -176,7 +186,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
     const heading =
       row.type === "hit" &&
       (!prev || prev.type !== "hit" || prev.hit.kind !== row.hit.kind)
-        ? KIND_LABEL[row.hit.kind]
+        ? t(KIND_LABEL[row.hit.kind])
         : null;
     return { row, heading };
   });
@@ -185,20 +195,20 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
     <div className="fixed inset-0 z-[60]">
       <button
         type="button"
-        aria-label="Close search"
+        aria-label={t("admin.closeSearch")}
         onClick={close}
-        className="bg-overlay-modal absolute inset-0 cursor-default backdrop-blur-[2px]"
+        className="palette-overlay bg-overlay-modal absolute inset-0 cursor-default backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Search"
+        aria-label={t("admin.search")}
         tabIndex={-1}
         // Sits high rather than centred: the results grow downward and the
         // input shouldn't move while you type. L6 — this was the reference
         // glass surface; now it consumes the ladder instead of hand-rolling it.
-        className="glass-l6 absolute inset-x-4 top-[12vh] mx-auto max-w-[38rem] overflow-hidden rounded-2xl shadow-lg outline-none motion-safe:animate-[modal-in_var(--motion-hover)_var(--ease-standard)]"
+        className="glass-l6 absolute inset-x-4 top-[12vh] mx-auto max-w-[38rem] overflow-hidden rounded-2xl shadow-lg outline-none"
         onKeyDown={onKeyDown}
       >
         <div className="flex items-center gap-3 border-b px-4">
@@ -208,8 +218,8 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search reservations, vehicles, customers…"
-            aria-label="Search"
+            placeholder={t("admin.searchPlaceholder")}
+            aria-label={t("admin.search")}
             className="placeholder:text-muted-foreground h-12 flex-1 bg-transparent text-sm outline-none"
           />
           <kbd className="text-muted-foreground border-border rounded border px-1.5 py-0.5 text-[10px] font-medium">
@@ -220,13 +230,13 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
         <div className="max-h-[52vh] overflow-y-auto p-2">
           {loading && rows.length === 0 && (
             <p className="text-muted-foreground px-3 py-8 text-center text-sm">
-              Searching…
+              {t("admin.searching")}
             </p>
           )}
 
           {!loading && query.trim().length >= 2 && rows.length === 0 && (
             <p className="text-muted-foreground px-3 py-8 text-center text-sm">
-              Nothing matches “{query.trim()}”.
+              {t("admin.noSearchResults", { query: query.trim() })}
             </p>
           )}
 

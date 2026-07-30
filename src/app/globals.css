@@ -197,11 +197,13 @@
   --motion-press: 120ms;
   --motion-hover: 180ms;
   --motion-panel: 240ms;
-  --motion-panel-exit: 192ms;
-  --motion-modal: 320ms;
-  --motion-modal-exit: 256ms;
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-panel-exit: 160ms;
+  --motion-modal: 200ms;
+  --motion-modal-exit: 160ms;
+  --ease-standard: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-exit: cubic-bezier(0.77, 0, 0.175, 1);
 
   /*
    * The tinted control tier: the translucent look for quiet actions, as ink
@@ -388,7 +390,6 @@
    * The background derives from --popover, so the same class renders light
    * glass on light and dark glass inside a `.dark` scope with no variants.
    */
-  .glass-l3,
   .glass-l4,
   .glass-l5,
   .glass-l6 {
@@ -400,10 +401,6 @@
     );
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-  }
-  .glass-l3 {
-    --glass-fill: 72%;
-    --glass-blur: 20px;
   }
   .glass-l4 {
     --glass-fill: 80%;
@@ -418,18 +415,6 @@
     --glass-blur: 40px;
   }
 
-  /*
-   * The typographic signature (design doc C+, §1): large numerals set light.
-   * Weight 320 at 28px+ reads confident rather than bold — money that does
-   * not shout. Below ~20px light weights lose legibility, so small figures
-   * keep font-medium instead; this class is for display sizes only.
-   */
-  .metric-num {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
-    font-weight: 320;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-  }
   /* Alfa Globe eyebrow: red dash + letterspaced uppercase label */
   .eyebrow {
     @apply inline-flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase;
@@ -510,6 +495,12 @@
   [data-drawer-overlay] {
     animation-duration: 0.01ms !important;
   }
+
+  [data-slot="popover-content"] {
+    animation: none !important;
+    transition: opacity var(--motion-hover) var(--ease-standard) !important;
+    transform: none !important;
+  }
 }
 
 /*
@@ -521,7 +512,6 @@
 @supports not (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
-  .glass-l3,
   .glass-l4,
   .glass-l5,
   .glass-l6 {
@@ -530,12 +520,16 @@
   }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .glass-l3,
   .glass-l4,
   .glass-l5,
   .glass-l6 {
     background: var(--popover);
     border-color: var(--border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .palette-overlay {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -612,7 +606,6 @@
       rgb(var(--ambient-blob) / var(--ambient-alpha)),
       transparent
     );
-  animation: ambientDriftA 34s ease-in-out infinite alternate;
 }
 
 .ambient-background::after {
@@ -627,33 +620,6 @@
       rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.8)),
       transparent
     );
-  animation: ambientDriftB 44s ease-in-out infinite alternate;
-}
-
-/* Wider drift + scale than before: the earlier ±4% over 60s+ was technically
-   moving but read as static. This is unmistakably alive without being busy. */
-@keyframes ambientDriftA {
-  from {
-    transform: translate(-58%, -54%) scale(1);
-  }
-  to {
-    transform: translate(-42%, -46%) scale(1.15);
-  }
-}
-@keyframes ambientDriftB {
-  from {
-    transform: translate(-44%, -46%) scale(1.12);
-  }
-  to {
-    transform: translate(-56%, -54%) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ambient-background::before,
-  .ambient-background::after {
-    animation: none;
-  }
 }
 
 /*
@@ -692,4 +658,14 @@
 .fleet-card {
   content-visibility: auto;
   contain-intrinsic-size: auto 407px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fleet-card:hover .vehicle-cover {
+    transform: scale(1.02);
+  }
+}
+
+button:not(:disabled) {
+  cursor: pointer;
 }

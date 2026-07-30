@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BellRing, ArrowRight, ShieldAlert, X } from "lucide-react";
 import { vehicleLabel } from "@/utils/vehicle";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type RegistrationAlert = {
   id: string;
@@ -32,6 +33,7 @@ export function PendingBanner({
   pendingCount: number;
   registrationAlerts: RegistrationAlert[];
 }) {
+  const { t } = useI18n();
   const expired = registrationAlerts.filter((a) => a.state === "expired");
   const due = registrationAlerts.filter((a) => a.state === "due");
 
@@ -75,15 +77,17 @@ export function PendingBanner({
           tone="brand"
           icon={BellRing}
           href="/admin/reservations?status=PENDING"
-          cta="Review"
+          cta={t("admin.review")}
           onDismiss={() => dismiss(pendingSig)}
         >
-          You have{" "}
           <span className="text-brand font-bold">
-            {pendingCount} pending reservation request
-            {pendingCount === 1 ? "" : "s"}
-          </span>{" "}
-          requiring attention.
+            {t(
+              pendingCount === 1
+                ? "admin.pendingAlert"
+                : "admin.pendingAlertPlural",
+              { count: pendingCount }
+            )}
+          </span>
         </Alert>
       )}
 
@@ -92,21 +96,25 @@ export function PendingBanner({
           tone={expired.length ? "danger" : "warn"}
           icon={ShieldAlert}
           href={regHref}
-          cta={expired.length ? "Fix expired" : "Review"}
+          cta={expired.length ? t("admin.fixExpired") : t("admin.review")}
           onDismiss={() => dismiss(regSig)}
         >
           {expired.length > 0 && (
             <>
               <span className="text-destructive font-bold">
-                {expired.length} vehicle{expired.length === 1 ? "" : "s"} with
-                expired registration
+                {t(
+                  expired.length === 1
+                    ? "admin.expiredAlert"
+                    : "admin.expiredAlertPlural",
+                  { count: expired.length }
+                )}
               </span>
               {due.length > 0 && " and "}
             </>
           )}
           {due.length > 0 && (
             <span className="text-status-maint font-bold">
-              {due.length} expiring within 30 days
+              {t("admin.expiringAlert", { count: due.length })}
             </span>
           )}
           <span className="text-muted-foreground">
@@ -116,7 +124,9 @@ export function PendingBanner({
               .map((a) => vehicleLabel(a))
               .join(", ")}
             {registrationAlerts.length > 2 &&
-              ` +${registrationAlerts.length - 2} more`}
+              ` ${t("admin.alertMore", {
+                count: registrationAlerts.length - 2,
+              })}`}
           </span>
         </Alert>
       )}
@@ -159,6 +169,7 @@ function Alert({
   onDismiss: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const style = TONES[tone];
   return (
     <div
@@ -177,11 +188,11 @@ function Alert({
         className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${style.cta}`}
       >
         {cta}
-        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        <ArrowRight className="h-3.5 w-3.5" />
       </Link>
       <button
         type="button"
-        aria-label="Dismiss notification"
+        aria-label={t("admin.dismissNotification")}
         onClick={onDismiss}
         className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer transition-colors"
       >

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { addDays, format, isAfter } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { CalendarDays, X } from "lucide-react";
-import type { DateRange } from "react-day-picker";
+import type { DateRange, Matcher } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -13,6 +13,11 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
+import {
+  isBookingDayBlocked,
+  isBookingRangeAvailable,
+  type VehicleBookingCalendar,
+} from "@/lib/booking-calendar";
 
 /**
  * Calendar days, not instants.
@@ -51,28 +56,37 @@ export function DatePicker({
   onChange,
   minDate,
   maxDate,
+  unavailableDates,
   placeholder,
   id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: {
   value: Date | undefined;
   onChange: (date: Date | undefined) => void;
   minDate?: Date;
   maxDate?: Date;
+  unavailableDates?: Matcher;
   placeholder?: string;
   id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
   const disabled = [
     ...(minDate ? [{ before: minDate }] : []),
     ...(maxDate ? [{ after: maxDate }] : []),
+    ...(unavailableDates ? [unavailableDates] : []),
   ];
 
   return (
     <Popover>
       <PopoverTrigger
         id={id}
-        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
+        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand aria-invalid:border-destructive aria-invalid:ring-destructive/20 flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none aria-invalid:ring-3 sm:h-9"
       >
         <CalendarDays className="text-brand h-3.5 w-3.5 shrink-0" />
         <span className={cn(!value && "text-muted-foreground")}>
@@ -90,6 +104,13 @@ export function DatePicker({
           selected={value}
           onSelect={onChange}
           disabled={disabled.length ? disabled : undefined}
+          modifiers={
+            unavailableDates ? { unavailable: unavailableDates } : undefined
+          }
+          modifiersClassNames={{
+            unavailable:
+              "bg-destructive/[0.08] text-destructive line-through decoration-1 opacity-70",
+          }}
           locale={dateLocale}
           className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
         />
@@ -185,14 +206,18 @@ function RangeDateField({
   onSelect,
   tone,
   minDate,
-  disabled = false,
+  maxDate,
+  unavailableDates,
+  triggerDisabled = false,
 }: {
   label: string;
   value: Date | undefined;
   onSelect: (date: Date) => void;
   tone: "dark" | "light";
   minDate?: Date;
-  disabled?: boolean;
+  maxDate?: Date;
+  unavailableDates?: Matcher;
+  triggerDisabled?: boolean;
 }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
@@ -202,7 +227,7 @@ function RangeDateField({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        disabled={disabled}
+        disabled={triggerDisabled}
         className={cn(
           "disabled:bg-skeleton disabled:text-muted-foreground w-full cursor-pointer px-4 py-2.5 text-left transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:outline-none disabled:cursor-not-allowed",
           dark ? "hover:bg-white/[0.04]" : "hover:bg-surface-hover"
@@ -247,7 +272,18 @@ function RangeDateField({
             onSelect(date);
             setOpen(false);
           }}
-          disabled={minDate ? { before: minDate } : undefined}
+          disabled={[
+            ...(minDate ? [{ before: minDate }] : []),
+            ...(maxDate ? [{ after: maxDate }] : []),
+            ...(unavailableDates ? [unavailableDates] : []),
+          ]}
+          modifiers={
+            unavailableDates ? { unavailable: unavailableDates } : undefined
+          }
+          modifiersClassNames={{
+            unavailable:
+              "bg-destructive/[0.08] text-destructive line-through decoration-1 opacity-70",
+          }}
           locale={dateLocale}
           className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
         />
@@ -262,12 +298,14 @@ export function DateRangePicker({
   tone = "dark",
   minDate,
   labels,
+  bookingCalendar,
 }: {
   value: DateRange | undefined;
   onChange: (range: DateRange | undefined) => void;
   tone?: "dark" | "light";
   minDate?: Date;
   labels?: { from: string; to: string };
+  bookingCalendar?: VehicleBookingCalendar;
 }) {
   const { t } = useI18n();
   const resolvedLabels = labels ?? {
@@ -280,36 +318,81 @@ export function DateRangePicker({
     minDate && earliestReturn && isAfter(minDate, earliestReturn)
       ? minDate
       : earliestReturn;
+  const latestReturnDate = fromDateValue(
+    bookingCalendar?.latestReturnDate ?? undefined
+  );
+  const latestPickupDate = latestReturnDate
+    ? addDays(latestReturnDate, -1)
+    : undefined;
+  const unavailablePickup: Matcher = (date) =>
+    bookingCalendar
+      ? isBookingDayBlocked(toDateValue(date), bookingCalendar.blockedRanges)
+      : false;
+  const unavailableReturn: Matcher = (date) =>
+    value?.from && bookingCalendar
+      ? !isBookingRangeAvailable(
+          toDateValue(value.from),
+          toDateValue(date),
+          bookingCalendar
+        )
+      : false;
 
   return (
-    <div
-      className={cn(
-        "grid flex-1 grid-cols-2 divide-x overflow-hidden rounded-xl",
-        dark
-          ? "divide-white/10 bg-white/[0.06] ring-1 ring-white/10"
-          : "border-input divide-input bg-control border"
+    <div className="min-w-0 flex-1">
+      <div
+        className={cn(
+          "grid grid-cols-2 divide-x overflow-hidden rounded-xl",
+          dark
+            ? "divide-white/10 bg-white/[0.06] ring-1 ring-white/10"
+            : "border-input divide-input bg-control border"
+        )}
+      >
+        <RangeDateField
+          label={resolvedLabels.from}
+          value={value?.from}
+          tone={tone}
+          minDate={minDate}
+          maxDate={latestPickupDate}
+          unavailableDates={unavailablePickup}
+          onSelect={(from) =>
+            onChange({
+              from,
+              to:
+                value?.to &&
+                isAfter(value.to, from) &&
+                (!bookingCalendar ||
+                  isBookingRangeAvailable(
+                    toDateValue(from),
+                    toDateValue(value.to),
+                    bookingCalendar
+                  ))
+                  ? value.to
+                  : undefined,
+            })
+          }
+        />
+        <RangeDateField
+          label={resolvedLabels.to}
+          value={value?.to}
+          tone={tone}
+          minDate={returnMinDate}
+          maxDate={latestReturnDate}
+          unavailableDates={unavailableReturn}
+          triggerDisabled={!value?.from}
+          onSelect={(to) => onChange({ from: value?.from, to })}
+        />
+      </div>
+      {bookingCalendar && bookingCalendar.blockedRanges.length > 0 && (
+        <p
+          className={cn(
+            "mt-2 flex items-center gap-2 text-xs",
+            dark ? "text-band-muted" : "text-muted-foreground"
+          )}
+        >
+          <span className="bg-destructive/70 h-2 w-2 rounded-full" />
+          {t("availability.unavailableDates")}
+        </p>
       )}
-    >
-      <RangeDateField
-        label={resolvedLabels.from}
-        value={value?.from}
-        tone={tone}
-        minDate={minDate}
-        onSelect={(from) =>
-          onChange({
-            from,
-            to: value?.to && isAfter(value.to, from) ? value.to : undefined,
-          })
-        }
-      />
-      <RangeDateField
-        label={resolvedLabels.to}
-        value={value?.to}
-        tone={tone}
-        minDate={returnMinDate}
-        disabled={!value?.from}
-        onSelect={(to) => onChange({ from: value?.from, to })}
-      />
     </div>
   );
 }

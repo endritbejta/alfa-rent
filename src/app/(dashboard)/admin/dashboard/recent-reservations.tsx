@@ -1,6 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import { useReservationDetail } from "@/app/(dashboard)/admin/reservation-detail";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { vehicleLabel } from "@/utils/vehicle";
@@ -12,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type Item = {
   id: string;
@@ -26,6 +28,8 @@ type Item = {
 /** Recent reservations, each row opening the shared detail drawer. */
 export function RecentReservations({ items }: { items: Item[] }) {
   const { openReservation } = useReservationDetail();
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
 
   return (
     <>
@@ -42,7 +46,8 @@ export function RecentReservations({ items }: { items: Item[] }) {
                   {r.customer.firstName} {r.customer.lastName}
                 </p>
                 <p className="text-muted-foreground truncate text-xs">
-                  {vehicleLabel(r.vehicle)} - {format(r.pickupDate, "dd MMM")}
+                  {vehicleLabel(r.vehicle)} -{" "}
+                  {format(r.pickupDate, "dd MMM", { locale: dateLocale })}
                 </p>
               </div>
               <StatusBadge status={r.status} />
@@ -55,11 +60,11 @@ export function RecentReservations({ items }: { items: Item[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("admin.customer")}</TableHead>
+              <TableHead>{t("admin.vehicle")}</TableHead>
+              <TableHead>{t("admin.dates")}</TableHead>
+              <TableHead className="text-right">{t("admin.total")}</TableHead>
+              <TableHead>{t("admin.status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,8 +79,8 @@ export function RecentReservations({ items }: { items: Item[] }) {
                 </TableCell>
                 <TableCell>{vehicleLabel(r.vehicle)}</TableCell>
                 <TableCell>
-                  {format(r.pickupDate, "dd MMM")} -{" "}
-                  {format(r.returnDate, "dd MMM")}
+                  {format(r.pickupDate, "dd MMM", { locale: dateLocale })} -{" "}
+                  {format(r.returnDate, "dd MMM", { locale: dateLocale })}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {Number(r.totalPrice).toFixed(2)} EUR

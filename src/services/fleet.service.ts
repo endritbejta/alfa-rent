@@ -196,22 +196,3 @@ export async function getRegistrationAlerts(days = REGISTRATION_WARNING_DAYS) {
     ...registrationState(v.registrationExpiry, now),
   }));
 }
-
-/** Fleet-wide repair spend, for the analytics surface. */
-export async function getFleetCostSummary() {
-  const yearStart = startOfYear(new Date());
-  const [all, year] = await prisma.$transaction([
-    prisma.repair.aggregate({ _sum: { cost: true }, _count: { _all: true } }),
-    prisma.repair.aggregate({
-      _sum: { cost: true },
-      _count: { _all: true },
-      where: { date: { gte: yearStart } },
-    }),
-  ]);
-  return {
-    lifetimeCost: Number(all._sum.cost ?? 0),
-    lifetimeCount: all._count._all,
-    yearCost: Number(year._sum.cost ?? 0),
-    yearCount: year._count._all,
-  };
-}

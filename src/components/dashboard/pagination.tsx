@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 /**
  * URL-driven pagination shared by admin lists. Page lives in the query so
@@ -16,14 +17,14 @@ export function Pagination({
   total,
   perPage,
   basePath,
-  label = "items",
+  labelKey = "common.items",
 }: {
   page: number;
   totalPages: number;
   total: number;
   perPage: number;
   basePath: string;
-  label?: string;
+  labelKey?: TranslationKey;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -45,14 +46,16 @@ export function Pagination({
 
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={t("common.pagination")}
       className="flex flex-wrap items-center justify-between gap-3"
     >
       <p className="text-muted-foreground text-xs tabular-nums">
-        <span className="text-foreground font-semibold">
-          {first}-{last}
-        </span>{" "}
-        of {total} {label}
+        {t("common.range", {
+          first,
+          last,
+          total,
+          label: t(labelKey),
+        })}
       </p>
 
       <div className="flex items-center gap-1">

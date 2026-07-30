@@ -5,11 +5,13 @@ import {
   format,
   formatDistanceToNow,
 } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import { CalendarRange, Clock, Mail, Phone, Car } from "lucide-react";
 import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/utils/vehicle";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 export type PendingRequest = {
   id: string;
@@ -36,14 +38,19 @@ export function PendingRequestCard({
   emphasis?: boolean;
 }) {
   const { openReservation } = useDetailDrawer();
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const days = differenceInCalendarDays(request.returnDate, request.pickupDate);
-  const waiting = formatDistanceToNow(request.createdAt, { addSuffix: false });
+  const waiting = formatDistanceToNow(request.createdAt, {
+    addSuffix: false,
+    locale: dateLocale,
+  });
   const stale = differenceInCalendarDays(new Date(), request.createdAt) >= 2;
 
   return (
     <article
       className={cn(
-        "bg-card hover:border-brand/40 rounded-xl border transition-all",
+        "bg-card hover:border-brand/40 rounded-xl border transition-colors duration-[var(--motion-hover)]",
         emphasis ? "p-5 shadow-sm sm:p-6" : "p-4 shadow-xs sm:p-5"
       )}
     >
@@ -75,7 +82,7 @@ export function PendingRequestCard({
           }
         >
           <Clock className="h-3 w-3" />
-          waiting {waiting}
+          {t("admin.waiting", { time: waiting })}
         </span>
       </div>
 
@@ -87,23 +94,27 @@ export function PendingRequestCard({
       >
         <Fact
           icon={Car}
-          label="Vehicle"
+          label={t("admin.vehicle")}
           value={vehicleLabel(request.vehicle)}
         />
         <Fact
           icon={CalendarRange}
-          label="Dates"
-          value={`${format(request.pickupDate, "dd MMM")} - ${format(request.returnDate, "dd MMM")}`}
-          hint={`${days} day${days === 1 ? "" : "s"}`}
+          label={t("admin.dates")}
+          value={`${format(request.pickupDate, "dd MMM", { locale: dateLocale })} - ${format(request.returnDate, "dd MMM", { locale: dateLocale })}`}
+          hint={t(days === 1 ? "admin.dayCount" : "admin.dayCountPlural", {
+            count: days,
+          })}
         />
         <Fact
           icon={Phone}
-          label="Requested"
-          value={format(request.createdAt, "dd MMM yyyy")}
+          label={t("admin.requested")}
+          value={format(request.createdAt, "dd MMM yyyy", {
+            locale: dateLocale,
+          })}
         />
         <div>
           <dt className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
-            Total
+            {t("admin.total")}
           </dt>
           <dd
             className={cn(
@@ -128,7 +139,7 @@ export function PendingRequestCard({
           onClick={() => openReservation(request.id)}
           className="text-muted-foreground hover:text-foreground cursor-pointer text-xs font-semibold transition-colors"
         >
-          View full detail
+          {t("admin.viewFullDetail")}
         </button>
         <StatusActions reservationId={request.id} status="PENDING" />
       </div>

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /**
  * Catches anything thrown while rendering an admin page — a failed guard, a
@@ -21,6 +22,7 @@ export default function AdminError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     // Until a reporter is wired up, the platform log is the only record.
     console.error("Admin route error:", error);
@@ -33,15 +35,14 @@ export default function AdminError({
           <AlertTriangle className="h-6 w-6" />
         </span>
         <h1 className="font-display text-lg font-bold">
-          This screen failed to load
+          {t("admin.screenFailed")}
         </h1>
         <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-          Nothing you were working on has been lost. Try again — if it keeps
-          happening, send us the reference below.
+          {t("admin.screenFailedHelp")}
         </p>
         {error.digest && (
           <p className="text-muted-foreground mt-3 font-mono text-xs">
-            Reference: {error.digest}
+            {t("admin.reference", { id: error.digest })}
           </p>
         )}
         <div className="mt-6 flex justify-center gap-2">
@@ -51,11 +52,11 @@ export default function AdminError({
             nativeButton={false}
             render={<Link href="/admin/dashboard" />}
           >
-            Back to dashboard
+            {t("admin.backDashboard")}
           </Button>
           <Button size="sm" onClick={reset}>
             <RotateCw className="h-4 w-4" />
-            Try again
+            {t("admin.tryAgain")}
           </Button>
         </div>
       </div>

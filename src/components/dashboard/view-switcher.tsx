@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LayoutGrid, List, Rows3 } from "lucide-react";
+import { useI18n } from "@/components/shared/locale-provider";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,11 +19,12 @@ export function ViewSwitcher({
   compact?: React.ReactNode;
 }) {
   const [view, setView] = useState<"grid" | "list" | "compact">("grid");
+  const { t } = useI18n();
   const options = [
-    { key: "grid" as const, icon: LayoutGrid, label: "Grid" },
-    { key: "list" as const, icon: List, label: "List" },
+    { key: "grid" as const, icon: LayoutGrid, label: t("admin.grid") },
+    { key: "list" as const, icon: List, label: t("admin.list") },
     ...(compact
-      ? [{ key: "compact" as const, icon: Rows3, label: "Compact" }]
+      ? [{ key: "compact" as const, icon: Rows3, label: t("admin.compact") }]
       : []),
   ];
 

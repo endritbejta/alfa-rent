@@ -104,7 +104,7 @@ function buildVehicleWhere(
   filters: VehicleFilterInput,
   opts: VehicleReadOpts
 ): Prisma.VehicleWhereInput {
-  const { category, transmission, minPrice, maxPrice, from, to } = filters;
+  const { q, category, transmission, minPrice, maxPrice, from, to } = filters;
   return {
     ...(opts.status
       ? { status: opts.status }
@@ -113,6 +113,12 @@ function buildVehicleWhere(
         : { status: { not: "INACTIVE" as const } }),
     ...(opts.brand && { brand: { equals: opts.brand, mode: "insensitive" } }),
     ...registrationWhere(opts.registration),
+    ...(q && {
+      OR: [
+        { brand: { contains: q, mode: "insensitive" } },
+        { model: { contains: q, mode: "insensitive" } },
+      ],
+    }),
     ...(category && { category }),
     ...(transmission && { transmission }),
     ...((minPrice !== undefined || maxPrice !== undefined) && {
@@ -161,7 +167,12 @@ export async function getVehicles(
     prisma.vehicle.findMany({
       where,
       ...vehicleWithImages,
-      orderBy: { createdAt: "desc" },
+      orderBy:
+        filters.sort === "price-asc"
+          ? { pricePerDay: "asc" }
+          : filters.sort === "price-desc"
+            ? { pricePerDay: "desc" }
+            : { createdAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
     }),
@@ -180,17 +191,6 @@ export async function getVehicles(
 export async function getVehicleById(id: string): Promise<VehicleWithImages> {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id },
-    ...vehicleWithImages,
-  });
-  if (!vehicle) throw new NotFoundError("Vehicle");
-  return vehicle;
-}
-
-export async function getVehicleBySlug(
-  slug: string
-): Promise<VehicleWithImages> {
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { slug },
     ...vehicleWithImages,
   });
   if (!vehicle) throw new NotFoundError("Vehicle");

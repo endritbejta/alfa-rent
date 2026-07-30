@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 /** Must match --motion-panel-exit in globals.css — the unmount is timed to it. */
 const EXIT_MS = 192;
@@ -29,6 +30,7 @@ export function DetailDrawer({
   subtitle?: string;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(open);
   const [closing, setClosing] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
@@ -71,7 +73,7 @@ export function DetailDrawer({
     <div className="fixed inset-0 z-50">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("common.close")}
         onClick={onClose}
         data-drawer-overlay
         className={cn(
@@ -111,7 +113,7 @@ export function DetailDrawer({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
           >
             <X className="h-5 w-5" />

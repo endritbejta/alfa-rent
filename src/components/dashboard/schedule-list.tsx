@@ -1,10 +1,12 @@
 "use client";
 
 import { format } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { vehicleLabel } from "@/utils/vehicle";
 import { useReservationDetail } from "@/app/(dashboard)/admin/reservation-detail";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type ScheduleItem = {
   id: string;
@@ -23,13 +25,17 @@ export function ScheduleList({
   kind: "pickup" | "return";
 }) {
   const { openReservation } = useReservationDetail();
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   if (items.length === 0) {
     return (
       <EmptyState
         title={
-          kind === "pickup" ? "No upcoming pickups" : "No upcoming returns"
+          kind === "pickup"
+            ? t("admin.noUpcomingPickups")
+            : t("admin.noUpcomingReturns")
         }
-        hint="Nothing scheduled in the next 7 days."
+        hint={t("admin.nothingNextSevenDays")}
       />
     );
   }
@@ -63,7 +69,7 @@ export function ScheduleList({
                 </p>
               </div>
               <p className="text-xs font-semibold tabular-nums">
-                {format(date, "EEE dd MMM")}
+                {format(date, "EEE dd MMM", { locale: dateLocale })}
               </p>
             </button>
           </li>

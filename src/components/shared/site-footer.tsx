@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
 import { BrandLogo } from "@/components/shared/brand-logo";
+import { publicContact } from "@/lib/site-config";
 
 export async function SiteFooter() {
   const { t } = await getI18n();
@@ -38,9 +39,27 @@ export async function SiteFooter() {
             {t("footer.contact")}
           </p>
           <ul className="space-y-2 text-sm">
-            <li>Prishtina, Kosovo</li>
-            <li>+383 44 000 000</li>
-            <li>info@alfarent.com</li>
+            <li>{publicContact.address}</li>
+            {publicContact.phone && (
+              <li>
+                <a
+                  href={`tel:${publicContact.phone.replace(/\s/g, "")}`}
+                  className="hover:text-band-foreground"
+                >
+                  {publicContact.phone}
+                </a>
+              </li>
+            )}
+            {publicContact.email && (
+              <li>
+                <a
+                  href={`mailto:${publicContact.email}`}
+                  className="hover:text-band-foreground"
+                >
+                  {publicContact.email}
+                </a>
+              </li>
+            )}
           </ul>
         </div>
         <div>

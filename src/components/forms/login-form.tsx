@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/shared/locale-provider";
+import { Eye, EyeOff } from "lucide-react";
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -40,22 +42,51 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           id="email"
           type="email"
           autoComplete="email"
+          aria-invalid={errors.email ? true : undefined}
+          aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email")}
         />
         {errors.email && (
-          <p className="text-destructive text-sm">{errors.email.message}</p>
+          <p id="email-error" role="alert" className="text-destructive text-sm">
+            {errors.email.message}
+          </p>
         )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="password">{t("auth.password")}</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          {...register("password")}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            className="pr-11"
+            aria-invalid={errors.password ? true : undefined}
+            aria-describedby={errors.password ? "password-error" : undefined}
+            {...register("password")}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-label={
+              showPassword ? t("auth.hidePassword") : t("auth.showPassword")
+            }
+            className="text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-11 items-center justify-center transition-colors"
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        </div>
         {errors.password && (
-          <p className="text-destructive text-sm">{errors.password.message}</p>
+          <p
+            id="password-error"
+            role="alert"
+            className="text-destructive text-sm"
+          >
+            {errors.password.message}
+          </p>
         )}
       </div>
       {authError && (

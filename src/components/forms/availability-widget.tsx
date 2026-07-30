@@ -12,6 +12,7 @@ import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
+import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 
 type Quote = { available: boolean; totalPrice: number | null };
 
@@ -23,13 +24,19 @@ type Quote = { available: boolean; totalPrice: number | null };
 export function AvailabilityWidget({
   vehicleId,
   slug,
+  pricePerDay,
   initialFrom,
   initialTo,
+  initialRangeAvailable,
+  bookingCalendar,
 }: {
   vehicleId: string;
   slug: string;
+  pricePerDay: number;
   initialFrom?: string;
   initialTo?: string;
+  initialRangeAvailable: boolean;
+  bookingCalendar: VehicleBookingCalendar;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -37,7 +44,18 @@ export function AvailabilityWidget({
   // customer who already chose dates lands here with a live quote.
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const initialDays =
+    initialFrom && initialTo && initialTo > initialFrom
+      ? differenceInCalendarDays(new Date(initialTo), new Date(initialFrom))
+      : 0;
+  const [quote, setQuote] = useState<Quote | null>(
+    initialRangeAvailable && initialDays > 0
+      ? {
+          available: true,
+          totalPrice: initialDays * pricePerDay,
+        }
+      : null
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,6 +65,9 @@ export function AvailabilityWidget({
     if (!from || !to || to <= from) {
       const timer = setTimeout(() => setQuote(null), 0);
       return () => clearTimeout(timer);
+    }
+    if (initialRangeAvailable && from === initialFrom && to === initialTo) {
+      return;
     }
     let cancelled = false;
     const timer = setTimeout(async () => {
@@ -76,7 +97,7 @@ export function AvailabilityWidget({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [from, t, to, vehicleId]);
+  }, [from, initialFrom, initialRangeAvailable, initialTo, t, to, vehicleId]);
 
   const days =
     from && to && to > from
@@ -101,6 +122,7 @@ export function AvailabilityWidget({
           setFrom(range?.from ? format(range.from, "yyyy-MM-dd") : "");
           setTo(range?.to ? format(range.to, "yyyy-MM-dd") : "");
         }}
+        bookingCalendar={bookingCalendar}
       />
 
       {loading && (

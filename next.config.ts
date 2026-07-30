@@ -16,7 +16,16 @@ const securityHeaders: { key: string; value: string }[] = [
   },
 ];
 
-if (process.env.NODE_ENV === "production") {
+/*
+ * HSTS is only valid when the origin is actually served over HTTPS.
+ * `next start` is a production build too, but local development still uses
+ * http://localhost; emitting HSTS there can make browsers upgrade a working
+ * local URL to an HTTPS endpoint that does not exist.
+ */
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.AUTH_URL?.startsWith("https://")
+) {
   securityHeaders.push({
     key: "Strict-Transport-Security",
     value: "max-age=31536000",

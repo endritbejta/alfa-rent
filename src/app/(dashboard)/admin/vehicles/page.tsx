@@ -33,7 +33,7 @@ import { getI18n } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-function VehicleTable({
+async function VehicleTable({
   vehicles,
   isAdmin,
   dense = false,
@@ -42,17 +42,22 @@ function VehicleTable({
   isAdmin: boolean;
   dense?: boolean;
 }) {
+  const { t } = await getI18n();
   return (
     <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
       <Table>
         <TableHeader>
           <TableRow>
-            {!dense && <TableHead>Image</TableHead>}
-            <TableHead>Vehicle</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Price/day</TableHead>
-            {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+            {!dense && <TableHead>{t("admin.image")}</TableHead>}
+            <TableHead>{t("admin.vehicle")}</TableHead>
+            <TableHead>{t("admin.category")}</TableHead>
+            <TableHead>{t("admin.status")}</TableHead>
+            <TableHead className="text-right">
+              {t("admin.pricePerDay")}
+            </TableHead>
+            {isAdmin && (
+              <TableHead className="text-right">{t("admin.actions")}</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -70,7 +75,7 @@ function VehicleTable({
                     />
                   ) : (
                     <div className="bg-skeleton text-muted-foreground flex h-12 w-20 items-center justify-center rounded text-[10px]">
-                      No image
+                      {t("admin.noImage")}
                     </div>
                   )}
                 </TableCell>
@@ -83,7 +88,10 @@ function VehicleTable({
                   <span className="font-mono">
                     {vehicle.plate ?? String(vehicle.year)}
                   </span>
-                  {!dense && ` - ${vehicle.year} - ${vehicle.seats} seats`}
+                  {!dense &&
+                    ` - ${vehicle.year} - ${t("admin.seatCount", {
+                      count: vehicle.seats,
+                    })}`}
                 </p>
               </TableCell>
               <TableCell className={cn(dense && "py-2")}>
@@ -108,7 +116,7 @@ function VehicleTable({
                         <Link href={`/admin/vehicles/${vehicle.id}/edit`} />
                       }
                     >
-                      Edit
+                      {t("admin.edit")}
                     </Button>
                     {!dense && <DeleteVehicleButton vehicleId={vehicle.id} />}
                   </div>
@@ -233,7 +241,7 @@ export default async function VehiclesPage({
             total={total}
             perPage={perPage}
             basePath="/admin/vehicles"
-            label="vehicles"
+            labelKey="common.vehicles"
           />
         </>
       )}

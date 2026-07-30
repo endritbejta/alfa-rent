@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import {
   Mail,
   Phone,
@@ -29,6 +30,7 @@ import { SectionTitle, Row, DrawerSkeleton } from "./detail-primitives";
 import { vehicleLabel } from "@/utils/vehicle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { InspectionAction } from "./reservations/inspection-action";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type Loaded =
   | { kind: "reservation"; data: ReservationDetail }
@@ -60,6 +62,7 @@ export function ReservationDetailProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -108,7 +111,7 @@ export function ReservationDetailProvider({
         ? `${loaded.data.vehicle.brand} ${loaded.data.vehicle.model}`
         : loaded?.kind === "customer"
           ? `${loaded.data.firstName} ${loaded.data.lastName}`
-          : "Details";
+          : t("admin.details");
 
   const subtitle =
     loaded?.kind === "reservation"
@@ -170,6 +173,8 @@ function ReservationBody({
   /** An edit that leaves the reservation open — reload, stay put. */
   onChanged: () => void;
 }) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
   const spend = history
@@ -198,41 +203,53 @@ function ReservationBody({
       </div>
 
       <section>
-        <SectionTitle icon={CalendarRange}>This reservation</SectionTitle>
+        <SectionTitle icon={CalendarRange}>
+          {t("admin.thisReservation")}
+        </SectionTitle>
         <div className="space-y-2 text-sm">
-          <Row label="Status">
+          <Row label={t("admin.status")}>
             <span className="flex flex-wrap justify-end gap-1.5">
               <StatusBadge status={detail.status} />
               <ReservationAttention attention={detail.timing.attention} />
             </span>
           </Row>
-          <Row label="Pickup">
-            {format(detail.pickupDate, "EEE dd MMM yyyy")}
+          <Row label={t("admin.pickup")}>
+            {format(detail.pickupDate, "EEE dd MMM yyyy", {
+              locale: dateLocale,
+            })}
           </Row>
-          <Row label="Return">
-            {format(detail.returnDate, "EEE dd MMM yyyy")}
+          <Row label={t("admin.return")}>
+            {format(detail.returnDate, "EEE dd MMM yyyy", {
+              locale: dateLocale,
+            })}
           </Row>
-          <Row label="Total">
+          <Row label={t("admin.total")}>
             <span className="font-display font-bold">
               {eur(detail.totalPrice)}
             </span>
           </Row>
-          <Row label="Payment">
+          <Row label={t("admin.payment")}>
             <span className="text-muted-foreground">
               {detail.status === "COMPLETED"
-                ? "Settled at return"
-                : "Due at pickup"}
+                ? t("admin.settledReturn")
+                : t("admin.duePickup")}
             </span>
           </Row>
-          <Row label="Booked">{format(detail.createdAt, "dd MMM yyyy")}</Row>
+          <Row label={t("admin.booked")}>
+            {format(detail.createdAt, "dd MMM yyyy", { locale: dateLocale })}
+          </Row>
           {detail.startedAt && (
-            <Row label="Handover">
-              {format(detail.startedAt, "dd MMM yyyy, HH:mm")}
+            <Row label={t("admin.handover")}>
+              {format(detail.startedAt, "dd MMM yyyy, HH:mm", {
+                locale: dateLocale,
+              })}
             </Row>
           )}
           {detail.completedAt && (
-            <Row label="Returned">
-              {format(detail.completedAt, "dd MMM yyyy, HH:mm")}
+            <Row label={t("admin.returned")}>
+              {format(detail.completedAt, "dd MMM yyyy, HH:mm", {
+                locale: dateLocale,
+              })}
             </Row>
           )}
           {detail.notes && (
@@ -270,7 +287,7 @@ function ReservationBody({
       {detail.inspections.length > 0 && (
         <section>
           <SectionTitle icon={ClipboardCheck}>
-            Inspections ({detail.inspections.length})
+            {t("admin.inspections", { count: detail.inspections.length })}
           </SectionTitle>
           <div className="space-y-3">
             {detail.inspections.map((inspection) => (
@@ -282,17 +299,27 @@ function ReservationBody({
                   <div>
                     <p className="text-sm font-semibold">
                       {inspection.type === "PICKUP"
-                        ? "Pickup condition"
-                        : "Return condition"}
+                        ? t("admin.pickupCondition")
+                        : t("admin.returnCondition")}
                     </p>
                     <p className="text-muted-foreground text-xs">
-                      {format(inspection.createdAt, "dd MMM yyyy, HH:mm")} by{" "}
-                      {inspection.createdBy.name}
+                      {t("admin.recordedBy", {
+                        date: format(
+                          inspection.createdAt,
+                          "dd MMM yyyy, HH:mm",
+                          {
+                            locale: dateLocale,
+                          }
+                        ),
+                        name: inspection.createdBy.name,
+                      })}
                     </p>
                   </div>
                   <span className="text-xs font-semibold tabular-nums">
-                    {inspection.mileage.toLocaleString()} km ·{" "}
-                    {inspection.fuelLevel}% fuel
+                    {t("admin.fuelPercent", {
+                      mileage: inspection.mileage.toLocaleString(locale),
+                      fuel: inspection.fuelLevel,
+                    })}
                   </span>
                 </div>
 
@@ -303,7 +330,7 @@ function ReservationBody({
                     {inspection.exteriorNotes && (
                       <div>
                         <dt className="text-muted-foreground inline">
-                          Exterior:{" "}
+                          {t("admin.exterior")}:{" "}
                         </dt>
                         <dd className="inline">{inspection.exteriorNotes}</dd>
                       </div>
@@ -311,7 +338,7 @@ function ReservationBody({
                     {inspection.interiorNotes && (
                       <div>
                         <dt className="text-muted-foreground inline">
-                          Interior:{" "}
+                          {t("admin.interior")}:{" "}
                         </dt>
                         <dd className="inline">{inspection.interiorNotes}</dd>
                       </div>
@@ -319,7 +346,7 @@ function ReservationBody({
                     {inspection.damageNotes && (
                       <div>
                         <dt className="text-destructive inline font-semibold">
-                          Damage:{" "}
+                          {t("admin.damage")}:{" "}
                         </dt>
                         <dd className="inline">{inspection.damageNotes}</dd>
                       </div>
@@ -336,7 +363,12 @@ function ReservationBody({
                       >
                         <Image
                           src={photo.url}
-                          alt={`${inspection.type.toLowerCase()} inspection`}
+                          alt={t("admin.inspectionPhoto", {
+                            type:
+                              inspection.type === "PICKUP"
+                                ? t("admin.pickup").toLowerCase()
+                                : t("admin.return").toLowerCase(),
+                          })}
                           fill
                           sizes="8rem"
                           className="object-cover"
@@ -347,8 +379,12 @@ function ReservationBody({
                 )}
 
                 <p className="text-muted-foreground mt-3 border-t pt-2 text-[11px]">
-                  Acknowledged by {inspection.signerName} at{" "}
-                  {format(inspection.acknowledgedAt, "HH:mm")}
+                  {t("admin.acknowledgedBy", {
+                    name: inspection.signerName,
+                    time: format(inspection.acknowledgedAt, "HH:mm", {
+                      locale: dateLocale,
+                    }),
+                  })}
                 </p>
               </article>
             ))}
@@ -357,42 +393,48 @@ function ReservationBody({
       )}
 
       <section>
-        <SectionTitle icon={Mail}>Customer</SectionTitle>
+        <SectionTitle icon={Mail}>{t("admin.customer")}</SectionTitle>
         <div className="space-y-2 text-sm">
-          <Row label="Name">
+          <Row label={t("admin.name")}>
             {detail.customer.firstName} {detail.customer.lastName}
           </Row>
-          <Row label="Email">
+          <Row label={t("admin.email")}>
             <span className="truncate">{detail.customer.email}</span>
           </Row>
-          <Row label="Phone">
+          <Row label={t("admin.phone")}>
             <span className="flex items-center gap-1.5">
               <Phone className="text-muted-foreground h-3 w-3" />
               {detail.customer.phone}
             </span>
           </Row>
-          <Row label="Lifetime spend">
+          <Row label={t("admin.lifetimeSpend")}>
             <span className="font-semibold">{spend.toFixed(2)} EUR</span>
           </Row>
           {detail.customer.notes && (
             <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">
-              {detail.customer.notes}
+              {detail.customer.notes === "Repeat customer, prefers automatic."
+                ? t("admin.demoRepeatCustomer")
+                : detail.customer.notes}
             </p>
           )}
         </div>
       </section>
 
       <section>
-        <SectionTitle icon={Car}>Vehicle</SectionTitle>
+        <SectionTitle icon={Car}>{t("admin.vehicle")}</SectionTitle>
         <div className="space-y-2 text-sm">
-          <Row label="Category">
+          <Row label={t("admin.category")}>
             {detail.vehicle.category.charAt(0) +
               detail.vehicle.category.slice(1).toLowerCase()}
           </Row>
-          <Row label="Day rate">{eur(detail.vehicle.pricePerDay)}</Row>
+          <Row label={t("admin.dayRate")}>
+            {eur(detail.vehicle.pricePerDay)}
+          </Row>
           {detail.vehicle.registrationExpiry && (
-            <Row label="Registration">
-              {format(detail.vehicle.registrationExpiry, "dd MMM yyyy")}
+            <Row label={t("admin.registration")}>
+              {format(detail.vehicle.registrationExpiry, "dd MMM yyyy", {
+                locale: dateLocale,
+              })}
             </Row>
           )}
         </div>
@@ -400,7 +442,7 @@ function ReservationBody({
 
       <section>
         <SectionTitle icon={Receipt}>
-          Reservation history ({history.length})
+          {t("admin.reservationHistory", { count: history.length })}
         </SectionTitle>
         <ul className="divide-y">
           {history.map((r) => (
@@ -410,8 +452,10 @@ function ReservationBody({
                   {vehicleLabel(r.vehicle)}
                 </p>
                 <p className="text-muted-foreground">
-                  {format(r.pickupDate, "dd MMM")} -{" "}
-                  {format(r.returnDate, "dd MMM yyyy")}
+                  {format(r.pickupDate, "dd MMM", { locale: dateLocale })} -{" "}
+                  {format(r.returnDate, "dd MMM yyyy", {
+                    locale: dateLocale,
+                  })}
                 </p>
               </div>
               <span className="tabular-nums">{eur(r.totalPrice)}</span>

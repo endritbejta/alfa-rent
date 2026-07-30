@@ -80,27 +80,6 @@ const STEPS = [
   text: TranslationKey;
 }[];
 
-const REVIEWS = [
-  {
-    quote:
-      "Picked up the Tiguan for a family trip. It was spotless, comfortable, and exactly as described.",
-    name: "Liridon H.",
-    detail: "Family trip, Volkswagen Tiguan",
-  },
-  {
-    quote:
-      "Booked the E-Class for a wedding weekend. Spotless car, fair price, zero paperwork drama.",
-    name: "Vjosa R.",
-    detail: "Weekend rental, E-Class",
-  },
-  {
-    quote:
-      "Second summer in a row renting from Alfa. The price they quote is the price you pay.",
-    name: "Mark T.",
-    detail: "Two-week rental, RAV4 Hybrid",
-  },
-];
-
 export default async function HomePage() {
   const { t } = await getI18n();
   const { items: featured } = await getPublicVehicles({ page: 1, perPage: 3 });
@@ -216,32 +195,6 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
-        <span className="eyebrow text-muted-foreground">
-          {t("home.reviews")}
-        </span>
-        <h2 className="font-display mt-3 mb-12 text-3xl font-bold tracking-tight">
-          {t("home.reviewsTitle")}
-        </h2>
-        <div className="grid gap-6 md:grid-cols-3">
-          {REVIEWS.map((review) => (
-            <figure
-              key={review.name}
-              className="bg-card rounded-xl border p-6 shadow-xs"
-            >
-              <blockquote className="text-sm leading-relaxed">
-                &ldquo;{review.quote}&rdquo;
-              </blockquote>
-              <figcaption className="mt-4 border-t pt-4">
-                <p className="text-sm font-semibold">{review.name}</p>
-                <p className="text-muted-foreground text-xs">{review.detail}</p>
-              </figcaption>
-            </figure>
-          ))}
         </div>
       </section>
 

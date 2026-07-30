@@ -7,6 +7,7 @@ import {
   type PendingRequest,
 } from "./pending-request-card";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/shared/locale-provider";
 
 const STORAGE_KEY = "alfa.pending.layout";
 type Layout = "single" | "double";
@@ -24,6 +25,7 @@ export function PendingQueue({
   /** Dashboard shows a trimmed version above the day's numbers. */
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   // Default to one column: bigger cards, more detail, harder to skim past.
   const [layout, setLayout] = useState<Layout>("single");
 
@@ -46,9 +48,11 @@ export function PendingQueue({
     if (compact) return null;
     return (
       <div className="bg-card rounded-2xl border border-dashed px-6 py-12 text-center">
-        <p className="font-display text-lg font-bold">Nothing waiting</p>
+        <p className="font-display text-lg font-bold">
+          {t("admin.nothingWaiting")}
+        </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          Every request has been reviewed. Enjoy the quiet.
+          {t("admin.queueEmpty")}
         </p>
       </div>
     );
@@ -68,13 +72,13 @@ export function PendingQueue({
           </span>
           <div>
             <h2 className="font-display flex items-center gap-2 text-lg font-bold tracking-tight">
-              Pending requests
+              {t("admin.pendingRequests")}
               <span className="bg-brand rounded-full px-2 py-0.5 text-xs font-bold text-white tabular-nums">
                 {requests.length}
               </span>
             </h2>
             <p className="text-muted-foreground text-xs">
-              Process these first — customers are waiting on a decision
+              {t("admin.processFirst")}
             </p>
           </div>
         </div>
@@ -82,8 +86,8 @@ export function PendingQueue({
         <div className="bg-card inline-flex rounded-full border p-0.5">
           {(
             [
-              ["single", Rows3, "One column"],
-              ["double", Columns2, "Two columns"],
+              ["single", Rows3, t("admin.oneColumn")],
+              ["double", Columns2, t("admin.twoColumns")],
             ] as const
           ).map(([key, Icon, label]) => (
             <button

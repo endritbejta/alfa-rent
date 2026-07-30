@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Camera, LoaderCircle, Plus, X } from "lucide-react";
 import type { UploadSignature } from "@/lib/cloudinary";
 import { MAX_INSPECTION_PHOTOS } from "@/lib/validations/inspection";
+import { useI18n } from "@/components/shared/locale-provider";
 
 type Receipt = {
   publicId: string;
@@ -33,6 +34,7 @@ export function InspectionPhotoUpload({
   sign: () => Promise<SignResult>;
   onStateChange: (state: { uploading: boolean; hasErrors: boolean }) => void;
 }) {
+  const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function InspectionPhotoUpload({
           ) {
             patch(item.id, {
               status: "error",
-              message: result.error?.message ?? "Upload failed",
+              message: result.error?.message ?? t("admin.uploadFailed"),
             });
           } else {
             patch(item.id, {
@@ -94,12 +96,12 @@ export function InspectionPhotoUpload({
             });
           }
         } catch {
-          patch(item.id, { status: "error", message: "Upload failed" });
+          patch(item.id, { status: "error", message: t("admin.uploadFailed") });
         }
         resolve();
       };
       request.onerror = () => {
-        patch(item.id, { status: "error", message: "Network error" });
+        patch(item.id, { status: "error", message: t("admin.networkError") });
         resolve();
       };
       request.send(body);
@@ -113,11 +115,11 @@ export function InspectionPhotoUpload({
       .slice(0, room)
       .filter((file) => {
         if (!ACCEPTED.includes(file.type)) {
-          setError("Use JPEG, PNG, WebP or AVIF photos");
+          setError(t("admin.photoFormats"));
           return false;
         }
         if (file.size > MAX_BYTES) {
-          setError("Each photo must be 10 MB or smaller");
+          setError(t("admin.photoSize"));
           return false;
         }
         return true;
@@ -156,7 +158,9 @@ export function InspectionPhotoUpload({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <label className="text-xs font-semibold">Condition photos</label>
+        <label className="text-xs font-semibold">
+          {t("admin.conditionPhotos")}
+        </label>
         <span className="text-muted-foreground text-xs">
           {items.length} / {MAX_INSPECTION_PHOTOS}
         </span>
@@ -188,7 +192,7 @@ export function InspectionPhotoUpload({
             )}
             <button
               type="button"
-              aria-label="Remove photo"
+              aria-label={t("admin.removePhoto")}
               onClick={() => remove(item.id)}
               className="absolute top-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white"
             >
@@ -207,7 +211,7 @@ export function InspectionPhotoUpload({
             ) : (
               <Plus className="h-5 w-5" />
             )}
-            <span className="text-[10px]">Add photos</span>
+            <span className="text-[10px]">{t("admin.addPhotos")}</span>
           </button>
         )}
       </div>
@@ -228,7 +232,7 @@ export function InspectionPhotoUpload({
       )}
       {hasErrors && (
         <p role="alert" className="text-destructive mt-1 text-xs">
-          Remove failed photos and upload them again before saving.
+          {t("admin.photoErrors")}
         </p>
       )}
     </div>

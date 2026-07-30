@@ -50,10 +50,6 @@ export function businessMonthStart(date: Date): Date {
   return businessCalendarStart(`${businessDay(date).slice(0, 7)}-01`);
 }
 
-export function businessYearStart(date: Date): Date {
-  return businessCalendarStart(`${businessDay(date).slice(0, 4)}-01-01`);
-}
-
 export function businessWeekStart(date: Date): Date {
   const key = businessDay(date);
   const calendar = new Date(`${key}T12:00:00.000Z`);

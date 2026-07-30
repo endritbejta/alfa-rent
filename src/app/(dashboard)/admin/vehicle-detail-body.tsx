@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import {
   Coins,
   ShieldCheck,
@@ -14,6 +15,7 @@ import type { VehicleDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { SectionTitle, Row } from "./detail-primitives";
+import { useI18n } from "@/components/shared/locale-provider";
 
 const eur = (n: number) =>
   `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} EUR`;
@@ -26,6 +28,8 @@ const REG_TONE = {
 } as const;
 
 export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const { vehicle, registration, costs } = detail;
   const [cover, ...rest] = vehicle.images;
   const active = vehicle.reservations.find((r) => r.status === "ACTIVE");
@@ -73,61 +77,73 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
         {vehicle.images.length === 0 && (
           <p className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
             <Images className="h-3.5 w-3.5" />
-            No photos uploaded yet
+            {t("admin.noPhotos")}
           </p>
         )}
       </div>
 
       {/* Cost overview — the reason this drawer exists */}
       <section>
-        <SectionTitle icon={Coins}>Cost overview</SectionTitle>
+        <SectionTitle icon={Coins}>{t("admin.costOverview")}</SectionTitle>
         <div className="mb-3 grid grid-cols-2 gap-2">
-          <Metric label="Total spend" value={eur(costs.total)} />
-          <Metric label="Earned" value={eur(costs.earned)} />
+          <Metric label={t("admin.totalSpend")} value={eur(costs.total)} />
+          <Metric label={t("admin.earned")} value={eur(costs.earned)} />
           <Metric
-            label="Per year"
+            label={t("admin.perYear")}
             value={eur(costs.perYear)}
-            hint="running average"
+            hint={t("admin.runningAverage")}
           />
           <Metric
-            label="Net"
+            label={t("admin.net")}
             value={eur(costs.net)}
             tone={costs.net >= 0 ? "good" : "bad"}
           />
         </div>
         <div className="space-y-2 text-sm">
-          <Row label="Registration">{eur(costs.registration)}</Row>
-          <Row label="Servicing">{eur(costs.service)}</Row>
-          <Row label={`Repairs (${costs.repairCount})`}>
+          <Row label={t("admin.registration")}>{eur(costs.registration)}</Row>
+          <Row label={t("admin.servicing")}>{eur(costs.service)}</Row>
+          <Row label={t("admin.repairs", { count: costs.repairCount })}>
             {eur(costs.repairs)}
           </Row>
-          <Row label="Repairs this year">{eur(costs.repairsThisYear)}</Row>
-          <Row label="Per month">{eur(costs.perMonth)}</Row>
+          <Row label={t("admin.repairsYear")}>{eur(costs.repairsThisYear)}</Row>
+          <Row label={t("admin.perMonth")}>{eur(costs.perMonth)}</Row>
         </div>
       </section>
 
       {/* Legal */}
       <section>
-        <SectionTitle icon={ShieldCheck}>Registration</SectionTitle>
+        <SectionTitle icon={ShieldCheck}>
+          {t("admin.registration")}
+        </SectionTitle>
         <div className="space-y-2 text-sm">
-          <Row label="Plate">
-            <span className="font-mono">{vehicle.plate ?? "Not set"}</span>
+          <Row label={t("admin.plate")}>
+            <span className="font-mono">
+              {vehicle.plate ?? t("admin.notSet")}
+            </span>
           </Row>
-          <Row label="Registered">
+          <Row label={t("admin.registered")}>
             {vehicle.registrationDate
-              ? format(vehicle.registrationDate, "dd MMM yyyy")
-              : "Not set"}
+              ? format(vehicle.registrationDate, "dd MMM yyyy", {
+                  locale: dateLocale,
+                })
+              : t("admin.notSet")}
           </Row>
-          <Row label="Expires">
+          <Row label={t("admin.expires")}>
             <span className={REG_TONE[registration.state]}>
               {vehicle.registrationExpiry
-                ? format(vehicle.registrationExpiry, "dd MMM yyyy")
-                : "Not set"}
+                ? format(vehicle.registrationExpiry, "dd MMM yyyy", {
+                    locale: dateLocale,
+                  })
+                : t("admin.notSet")}
               {registration.daysLeft !== null &&
                 (registration.state === "expired"
-                  ? ` (${Math.abs(registration.daysLeft)}d overdue)`
+                  ? ` (${t("admin.daysOverdue", {
+                      count: Math.abs(registration.daysLeft),
+                    })})`
                   : registration.state === "due"
-                    ? ` (${registration.daysLeft}d left)`
+                    ? ` (${t("admin.daysLeft", {
+                        count: registration.daysLeft,
+                      })})`
                     : "")}
             </span>
           </Row>
@@ -136,17 +152,21 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
 
       {/* Maintenance */}
       <section>
-        <SectionTitle icon={Wrench}>Maintenance</SectionTitle>
+        <SectionTitle icon={Wrench}>{t("admin.maintenance")}</SectionTitle>
         <div className="space-y-2 text-sm">
-          <Row label="Last service">
+          <Row label={t("admin.lastService")}>
             {vehicle.lastServiceDate
-              ? format(vehicle.lastServiceDate, "dd MMM yyyy")
-              : "Not set"}
+              ? format(vehicle.lastServiceDate, "dd MMM yyyy", {
+                  locale: dateLocale,
+                })
+              : t("admin.notSet")}
           </Row>
-          <Row label="Next due">
+          <Row label={t("admin.nextDue")}>
             {vehicle.nextServiceDate
-              ? format(vehicle.nextServiceDate, "dd MMM yyyy")
-              : "Not set"}
+              ? format(vehicle.nextServiceDate, "dd MMM yyyy", {
+                  locale: dateLocale,
+                })
+              : t("admin.notSet")}
           </Row>
         </div>
         {vehicle.serviceNotes && (
@@ -164,7 +184,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{r.description}</p>
                   <p className="text-muted-foreground">
-                    {format(r.date, "dd MMM yyyy")}
+                    {format(r.date, "dd MMM yyyy", { locale: dateLocale })}
                   </p>
                 </div>
                 <span className="shrink-0 tabular-nums">
@@ -179,12 +199,14 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
       {/* Availability */}
       <section>
         <SectionTitle icon={CalendarRange}>
-          Reservations ({vehicle.reservations.length})
+          {t("common.reservations")} ({vehicle.reservations.length})
         </SectionTitle>
         {active && (
           <p className="bg-status-rented/10 text-status-rented mb-2 rounded-lg px-3 py-2 text-xs font-semibold">
-            Out now with {active.customer.firstName} {active.customer.lastName}{" "}
-            until {format(active.returnDate, "dd MMM")}
+            {t("admin.outNow", {
+              name: `${active.customer.firstName} ${active.customer.lastName}`,
+              date: format(active.returnDate, "dd MMM", { locale: dateLocale }),
+            })}
           </p>
         )}
         <ul className="divide-y">
@@ -195,8 +217,10 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
                   {r.customer.firstName} {r.customer.lastName}
                 </p>
                 <p className="text-muted-foreground">
-                  {format(r.pickupDate, "dd MMM")} -{" "}
-                  {format(r.returnDate, "dd MMM yyyy")}
+                  {format(r.pickupDate, "dd MMM", { locale: dateLocale })} -{" "}
+                  {format(r.returnDate, "dd MMM yyyy", {
+                    locale: dateLocale,
+                  })}
                 </p>
               </div>
               <StatusBadge status={r.status} />
@@ -211,7 +235,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
         nativeButton={false}
         render={<Link href={`/admin/vehicles/${vehicle.id}/edit`} />}
       >
-        Edit vehicle and repairs
+        {t("admin.editVehicleRepairs")}
       </Button>
     </div>
   );

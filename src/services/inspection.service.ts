@@ -156,10 +156,25 @@ export async function recordRentalInspection(
           "Reservation changed while you were working. Refresh and try again."
         );
       }
-      await tx.vehicle.updateMany({
+      /**
+       * Deliberately not guarded the way the PICKUP branch above is: the car
+       * is physically back, so the return must always be recorded. If staff
+       * moved the vehicle to SERVICE mid-rental it should stay there — the
+       * filter is what keeps a deliberate off-road state from being clobbered.
+       *
+       * A miss is still worth knowing about, because it is the only way a
+       * vehicle leaves an active rental without returning to the fleet, and
+       * nothing else reconciles that.
+       */
+      const released = await tx.vehicle.updateMany({
         where: { id: reservation.vehicleId, status: "RENTED" },
         data: { status: "AVAILABLE" },
       });
+      if (released.count !== 1) {
+        console.error(
+          `Vehicle ${reservation.vehicleId} was not RENTED at return of reservation ${reservationId}; leaving its status unchanged.`
+        );
+      }
     }
 
     return inspection;

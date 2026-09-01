@@ -95,6 +95,15 @@ export default async function DashboardPage() {
           },
           { label: t("admin.available"), value: kpis.available, tone: "good" },
           {
+            // A vehicle in service earns nothing and is invisible on the
+            // storefront, and nothing else on the dashboard reports it. Without
+            // this, a car parked in SERVICE — including one left there by a
+            // return that could not release it — stays forgotten.
+            label: t("admin.inService"),
+            value: kpis.maintenance,
+            tone: kpis.maintenance > 0 ? "warn" : "default",
+          },
+          {
             label: t("admin.revenueWeek"),
             value: `${kpis.revenueWeek.toLocaleString()} EUR`,
           },

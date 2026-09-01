@@ -110,6 +110,8 @@ const en = {
   "booking.validEmail": "Enter a valid email",
   "booking.validPhone": "Enter a valid phone number",
   "booking.rangeError": "Return must be after pickup",
+  "booking.sendError":
+    "Your request could not be sent. Check your connection and try again.",
   "detail.transmission": "Transmission",
   "detail.fuel": "Fuel",
   "detail.seats": "Seats",
@@ -710,6 +712,8 @@ const sq: TranslationDictionary = {
   "booking.validEmail": "Shkruaj një email të vlefshëm",
   "booking.validPhone": "Shkruaj një numër telefoni të vlefshëm",
   "booking.rangeError": "Kthimi duhet të jetë pas marrjes",
+  "booking.sendError":
+    "Kërkesa jote nuk mund të dërgohej. Kontrollo lidhjen dhe provo përsëri.",
   "detail.transmission": "Transmisioni",
   "detail.fuel": "Karburanti",
   "detail.seats": "Ulëset",

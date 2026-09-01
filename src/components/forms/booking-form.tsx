@@ -142,30 +142,42 @@ export function BookingForm({
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [confirmation]);
 
+  /**
+   * Everything from the request onward is inside the try, including
+   * response.json(): a proxy that answers a 502 with an HTML body fails there,
+   * not at the fetch. Without this the promise rejects, react-hook-form clears
+   * isSubmitting and rethrows, and React 19 does not route an event-handler
+   * rejection to an error boundary — so the button would quietly return to
+   * "Send" and the customer would be told nothing at all.
+   */
   const onSubmit = async (data: FormValues) => {
     setServerError(null);
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        vehicleId: data.vehicleId,
-        pickupDate: `${data.from}T10:00:00Z`,
-        returnDate: `${data.to}T10:00:00Z`,
-        customer: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-        },
-        notes: data.notes || undefined,
-      }),
-    });
-    const json: ApiResponse<Confirmation> = await response.json();
-    if (!json.success) {
-      setServerError(json.error.message);
-      return;
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleId: data.vehicleId,
+          pickupDate: `${data.from}T10:00:00Z`,
+          returnDate: `${data.to}T10:00:00Z`,
+          customer: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+          },
+          notes: data.notes || undefined,
+        }),
+      });
+      const json: ApiResponse<Confirmation> = await response.json();
+      if (!json.success) {
+        setServerError(json.error.message);
+        return;
+      }
+      setConfirmation(json.data);
+    } catch {
+      setServerError(t("booking.sendError"));
     }
-    setConfirmation(json.data);
   };
 
   if (confirmation) {

@@ -40,6 +40,27 @@ describe("consumeRateLimit", () => {
     queryRaw.mockResolvedValue([]);
     expect((await consumeRateLimit("k", 8, 3600)).allowed).toBe(true);
   });
+
+  /**
+   * The empty-result case above is the rare fault; a throwing query is the
+   * common one. authorize() has no catch, so a limiter that rethrows turns a
+   * transient database blip into a failed sign-in for every staff member.
+   */
+  it("fails open when the query itself throws, not just when it returns nothing", async () => {
+    // ...Once, not a persistent implementation: a throwing stub left installed
+    // on the shared spy outlives the test body and is invoked again during
+    // teardown, which Vitest reports as a failure even though the code under
+    // test caught the throw it was given.
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    queryRaw.mockImplementationOnce(() => {
+      throw new Error("Timed out fetching a connection");
+    });
+    const result = await consumeRateLimit("k", 8, 3600);
+    logged.mockRestore();
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(8);
+    expect(result.retryAfter).toBe(0);
+  });
 });
 
 describe("clientIp", () => {

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import type { ApiFailure } from "@/types/api";
+import { reportError } from "@/lib/observability";
 
 export class AppError extends Error {
   constructor(
@@ -122,7 +123,7 @@ export function normalizeError(error: unknown): {
     );
   }
 
-  console.error("Unhandled error:", error);
+  reportError(error, { scope: "normalize-error" });
   return {
     status: 500,
     body: {

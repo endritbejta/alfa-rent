@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { reportError } from "@/lib/observability";
 
 export type RateLimitResult = {
   allowed: boolean;
@@ -56,7 +57,7 @@ export async function consumeRateLimit(
     // pooler capped at one connection. Failing closed here turns a transient
     // database blip into "invalid credentials" for every staff member at once,
     // because authorize() has no catch of its own.
-    console.error("Rate limiter unavailable, allowing request:", error);
+    reportError(error, { scope: "rate-limit", key });
     return open;
   }
 

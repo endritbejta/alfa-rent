@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { reportError } from "@/lib/observability";
 
 /**
  * Catches anything thrown while rendering an admin page — a failed guard, a
@@ -24,8 +25,7 @@ export default function AdminError({
 }) {
   const { t } = useI18n();
   useEffect(() => {
-    // Until a reporter is wired up, the platform log is the only record.
-    console.error("Admin route error:", error);
+    reportError(error, { scope: "admin-boundary", digest: error.digest });
   }, [error]);
 
   return (

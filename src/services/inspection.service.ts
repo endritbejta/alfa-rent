@@ -8,6 +8,7 @@ import {
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { getReservationTiming } from "@/lib/reservation-lifecycle";
 import type { RentalInspectionInput } from "@/lib/validations/inspection";
+import { reportError } from "@/lib/observability";
 
 function expectedInspection(status: string): InspectionType | null {
   if (status === "CONFIRMED") return "PICKUP";
@@ -171,8 +172,13 @@ export async function recordRentalInspection(
         data: { status: "AVAILABLE" },
       });
       if (released.count !== 1) {
-        console.error(
-          `Vehicle ${reservation.vehicleId} was not RENTED at return of reservation ${reservationId}; leaving its status unchanged.`
+        reportError(
+          new Error("Vehicle was not RENTED at return; status left unchanged"),
+          {
+            scope: "inspection-return",
+            reservationId,
+            vehicleId: reservation.vehicleId,
+          }
         );
       }
     }

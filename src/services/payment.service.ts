@@ -14,6 +14,7 @@ import { verifyPaymentAccessToken } from "@/lib/payments/access-token";
 import type { PaymentWebhookEvent } from "@/lib/payments/provider";
 import { getPaymentProvider } from "@/lib/payments/registry";
 import { canApplyPaymentStatus } from "@/lib/payments/status";
+import { reportError } from "@/lib/observability";
 
 const REUSABLE_CHECKOUT_STATUSES: PaymentStatus[] = ["PENDING", "PROCESSING"];
 
@@ -145,7 +146,11 @@ export async function createPaymentCheckout(
         failureMessage: "The bank checkout could not be created",
       },
     });
-    console.error("Payment checkout creation failed:", error);
+    reportError(error, {
+      scope: "payment-checkout",
+      reservationId,
+      paymentId: payment.id,
+    });
     throw new ServiceUnavailableError(
       "The bank checkout is temporarily unavailable. No payment was taken."
     );

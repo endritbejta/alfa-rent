@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { reportError } from "@/lib/observability";
 
 /** Keeps a failed public page inside the brand instead of a stack trace. */
 export default function WebsiteError({
@@ -15,7 +16,7 @@ export default function WebsiteError({
 }) {
   const { t } = useI18n();
   useEffect(() => {
-    console.error("Website route error:", error);
+    reportError(error, { scope: "website-boundary", digest: error.digest });
   }, [error]);
 
   return (

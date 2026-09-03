@@ -6,39 +6,46 @@ and customers.
 
 ## Tech Stack
 
-| Layer      | Technology                                           |
-| ---------- | ---------------------------------------------------- |
-| Framework  | Next.js 16 (App Router), TypeScript                  |
-| UI         | Tailwind CSS, shadcn/ui, Framer Motion, lucide-react |
-| Forms      | React Hook Form + Zod                                |
-| Data       | Prisma ORM + PostgreSQL (Supabase in production)     |
-| Auth       | Auth.js (credentials, role-based)                    |
-| Images     | Cloudinary                                           |
-| Deployment | Vercel                                               |
+| Layer      | Technology                                                  |
+| ---------- | ----------------------------------------------------------- |
+| Framework  | Next.js 16 (App Router), TypeScript                         |
+| UI         | Tailwind CSS, shadcn/ui (**Base UI** flavour), lucide-react |
+| Forms      | React Hook Form + Zod                                       |
+| Data       | Prisma ORM + PostgreSQL (Supabase in production)            |
+| Auth       | Auth.js (credentials, role-based)                           |
+| Images     | Cloudinary                                                  |
+| Deployment | Vercel                                                      |
 
 ## Getting Started
 
+Requires Node (see `.nvmrc`) and Docker.
+
 ```bash
-# 1. Install dependencies
 npm install
 
-# 2. Configure environment
-cp .env.example .env
-# Fill in DATABASE_URL, AUTH_SECRET, Cloudinary keys
+# Starts postgres in Docker, creates .env from .env.example with a generated
+# development AUTH_SECRET, and applies migrations. Add --seed for demo data.
+npm run db:setup -- --seed
 
-# 3. Set up the database (requires a running PostgreSQL, e.g. `brew services start postgresql`)
-createdb alfa_rent   # once
-npx prisma migrate dev
-
-# The seed deletes all application data. Use distinct 16+ character passwords.
-ALLOW_DESTRUCTIVE_SEED=WIPE_AND_RESEED \
-SEED_ADMIN_PASSWORD="<unique-admin-password>" \
-SEED_EMPLOYEE_PASSWORD="<unique-employee-password>" \
-npx prisma db seed
-
-# 4. Run the dev server
 npm run dev
 ```
+
+Cloudinary keys are left blank by `db:setup`; image upload stays broken until
+you fill them into `.env`. Everything else works without them.
+
+|                              |                                                 |
+| ---------------------------- | ----------------------------------------------- |
+| `npm run db:setup`           | schema only (safe to re-run)                    |
+| `npm run db:setup -- --seed` | schema + demo data — **wipes application data** |
+| `npm run db:down`            | stop the container, keep the data               |
+| `npm run db:reset`           | destroy the volume and rebuild from scratch     |
+
+> **Never run `prisma migrate dev`, `migrate reset` or `db push`.** Four objects
+> are not modelled in `schema.prisma` — the `reservations_no_overlap` exclusion
+> constraint, the `btree_gist` extension, row-level security on every table, and
+> two CHECK constraints — and those commands drop all four. Write migrations by
+> hand and apply them with `prisma migrate deploy`, which is what `db:setup`
+> does. `npm run test:integration` fails if any of the four is missing.
 
 ## Architecture
 
@@ -57,7 +64,6 @@ src/
     db/             # Prisma client singleton
     cloudinary/     # Upload/delete helpers, signed upload params
     validations/    # Zod schemas shared by client and server
-  hooks/            # Client-side React hooks
   services/         # ALL business logic (vehicle, reservation, customer)
   types/            # Shared TypeScript types
   utils/            # Pure utility functions
@@ -95,8 +101,10 @@ prisma/
 
 - `npm run dev` — dev server (Turbopack)
 - `npm run build` — production build (no database needed)
-- `npm test` — vitest
+- `npm test` — unit tests; needs no database
+- `npm run test:integration` — database-backed tests; refuses a non-local `DATABASE_URL`
 - `npm run lint` — ESLint
+- `npm run typecheck` — `tsc --noEmit` (also runs on pre-commit)
 - `npx prettier --write .` — format
 - Husky runs lint on pre-commit
 - Branch from `main`, conventional commit messages (`feat:`, `fix:`, `chore:`)

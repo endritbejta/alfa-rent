@@ -13,6 +13,7 @@ import {
 } from "@/lib/cloudinary";
 import {
   createVehicleSchema,
+  parseVehicleFields,
   updateVehicleSchema,
 } from "@/lib/validations/vehicle";
 import { parseVehicleImagesField } from "@/lib/validations/image";
@@ -28,27 +29,6 @@ import { parseRepairFields } from "@/lib/validations/repair";
 export type ActionResult = { error: string } | undefined;
 
 /** Vehicle management is ADMIN-only; EMPLOYEE manages reservations. */
-
-function parseVehicleFields(formData: FormData) {
-  return {
-    brand: formData.get("brand"),
-    model: formData.get("model"),
-    plate: formData.get("plate") || undefined,
-    year: Number(formData.get("year")),
-    category: formData.get("category"),
-    transmission: formData.get("transmission"),
-    fuelType: formData.get("fuelType"),
-    seats: Number(formData.get("seats")),
-    pricePerDay: Number(formData.get("pricePerDay")),
-    description: formData.get("description"),
-    status: formData.get("status") ?? undefined,
-    registrationDate: formData.get("registrationDate") || undefined,
-    registrationExpiry: formData.get("registrationExpiry") || undefined,
-    lastServiceDate: formData.get("lastServiceDate") || undefined,
-    nextServiceDate: formData.get("nextServiceDate") || undefined,
-    serviceNotes: formData.get("serviceNotes") || undefined,
-  };
-}
 
 /**
  * Mints a short-lived Cloudinary signature so the browser can upload the

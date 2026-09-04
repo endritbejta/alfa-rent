@@ -198,9 +198,15 @@ export async function applyPaymentEvent(event: PaymentWebhookEvent) {
       data: {
         status: event.status,
         lastEventAt: event.occurredAt,
+        // Left undefined on a non-success event on purpose: a payment that
+        // already settled keeps the moment it settled.
         paidAt: event.status === "SUCCEEDED" ? event.occurredAt : undefined,
-        failureCode: event.failureCode,
-        failureMessage: event.failureMessage,
+        // `?? null`, not the bare value. These describe the *current* status,
+        // and Prisma reads undefined as "leave unchanged" — so a
+        // FAILED → SUCCEEDED transition (which the status table allows) would
+        // otherwise keep the old decline reason attached to a paid booking.
+        failureCode: event.failureCode ?? null,
+        failureMessage: event.failureMessage ?? null,
       },
     });
   });

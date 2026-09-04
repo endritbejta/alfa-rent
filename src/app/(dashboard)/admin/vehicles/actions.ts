@@ -23,7 +23,7 @@ import {
 } from "@/services/vehicle.service";
 import { syncVehicleImages } from "@/services/image.service";
 import { addRepair, deleteRepair } from "@/services/fleet.service";
-import { repairSchema } from "@/lib/validations/repair";
+import { parseRepairFields } from "@/lib/validations/repair";
 
 export type ActionResult = { error: string } | undefined;
 
@@ -136,13 +136,7 @@ export async function addRepairAction(
 ): Promise<ActionResult> {
   await requireRole("ADMIN");
   try {
-    const input = repairSchema.parse({
-      date: formData.get("date"),
-      cost: formData.get("cost"),
-      description: formData.get("description"),
-      notes: formData.get("notes") || undefined,
-      reference: formData.get("reference") || undefined,
-    });
+    const input = parseRepairFields(formData);
     await addRepair(vehicleId, input);
   } catch (error) {
     return { error: normalizeError(error).body.error.message };

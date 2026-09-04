@@ -321,7 +321,16 @@ export function VehicleForm({
                   defaultValue={vehicle?.status ?? "AVAILABLE"}
                 >
                   {Object.values(VehicleStatus).map((s) => (
-                    <option key={s} value={s}>
+                    <option
+                      key={s}
+                      value={s}
+                      // RENTED is a fact about a reservation, not something to
+                      // pick: only the pickup handover sets it and only the
+                      // return clears it. It stays in the list so a rented
+                      // vehicle still shows its own status, but it cannot be
+                      // chosen — the service refuses it either way.
+                      disabled={s === "RENTED" && vehicle?.status !== "RENTED"}
+                    >
                       {s === "AVAILABLE"
                         ? t("vehicle.available")
                         : s === "RENTED"

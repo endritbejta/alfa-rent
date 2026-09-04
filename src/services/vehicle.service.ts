@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { deleteAllVehicleImages } from "@/services/image.service";
 import type {
   CreateVehicleInput,
@@ -213,10 +213,85 @@ export async function createVehicle(
   });
 }
 
+/**
+ * Statuses an operator may choose directly.
+ *
+ * `RENTED` is absent on purpose: it means "a rental is out", which is a fact
+ * about a reservation, not an attribute someone types in. Only the pickup
+ * handover sets it, and only the return clears it.
+ */
+const OPERATOR_SETTABLE_STATUSES: VehicleStatus[] = [
+  "AVAILABLE",
+  "SERVICE",
+  "INACTIVE",
+];
+
+/**
+ * Guards the one column on this model that is a second source of truth.
+ *
+ * `Vehicle.status` duplicates something the reservations already say, and it
+ * had three writers with three different rules — the handover, the soft
+ * retire, and this update, which wrote whatever it was handed. That let an
+ * admin mark a car AVAILABLE while it was out on rental, after which the
+ * return could not release it and the car could end up off the fleet with
+ * nothing reporting it.
+ *
+ * Only a *change* is checked: saving an unrelated field on a rented car must
+ * keep working, and the form posts `status` on every submit.
+ */
+async function assertStatusChangeAllowed(
+  id: string,
+  current: VehicleStatus,
+  next: VehicleStatus
+) {
+  if (next === current) return;
+
+  if (!OPERATOR_SETTABLE_STATUSES.includes(next)) {
+    throw new ValidationError(
+      "A vehicle becomes rented when its pickup inspection is recorded, not by being set here."
+    );
+  }
+
+  const openCount = await prisma.reservation.count({
+    where: {
+      vehicleId: id,
+      status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
+    },
+  });
+  const activeCount = await prisma.reservation.count({
+    where: { vehicleId: id, status: "ACTIVE" },
+  });
+
+  // The car is physically out. Calling it available would contradict the
+  // rental and strand it: the return releases only a RENTED vehicle.
+  if (next === "AVAILABLE" && activeCount > 0) {
+    throw new ConflictError(
+      "This vehicle is out on an active rental. Complete the return inspection before marking it available."
+    );
+  }
+
+  // Matches deleteVehicle, which already refuses to retire a vehicle with
+  // commitments against it.
+  if (next === "INACTIVE" && openCount > 0) {
+    throw new ConflictError(
+      "This vehicle has open reservations. Cancel or complete them before retiring it."
+    );
+  }
+}
+
 export async function updateVehicle(
   id: string,
   input: UpdateVehicleInput
 ): Promise<VehicleWithImages> {
+  if (input.status) {
+    const existing = await prisma.vehicle.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!existing) throw new NotFoundError("Vehicle");
+    await assertStatusChangeAllowed(id, existing.status, input.status);
+  }
+
   return prisma.vehicle.update({
     where: { id },
     data: input,

@@ -19,7 +19,7 @@ import { getDashboardData } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Panel } from "@/components/dashboard/panel";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
-import { CalendarTimeline } from "@/components/dashboard/calendar-timeline";
+import { CalendarTimeline } from "./calendar-timeline";
 import { vehicleIdentifier } from "@/utils/vehicle";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";

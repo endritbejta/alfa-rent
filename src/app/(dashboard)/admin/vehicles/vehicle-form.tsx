@@ -23,8 +23,8 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import type { ActionResult } from "@/app/(dashboard)/admin/vehicles/actions";
-import { signVehicleUploadAction } from "@/app/(dashboard)/admin/vehicles/actions";
+import type { ActionResult } from "./actions";
+import { signVehicleUploadAction } from "./actions";
 import { MediaGrid } from "@/components/forms/media-grid";
 import {
   DateField,

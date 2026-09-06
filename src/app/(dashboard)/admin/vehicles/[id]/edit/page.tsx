@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/auth/guards";
 import { getVehicleById } from "@/services/vehicle.service";
 import { getVehicleFleetProfile } from "@/services/fleet.service";
-import { VehicleForm } from "@/components/forms/vehicle-form";
+import { VehicleForm } from "../../vehicle-form";
 import { RepairsPanel } from "./repairs";
 import { deleteVehicleAction, updateVehicleAction } from "../../actions";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";

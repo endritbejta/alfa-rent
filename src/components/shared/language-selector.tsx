@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Languages, LoaderCircle } from "lucide-react";
-import { setLocaleAction } from "@/app/locale-actions";
+import { setLocaleAction } from "@/lib/i18n/locale-actions";
 import { useI18n } from "@/components/shared/locale-provider";
 import { cn } from "@/lib/utils";
 

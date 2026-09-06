@@ -6,6 +6,7 @@ import {
   verifyUploadSignature,
 } from "@/lib/cloudinary";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import { reportError } from "@/lib/observability";
 import {
   MAX_VEHICLE_IMAGES,
   type VehicleImageItem,
@@ -64,39 +65,98 @@ export async function syncVehicleImages(
   const kept = new Set(
     items.flatMap((item) => (item.kind === "existing" ? [item.id] : []))
   );
+  const removed = vehicle.images.filter((image) => !kept.has(image.id));
 
-  // Cloudinary first: if it fails the DB row survives and the operation can
-  // be retried; the reverse order would strand an unreferenced asset.
-  for (const image of vehicle.images) {
-    if (kept.has(image.id)) continue;
-    await deleteImage(image.publicId);
-    await prisma.vehicleImage.delete({ where: { id: image.id } });
-  }
+  /*
+   * Cloudinary before the database, deliberately: if a destroy fails the row
+   * survives and the operator can retry, where the reverse order would leave
+   * an asset nothing points at. What changed is that the calls no longer wait
+   * on each other — replacing eight photos used to be up to thirty-two
+   * strictly sequential round trips, alternating between Cloudinary and
+   * Postgres.
+   *
+   * allSettled rather than all: one destroy failing should not keep the other
+   * seven rows, whose assets are already gone.
+   */
+  const destroyed = await Promise.allSettled(
+    removed.map((image) => deleteImage(image.publicId))
+  );
+  const goneIds = removed
+    .filter((_, i) => destroyed[i]?.status === "fulfilled")
+    .map((image) => image.id);
 
-  for (const [index, item] of items.entries()) {
-    if (item.kind === "existing") {
-      await prisma.vehicleImage.update({
-        where: { id: item.id },
-        data: { sortOrder: index },
-      });
-      continue;
-    }
-
-    // Photos added before the vehicle existed were parked in a draft folder.
-    const asset = item.publicId.includes("/_drafts/")
-      ? await moveIntoVehicleFolder(item.publicId, vehicleId)
-      : {
+  // Drafts were parked in a folder of their own before the vehicle existed.
+  // Nothing has been written yet, so a failure here is safe to throw on.
+  const moved: string[] = [];
+  const assets = await Promise.all(
+    items.map(async (item) => {
+      if (item.kind === "existing") return null;
+      if (!item.publicId.includes("/_drafts/")) {
+        return {
           publicId: item.publicId,
           url: buildImageUrl(item.publicId, item.version),
         };
+      }
+      const asset = await moveIntoVehicleFolder(item.publicId, vehicleId);
+      moved.push(asset.publicId);
+      return asset;
+    })
+  );
 
-    await prisma.vehicleImage.create({
-      data: {
-        vehicleId,
-        url: asset.url,
-        publicId: asset.publicId,
-        sortOrder: index,
-      },
+  /*
+   * One transaction for every row change, so a failure can no longer leave a
+   * gallery in a state no single save produced — some photos removed, some
+   * positions rewritten, some new rows in. The Cloudinary calls are finished
+   * before it opens: holding a transaction across network I/O against a pooler
+   * capped at one connection is worse than the problem it solves.
+   */
+  try {
+    await prisma.$transaction([
+      prisma.vehicleImage.deleteMany({ where: { id: { in: goneIds } } }),
+      ...items.flatMap((item, index) =>
+        item.kind === "existing"
+          ? [
+              prisma.vehicleImage.update({
+                where: { id: item.id },
+                data: { sortOrder: index },
+              }),
+            ]
+          : []
+      ),
+      prisma.vehicleImage.createMany({
+        data: items.flatMap((item, index) => {
+          const asset = assets[index];
+          return item.kind === "existing" || !asset
+            ? []
+            : [
+                {
+                  vehicleId,
+                  url: asset.url,
+                  publicId: asset.publicId,
+                  sortOrder: index,
+                },
+              ];
+        }),
+      }),
+    ]);
+  } catch (error) {
+    // Anything renamed out of the draft folder now sits in the vehicle's
+    // folder with nothing pointing at it. The gallery itself is untouched,
+    // which is the property worth keeping.
+    reportError(error, {
+      scope: "sync-vehicle-images",
+      vehicleId,
+      strandedPublicIds: moved,
     });
+    throw error;
+  }
+
+  const failed = removed.length - goneIds.length;
+  if (failed > 0) {
+    throw new ValidationError(
+      failed === 1
+        ? "One photo could not be removed. Save again to finish."
+        : `${failed} photos could not be removed. Save again to finish.`
+    );
   }
 }

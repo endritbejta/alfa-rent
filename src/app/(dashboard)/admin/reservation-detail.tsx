@@ -18,7 +18,7 @@ import { ReservationBody } from "./reservation-body";
 import { VehicleDetailBody } from "./vehicle-detail-body";
 import { CustomerDetailBody } from "./customer-detail-body";
 import { DrawerSkeleton } from "./detail-primitives";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { useI18n } from "@/components/shared/locale-provider";
 
 type Loaded =

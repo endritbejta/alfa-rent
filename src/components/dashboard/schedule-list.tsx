@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/empty-state";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { useI18n } from "@/components/shared/locale-provider";
 

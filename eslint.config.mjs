@@ -20,12 +20,7 @@ const eslintConfig = defineConfig([
     // could not be read or reused without the route coming along. Anything
     // a route needs to hand a shared component is a prop or a module that
     // belongs in the shared layer to begin with.
-    files: [
-      "src/components/**",
-      "src/lib/**",
-      "src/services/**",
-      "src/utils/**",
-    ],
+    files: ["src/components/**", "src/lib/**", "src/services/**"],
     rules: {
       "no-restricted-imports": [
         "error",

@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import {
   Table,
   TableBody,

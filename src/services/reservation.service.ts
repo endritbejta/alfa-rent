@@ -6,8 +6,8 @@ import {
 import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { calculateTotalPrice, rentalDays } from "@/utils/pricing";
-import { latestUnder, withTimeOfDay } from "@/utils/rental-dates";
+import { calculateTotalPrice, rentalDays } from "@/lib/pricing";
+import { latestUnder, withTimeOfDay } from "@/lib/rental-dates";
 import {
   getReservationTiming,
   rentalCalendarDay,

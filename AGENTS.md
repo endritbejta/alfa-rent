@@ -54,6 +54,21 @@ these are the ones you can violate before reading it.
   `setTimeout(…, 0)`. Do **not** reach for `requestAnimationFrame` — it does not
   fire in headless or non-painting contexts and silently broke two features.
 
+## Where a file goes
+
+- **`src/lib/` holds everything shared.** There is no `src/utils/`; it existed
+  alongside `lib/` with no rule telling them apart, so three files sat in one
+  and five indistinguishable ones in the other. Give a concern its own module
+  in `lib/` (`pricing.ts`, `rental-dates.ts`, `vehicle-label.ts`); the truly
+  generic one-liners go in `lib/utils.ts`, where `cn` already lives.
+- **`src/components/`, `src/lib/`, `src/services/` may not import from
+  `src/app/`.** ESLint enforces it. If a shared component needs something from
+  a route, either the thing belongs in the shared layer or the component
+  belongs next to the route — a component with one consumer is a route
+  component wherever its file happens to sit.
+- Server actions are not required to live under `src/app/`. `lib/i18n/locale-actions.ts`
+  is a `"use server"` file, and it sits with the config it reads.
+
 ## Verifying
 
 - **Verify through the page, not the service.** A service-level test passed

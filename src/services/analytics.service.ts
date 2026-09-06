@@ -1,6 +1,6 @@
 import { addDays, format, subMonths, subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import {
   businessDay,
   businessDayStart,

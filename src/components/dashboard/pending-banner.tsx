@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BellRing, ArrowRight, ShieldAlert, X } from "lucide-react";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { useI18n } from "@/components/shared/locale-provider";
 
 type RegistrationAlert = {

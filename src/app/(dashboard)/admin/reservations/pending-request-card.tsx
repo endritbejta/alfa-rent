@@ -9,7 +9,7 @@ import { enUS, sq } from "date-fns/locale";
 import { CalendarRange, Clock, Mail, Phone, Car } from "lucide-react";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusActions } from "./status-actions";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
 

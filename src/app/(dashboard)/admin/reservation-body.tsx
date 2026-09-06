@@ -16,7 +16,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./reservations/status-actions";
 import { ExtendReservation } from "./reservations/extend-reservation";
 import { SectionTitle, Row } from "./detail-primitives";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { InspectionAction } from "./reservations/inspection-action";
 import { useI18n } from "@/components/shared/locale-provider";

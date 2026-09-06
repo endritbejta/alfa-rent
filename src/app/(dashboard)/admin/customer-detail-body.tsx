@@ -5,7 +5,7 @@ import { enUS, sq } from "date-fns/locale";
 import { Mail, Phone, Receipt, IdCard } from "lucide-react";
 import type { CustomerDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { SectionTitle, Row } from "./detail-primitives";
 import { useI18n } from "@/components/shared/locale-provider";
 

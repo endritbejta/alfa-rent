@@ -44,6 +44,9 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
  * them here turns a confusing round-trip failure into an instant, specific
  * message. Raise alongside the Cloudinary plan, not on its own.
  */
+/** A phone photo on a slow connection is slow, not broken. */
+const UPLOAD_TIMEOUT_MS = 60_000;
+
 const MAX_BYTES = 10 * 1024 * 1024;
 
 type CloudinaryUploadResponse = {
@@ -228,6 +231,18 @@ export function MediaGrid({
           signature: result!.signature,
           progress: 100,
         });
+        resolve();
+      };
+
+      /*
+       * xhr.timeout defaults to 0 — no limit. A stalled upload otherwise
+       * leaves this promise unresolved and the tile stuck on "uploading",
+       * which the inspection form's Save button is gated on: the operator
+       * cannot submit and is told nothing.
+       */
+      xhr.timeout = UPLOAD_TIMEOUT_MS;
+      xhr.ontimeout = () => {
+        patch(item.key, { status: "error", message: t("admin.networkError") });
         resolve();
       };
 

@@ -60,6 +60,9 @@ type VehicleOption = {
   imageUrl?: string;
 };
 
+/** Generous: a slow phone connection submitting a booking is not a failure. */
+const BOOKING_REQUEST_TIMEOUT_MS = 20_000;
+
 type Confirmation = {
   id: string;
   totalPrice: number;
@@ -155,6 +158,9 @@ export function BookingForm({
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
+        // Without this a stalled connection never settles, so the catch below
+        // never runs and the form sits in "Sending…" indefinitely.
+        signal: AbortSignal.timeout(BOOKING_REQUEST_TIMEOUT_MS),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vehicleId: data.vehicleId,

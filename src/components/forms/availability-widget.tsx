@@ -75,7 +75,11 @@ export function AvailabilityWidget({
       setError(null);
       try {
         const res = await fetch(
-          `/api/availability?vehicleId=${vehicleId}&pickupDate=${from}T10:00:00Z&returnDate=${to}T10:00:00Z`
+          `/api/availability?vehicleId=${vehicleId}&pickupDate=${from}T10:00:00Z&returnDate=${to}T10:00:00Z`,
+          // A quote is re-requested on every date change, so it can fail fast:
+          // without a bound, a stalled request leaves "Checking…" on screen
+          // because the finally that clears it never runs.
+          { signal: AbortSignal.timeout(10_000) }
         );
         const json: ApiResponse<Quote> = await res.json();
         if (cancelled) return;

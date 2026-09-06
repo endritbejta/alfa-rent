@@ -4,6 +4,15 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  /*
+   * The SDK defaults to roughly a minute. A gallery save can make several
+   * renames and destroys, and they run inside a Vercel function with its own
+   * ceiling — so one unresponsive call could burn the whole budget and get the
+   * function killed partway through, which is precisely the partial write the
+   * ordering in vehicle.service and image.service is arranged to avoid.
+   * Failing a single call quickly leaves a retryable state instead.
+   */
+  timeout: 15_000,
 });
 
 /** All app assets live under one root folder in the Cloudinary media library. */

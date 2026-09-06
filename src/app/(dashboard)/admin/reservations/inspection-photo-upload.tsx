@@ -25,6 +25,9 @@ type Item = {
 type SignResult = { signature: UploadSignature } | { error: string };
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+/** A phone photo on a slow connection is slow, not broken. */
+const UPLOAD_TIMEOUT_MS = 60_000;
+
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export function InspectionPhotoUpload({
@@ -98,6 +101,17 @@ export function InspectionPhotoUpload({
         } catch {
           patch(item.id, { status: "error", message: t("admin.uploadFailed") });
         }
+        resolve();
+      };
+      /*
+       * xhr.timeout defaults to 0 — no limit. A stalled upload otherwise
+       * leaves this promise unresolved and the tile stuck on "uploading",
+       * which the inspection form's Save button is gated on: the operator
+       * cannot submit and is told nothing.
+       */
+      request.timeout = UPLOAD_TIMEOUT_MS;
+      request.ontimeout = () => {
+        patch(item.id, { status: "error", message: t("admin.networkError") });
         resolve();
       };
       request.onerror = () => {

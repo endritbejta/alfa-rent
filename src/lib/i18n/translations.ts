@@ -427,6 +427,8 @@ const en = {
   "admin.confirm": "Confirm",
   "admin.working": "Working…",
   "admin.details": "Details",
+  "admin.detailUnavailable":
+    "This record did not load. Your session may have expired — reload the page and try again.",
   "admin.requested": "Requested",
   "admin.waiting": "waiting {time}",
   "admin.dayCount": "{count} day",
@@ -1036,6 +1038,8 @@ const sq: TranslationDictionary = {
   "admin.confirm": "Konfirmo",
   "admin.working": "Duke punuar…",
   "admin.details": "Detajet",
+  "admin.detailUnavailable":
+    "Ky regjistrim nuk u ngarkua. Sesioni yt mund të ketë skaduar — rifresko faqen dhe provo përsëri.",
   "admin.requested": "Kërkuar",
   "admin.waiting": "në pritje {time}",
   "admin.dayCount": "{count} ditë",

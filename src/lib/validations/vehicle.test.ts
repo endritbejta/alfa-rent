@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminVehicleFilterSchema,
   createVehicleSchema,
   parseVehicleFields,
   updateVehicleSchema,
@@ -103,5 +104,29 @@ describe("parseVehicleFields", () => {
     const input = createVehicleSchema.parse(parseVehicleFields(data));
     expect(input.plate).toBeNull();
     expect(input.serviceNotes).toBeNull();
+  });
+});
+
+describe("adminVehicleFilterSchema", () => {
+  /**
+   * The fleet page hands it the whole query string, which now carries ?view
+   * for the grid/list/compact switch as well as the filters. A schema that
+   * rejected the extra key would drop every filter with it — the exact shape
+   * of the bug that once left the fleet filters completely dead while the
+   * service-level test passed.
+   */
+  it("ignores params that belong to other controls", () => {
+    const parsed = adminVehicleFilterSchema.safeParse({
+      status: "AVAILABLE",
+      brand: "Kia",
+      page: "2",
+      view: "compact",
+    });
+    expect(parsed.success).toBe(true);
+    expect(parsed.data).toMatchObject({
+      status: "AVAILABLE",
+      brand: "Kia",
+      page: 2,
+    });
   });
 });

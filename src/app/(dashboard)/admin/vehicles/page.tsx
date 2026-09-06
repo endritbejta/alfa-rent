@@ -11,6 +11,7 @@ import { adminVehicleFilterSchema } from "@/lib/validations/vehicle";
 import { getFleetInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
+import { readView } from "@/components/dashboard/view";
 import { VehicleGrid } from "./vehicle-grid";
 import { VehicleFilters } from "./vehicle-filters";
 import { FleetStatusFilter } from "./fleet-status-filter";
@@ -144,6 +145,7 @@ export default async function VehiclesPage({
   // Each field falls back on its own (see the schema), so an unreadable
   // param drops only that filter — it can never silently widen the query
   // back to the whole fleet.
+  const view = readView(params.view);
   const parsed = adminVehicleFilterSchema.safeParse(params);
   const filters = parsed.success
     ? parsed.data
@@ -209,33 +211,36 @@ export default async function VehiclesPage({
         </div>
       ) : (
         <>
-          <ViewSwitcher
-            grid={
-              <VehicleGrid
-                items={items.map((v) => {
-                  const reg = registrationState(v.registrationExpiry);
-                  return {
-                    id: v.id,
-                    brand: v.brand,
-                    model: v.model,
-                    plate: v.plate,
-                    year: v.year,
-                    category: v.category,
-                    transmission: v.transmission,
-                    fuelType: v.fuelType,
-                    seats: v.seats,
-                    pricePerDay: toMoney(v.pricePerDay),
-                    status: v.status,
-                    image: v.images[0]?.url ?? null,
-                    registrationDue: reg.state === "due",
-                    registrationExpired: reg.state === "expired",
-                  };
-                })}
-              />
-            }
-            list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
-            compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}
-          />
+          <ViewSwitcher active={view} basePath="/admin/vehicles" />
+          {view === "grid" ? (
+            <VehicleGrid
+              items={items.map((v) => {
+                const reg = registrationState(v.registrationExpiry);
+                return {
+                  id: v.id,
+                  brand: v.brand,
+                  model: v.model,
+                  plate: v.plate,
+                  year: v.year,
+                  category: v.category,
+                  transmission: v.transmission,
+                  fuelType: v.fuelType,
+                  seats: v.seats,
+                  pricePerDay: toMoney(v.pricePerDay),
+                  status: v.status,
+                  image: v.images[0]?.url ?? null,
+                  registrationDue: reg.state === "due",
+                  registrationExpired: reg.state === "expired",
+                };
+              })}
+            />
+          ) : (
+            <VehicleTable
+              vehicles={items}
+              isAdmin={isAdmin}
+              dense={view === "compact"}
+            />
+          )}
           <Pagination
             page={page}
             totalPages={totalPages}

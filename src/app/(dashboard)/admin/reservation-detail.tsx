@@ -177,9 +177,6 @@ function ReservationBody({
   const dateLocale = locale === "sq" ? sq : enUS;
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
-  const spend = history
-    .filter((r) => r.status === "ACTIVE" || r.status === "COMPLETED")
-    .reduce((sum, r) => sum + Number(r.totalPrice), 0);
 
   return (
     <div className="space-y-6">
@@ -408,7 +405,7 @@ function ReservationBody({
             </span>
           </Row>
           <Row label={t("admin.lifetimeSpend")}>
-            <span className="font-semibold">{spend.toFixed(2)} EUR</span>
+            <span className="font-semibold">{eur(detail.customer.spend)}</span>
           </Row>
           {detail.customer.notes && (
             <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">

@@ -12,7 +12,10 @@ import {
   getReservationTiming,
   rentalCalendarDay,
 } from "@/lib/reservation-lifecycle";
-import { findOrCreateCustomerByEmail } from "@/services/customer.service";
+import {
+  findOrCreateCustomerByEmail,
+  getCustomerSpend,
+} from "@/services/customer.service";
 import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
@@ -554,11 +557,19 @@ export async function getReservationDetail(id: string) {
     },
   });
   if (!reservation) throw new NotFoundError("Reservation");
+  const [extension, customerSpend] = await Promise.all([
+    // Bundled with the detail so opening the drawer is still one round trip.
+    getExtensionWindow(reservation),
+    // Aggregated rather than summed from the 20 reservations included above:
+    // that reduce understated a repeat customer and disagreed with the number
+    // the customer drawer showed for the same person.
+    getCustomerSpend(reservation.customerId),
+  ]);
   return {
     ...reservation,
     timing: getReservationTiming(reservation),
-    // Bundled with the detail so opening the drawer is still one round trip.
-    extension: await getExtensionWindow(reservation),
+    extension,
+    customer: { ...reservation.customer, spend: customerSpend },
   };
 }
 

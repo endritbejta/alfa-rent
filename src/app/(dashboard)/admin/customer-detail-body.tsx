@@ -19,18 +19,12 @@ export function CustomerDetailBody({ detail }: { detail: CustomerDetail }) {
     (r) => r.status === "ACTIVE" || r.status === "CONFIRMED"
   );
   const cancelled = all.filter((r) => r.status === "CANCELLED");
-  const spend = all
-    .filter((r) => r.status === "ACTIVE" || r.status === "COMPLETED")
-    .reduce((sum, r) => sum + Number(r.totalPrice), 0);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-2">
         <Metric label={t("admin.rentals")} value={String(all.length)} />
-        <Metric
-          label={t("admin.lifetime")}
-          value={`${Math.round(spend)} EUR`}
-        />
+        <Metric label={t("admin.lifetime")} value={eur(detail.spend)} />
         <Metric label={t("admin.cancelled")} value={String(cancelled.length)} />
       </div>
 

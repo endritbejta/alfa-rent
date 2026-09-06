@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { differenceInCalendarDays, format } from "date-fns";
 import { CalendarPlus, Info } from "lucide-react";
-import type { ExtensionWindow } from "@/services/reservation.service";
+import type {
+  ExtensionRefusal,
+  ExtensionWindow,
+} from "@/services/reservation.service";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import { extendReservationAction } from "./actions";
 import {
   DatePicker,
@@ -16,6 +20,24 @@ import { enUS, sq } from "date-fns/locale";
 
 const addDays = (d: Date, n: number) =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+
+/**
+ * Each way an extension can be refused, in the operator's language.
+ *
+ * This used to compare `extension.reason` against the exact English sentence
+ * the service returned. Two of those sentences were one edit away from
+ * silently falling through to the generic message, and the fourth —
+ * "A {status} reservation cannot be extended." — was interpolated, so it never
+ * matched at all: a completed rental always showed the vague text. `satisfies`
+ * makes the mapping exhaustive in both directions, so adding a refusal to the
+ * service will not compile until it has a translation here.
+ */
+const REFUSAL_KEYS = {
+  NOT_YET_CONFIRMED: "admin.confirmBeforeExtend",
+  BOOKED_IMMEDIATELY_AFTER: "admin.bookedImmediately",
+  REGISTRATION_ENDS: "admin.registrationEnds",
+  NOT_EXTENDABLE: "admin.cannotExtend",
+} satisfies Record<ExtensionRefusal, TranslationKey>;
 
 /**
  * Extend a rental in place.
@@ -49,15 +71,7 @@ export function ExtendReservation({
     return (
       <p className="text-muted-foreground mt-3 flex items-start gap-1.5 text-xs">
         <Info className="mt-0.5 h-3 w-3 shrink-0" />
-        {extension.reason === "Confirm this request before extending it."
-          ? t("admin.confirmBeforeExtend")
-          : extension.reason ===
-              "The vehicle is booked again immediately after this rental."
-            ? t("admin.bookedImmediately")
-            : extension.reason ===
-                "The vehicle's registration expires at the end of this rental."
-              ? t("admin.registrationEnds")
-              : t("admin.cannotExtend")}
+        {t(REFUSAL_KEYS[extension.reason])}
       </p>
     );
   }

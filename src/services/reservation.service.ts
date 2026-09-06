@@ -350,8 +350,23 @@ export async function cancelReservation(id: string): Promise<Reservation> {
  * Computed alongside the detail so the drawer can bound its date input up
  * front: staff see the ceiling instead of discovering it by being refused.
  */
+/**
+ * Why an extension is refused, as a code rather than a sentence.
+ *
+ * The drawer used to identify these by comparing `reason` against the exact
+ * English string this service produced, so editing the wording here silently
+ * degraded the UI to a generic message — and one of the four cases never
+ * matched at all, because it was interpolated from the status. A code is also
+ * what makes the message translatable: the service has no locale.
+ */
+export type ExtensionRefusal =
+  | "NOT_YET_CONFIRMED"
+  | "BOOKED_IMMEDIATELY_AFTER"
+  | "REGISTRATION_ENDS"
+  | "NOT_EXTENDABLE";
+
 export type ExtensionWindow =
-  | { allowed: false; reason: string }
+  | { allowed: false; reason: ExtensionRefusal }
   | {
       allowed: true;
       /** null means nothing on the calendar limits it. */
@@ -413,18 +428,37 @@ async function getExtensionWindow(reservation: {
       allowed: false,
       reason:
         tightest.by === "booking"
-          ? "The vehicle is booked again immediately after this rental."
-          : "The vehicle's registration expires at the end of this rental.",
+          ? "BOOKED_IMMEDIATELY_AFTER"
+          : "REGISTRATION_ENDS",
     };
   }
 
   return { allowed: true, latestReturn: tightest.at, limitedBy: tightest.by };
 }
 
-function extensionRefusal(status: ReservationStatus): string {
-  if (status === "PENDING") return "Confirm this request before extending it.";
-  return `A ${status.toLowerCase()} reservation cannot be extended.`;
+function extensionRefusal(status: ReservationStatus): ExtensionRefusal {
+  // PENDING is a request staff have not decided yet; COMPLETED and CANCELLED
+  // are history. Only the first is worth a specific instruction.
+  return status === "PENDING" ? "NOT_YET_CONFIRMED" : "NOT_EXTENDABLE";
 }
+
+/**
+ * The same refusals as prose, for the paths that throw.
+ *
+ * The drawer never reaches these — it has the code and its own translations.
+ * But every export of a `"use server"` file is a callable endpoint, so
+ * extendReservation can be invoked without the drawer ever computing a window,
+ * and a thrown AppError's message is shown verbatim. English until server
+ * errors are translated wholesale.
+ */
+const REFUSAL_MESSAGES = {
+  NOT_YET_CONFIRMED: "Confirm this request before extending it.",
+  BOOKED_IMMEDIATELY_AFTER:
+    "The vehicle is booked again immediately after this rental.",
+  REGISTRATION_ENDS:
+    "The vehicle's registration expires at the end of this rental.",
+  NOT_EXTENDABLE: "This reservation cannot be extended.",
+} satisfies Record<ExtensionRefusal, string>;
 
 /**
  * Extends a rental in place — no second booking, no gap in the record.
@@ -449,7 +483,9 @@ export async function extendReservation(
     if (!reservation) throw new NotFoundError("Reservation");
 
     if (!EXTENDABLE_STATUSES.includes(reservation.status)) {
-      throw new ValidationError(extensionRefusal(reservation.status));
+      throw new ValidationError(
+        REFUSAL_MESSAGES[extensionRefusal(reservation.status)]
+      );
     }
 
     const target = withTimeOfDay(reservation.returnDate, newReturnDate);

@@ -83,6 +83,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Tab must not walk out into the page the palette floats over, and closing
   // returns focus wherever ⌘K was pressed from.
@@ -122,25 +123,45 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
    */
   useEffect(() => {
     const q = query.trim();
+    // Clearing the timer only cancels a search that has not started yet. Once
+    // the action is in flight nothing can stop it, so a slow response for an
+    // abandoned query would otherwise land last and overwrite the results for
+    // the query the operator has moved on to — and reset their selection with
+    // it. Same guard the availability widget uses.
+    let cancelled = false;
     const timer = setTimeout(async () => {
       if (q.length < 2) {
         setHits([]);
+        setSearchError(null);
         setLoading(false);
         return;
       }
       setLoading(true);
+      setSearchError(null);
       const result = await searchAdminAction(q);
-      setHits("error" in result ? [] : result.hits);
+      if (cancelled) return;
+      if ("error" in result) {
+        // Reporting a failure as "nothing matches" told an operator whose
+        // session had expired that their search found nothing.
+        setHits([]);
+        setSearchError(result.error);
+      } else {
+        setHits(result.hits);
+      }
       setLoading(false);
       setActive(0);
     }, 180);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [query]);
 
   const close = useCallback(() => {
     setOpen(false);
     setQuery("");
     setHits([]);
+    setSearchError(null);
     setActive(0);
   }, []);
 
@@ -234,11 +255,23 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
             </p>
           )}
 
-          {!loading && query.trim().length >= 2 && rows.length === 0 && (
-            <p className="text-muted-foreground px-3 py-8 text-center text-sm">
-              {t("admin.noSearchResults", { query: query.trim() })}
+          {!loading && searchError && (
+            <p
+              role="alert"
+              className="text-destructive px-3 py-8 text-center text-sm"
+            >
+              {searchError}
             </p>
           )}
+
+          {!loading &&
+            !searchError &&
+            query.trim().length >= 2 &&
+            rows.length === 0 && (
+              <p className="text-muted-foreground px-3 py-8 text-center text-sm">
+                {t("admin.noSearchResults", { query: query.trim() })}
+              </p>
+            )}
 
           {withHeadings.map(({ row, heading }, i) => {
             const isHit = row.type === "hit";

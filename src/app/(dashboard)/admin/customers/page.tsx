@@ -9,7 +9,7 @@ import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
 import { CustomerList } from "./customer-list";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
-import { paginationSchema } from "@/lib/validations/common";
+import { parsePageParam } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -23,7 +23,7 @@ export default async function CustomersPage({
   await requireUser();
   const { t } = await getI18n();
   const { page: rawPage } = await searchParams;
-  const { page } = paginationSchema.parse({ page: rawPage, perPage: 25 });
+  const page = parsePageParam(rawPage);
   const [customers, insights] = await Promise.all([
     getCustomers({ page, perPage: 25 }),
     getCustomerInsights(),

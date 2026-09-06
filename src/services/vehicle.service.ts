@@ -1,9 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { deleteImage } from "@/lib/cloudinary";
 import { reportError } from "@/lib/observability";
+import { toMoney } from "@/lib/money";
 import type {
   CreateVehicleInput,
   UpdateVehicleInput,
@@ -55,7 +57,22 @@ const publicVehicleArgs = Prisma.validator<Prisma.VehicleDefaultArgs>()({
   },
 });
 
-export type PublicVehicle = Prisma.VehicleGetPayload<typeof publicVehicleArgs>;
+type PublicVehicleRow = Prisma.VehicleGetPayload<typeof publicVehicleArgs>;
+
+/**
+ * The storefront's vehicle. pricePerDay is a number here, not a Decimal:
+ * every caller converted it anyway, and these reads are cached, so a Decimal
+ * would come back from the cache as a string and be a different type on a hit
+ * than on a miss.
+ */
+export type PublicVehicle = Omit<PublicVehicleRow, "pricePerDay"> & {
+  pricePerDay: number;
+};
+
+const toPublic = (row: PublicVehicleRow): PublicVehicle => ({
+  ...row,
+  pricePerDay: toMoney(row.pricePerDay),
+});
 
 /** The allowlist, exposed so a test can assert nothing sensitive creeps in. */
 export const publicVehicleFields = Object.keys(publicVehicleSelect);
@@ -371,53 +388,78 @@ export async function deleteVehicle(id: string): Promise<void> {
  * Public listing. Same filters as the admin read, but a narrow payload and
  * no access to retired or off-road vehicles.
  */
-export async function getPublicVehicles(
-  filters: VehicleFilterInput
-): Promise<Paginated<PublicVehicle>> {
-  const { page, perPage } = filters;
-  const where = buildPublicVehicleWhere(filters);
+/*
+ * The storefront's reads are cached, because every anonymous visitor to the
+ * home page, the fleet list and each vehicle page was otherwise running these
+ * queries against the same single pooled connection staff sign in through.
+ *
+ * Tagged so an admin edit shows up immediately, and given a short life as
+ * well: if some future write forgets to revalidate, the fleet is a minute
+ * stale rather than stale until the next deploy. Nothing in here reads
+ * cookies or headers, which a cached scope may not do.
+ */
+export const PUBLIC_VEHICLES_TAG = "public-vehicles";
+const PUBLIC_VEHICLES_MAX_AGE = 60;
 
-  const [items, total] = await prisma.$transaction([
-    prisma.vehicle.findMany({
-      where,
-      ...publicVehicleArgs,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * perPage,
-      take: perPage,
-    }),
-    prisma.vehicle.count({ where }),
-  ]);
+export const getPublicVehicles = unstable_cache(
+  async (filters: VehicleFilterInput): Promise<Paginated<PublicVehicle>> => {
+    const { page, perPage } = filters;
+    const where = buildPublicVehicleWhere(filters);
 
-  return {
-    items,
-    total,
-    page,
-    perPage,
-    totalPages: Math.ceil(total / perPage),
-  };
-}
+    const [items, total] = await prisma.$transaction([
+      prisma.vehicle.findMany({
+        where,
+        ...publicVehicleArgs,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      }),
+      prisma.vehicle.count({ where }),
+    ]);
+
+    return {
+      items: items.map(toPublic),
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
+    };
+  },
+  ["public-vehicles-list"],
+  { tags: [PUBLIC_VEHICLES_TAG], revalidate: PUBLIC_VEHICLES_MAX_AGE }
+);
 
 /** Public detail read: the same minimal DTO and status policy as the listing. */
-export async function getPublicVehicleBySlug(
-  slug: string
-): Promise<PublicVehicle> {
-  const vehicle = await prisma.vehicle.findFirst({
-    where: {
-      slug,
-      status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] },
-    },
-    ...publicVehicleArgs,
-  });
-  if (!vehicle) throw new NotFoundError("Vehicle");
-  return vehicle;
-}
+export const getPublicVehicleBySlug = unstable_cache(
+  async (slug: string): Promise<PublicVehicle> => {
+    const vehicle = await prisma.vehicle.findFirst({
+      where: {
+        slug,
+        status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] },
+      },
+      ...publicVehicleArgs,
+    });
+    if (!vehicle) throw new NotFoundError("Vehicle");
+    return toPublic(vehicle);
+  },
+  ["public-vehicle-by-slug"],
+  { tags: [PUBLIC_VEHICLES_TAG], revalidate: PUBLIC_VEHICLES_MAX_AGE }
+);
 
-/** Distinct brands in the fleet, for the admin filter dropdown. */
-export async function getVehicleBrands(): Promise<string[]> {
-  const rows = await prisma.vehicle.findMany({
-    distinct: ["brand"],
-    orderBy: { brand: "asc" },
-    select: { brand: true },
-  });
-  return rows.map((r) => r.brand);
-}
+/**
+ * Distinct brands in the fleet, for the admin filter dropdown. A `distinct`
+ * scan of the whole table on every fleet render, and the answer changes only
+ * when a vehicle does — so it shares the vehicles tag.
+ */
+export const getVehicleBrands = unstable_cache(
+  async (): Promise<string[]> => {
+    const rows = await prisma.vehicle.findMany({
+      distinct: ["brand"],
+      orderBy: { brand: "asc" },
+      select: { brand: true },
+    });
+    return rows.map((r) => r.brand);
+  },
+  ["vehicle-brands"],
+  { tags: [PUBLIC_VEHICLES_TAG], revalidate: PUBLIC_VEHICLES_MAX_AGE }
+);

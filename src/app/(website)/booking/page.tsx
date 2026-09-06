@@ -85,7 +85,7 @@ export default async function BookingPage({
                 ? t("vehicle.automatic")
                 : t("vehicle.manual"),
             seats: vehicle.seats,
-            pricePerDay: Number(vehicle.pricePerDay),
+            pricePerDay: vehicle.pricePerDay,
             imageUrl: vehicle.images[0]?.url,
           }}
           initialFrom={from}

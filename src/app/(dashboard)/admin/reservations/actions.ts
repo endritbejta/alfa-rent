@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { PUBLIC_VEHICLES_TAG } from "@/services/vehicle.service";
 import type { ReservationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth/guards";
 import { normalizeError, TooManyRequestsError } from "@/lib/errors";
@@ -79,6 +80,9 @@ export async function recordRentalInspectionAction(
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");
   revalidatePath("/admin/vehicles");
+  // A pickup inspection marks the vehicle RENTED and a return releases it,
+  // and the storefront shows that status.
+  updateTag(PUBLIC_VEHICLES_TAG);
   return undefined;
 }
 

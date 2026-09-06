@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { normalizeError, TooManyRequestsError } from "@/lib/errors";
@@ -20,6 +20,7 @@ import { parseVehicleImagesField } from "@/lib/validations/image";
 import {
   createVehicle,
   deleteVehicle,
+  PUBLIC_VEHICLES_TAG,
   updateVehicle,
 } from "@/services/vehicle.service";
 import { syncVehicleImages } from "@/services/image.service";
@@ -118,6 +119,7 @@ export async function createVehicleAction(
   }
 
   revalidatePath("/admin/vehicles");
+  updateTag(PUBLIC_VEHICLES_TAG);
   redirect(
     `/admin/vehicles/${vehicle.id}/edit${photosAttached ? "?created=1" : "?photos=failed"}`
   );
@@ -137,6 +139,7 @@ export async function updateVehicleAction(
     return { error: normalizeError(error).body.error.message };
   }
   revalidatePath("/admin/vehicles");
+  updateTag(PUBLIC_VEHICLES_TAG);
   redirect("/admin/vehicles");
 }
 
@@ -150,6 +153,7 @@ export async function deleteVehicleAction(
     return { error: normalizeError(error).body.error.message };
   }
   revalidatePath("/admin/vehicles");
+  updateTag(PUBLIC_VEHICLES_TAG);
   return undefined;
 }
 

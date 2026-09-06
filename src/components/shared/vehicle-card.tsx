@@ -111,7 +111,7 @@ export async function VehicleCard({
         </div>
         <div className="flex items-center justify-between border-t pt-4">
           <p className="font-display text-xl font-bold">
-            {Number(vehicle.pricePerDay)}
+            {vehicle.pricePerDay}
             <span className="text-muted-foreground font-sans text-xs font-medium">
               {" "}
               EUR / {t("common.perDay")}

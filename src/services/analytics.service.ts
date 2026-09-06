@@ -1,13 +1,4 @@
-import {
-  addDays,
-  addMonths,
-  format,
-  startOfMonth,
-  startOfWeek,
-  startOfYear,
-  subMonths,
-  subDays,
-} from "date-fns";
+import { addDays, format, subMonths, subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/utils/vehicle";
 import {
@@ -15,6 +6,7 @@ import {
   businessDayStart,
   businessMonthStart,
   businessWeekStart,
+  businessYearStart,
 } from "@/lib/reservation-lifecycle";
 
 export type SeriesPoint = { label: string; value: number };
@@ -29,8 +21,8 @@ function monthlySeries(
 ): SeriesPoint[] {
   const now = new Date();
   return Array.from({ length: months }, (_, i) => {
-    const month = startOfMonth(subMonths(now, months - 1 - i));
-    const next = startOfMonth(subMonths(now, months - 2 - i));
+    const month = businessMonthStart(subMonths(now, months - 1 - i));
+    const next = businessMonthStart(subMonths(now, months - 2 - i));
     const value = rows
       .filter((r) => r.createdAt >= month && r.createdAt < next)
       .reduce((sum, r) => sum + pick(r), 0);
@@ -39,10 +31,12 @@ function monthlySeries(
 }
 
 function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
-  const today = businessDayStart(new Date());
+  const now = new Date();
   return Array.from({ length: days }, (_, i) => {
-    const day = subDays(today, days - 1 - i);
-    const next = addDays(day, 1);
+    // Each boundary is resolved from the calendar day, not by adding 24h to
+    // the previous one: a Belgrade day is 23 or 25 hours across a DST change.
+    const day = businessDayStart(subDays(now, days - 1 - i));
+    const next = businessDayStart(subDays(now, days - 2 - i));
     return {
       label: format(day, "dd MMM"),
       value: rows.filter((r) => r.createdAt >= day && r.createdAt < next)
@@ -328,8 +322,8 @@ function monthlySeriesFromDates(
 ): SeriesPoint[] {
   const now = new Date();
   return Array.from({ length: months }, (_, i) => {
-    const month = startOfMonth(subMonths(now, months - 1 - i));
-    const next = startOfMonth(subMonths(now, months - 2 - i));
+    const month = businessMonthStart(subMonths(now, months - 1 - i));
+    const next = businessMonthStart(subMonths(now, months - 2 - i));
     return {
       label: format(month, "MMM"),
       value: rows.filter((r) => r.createdAt >= month && r.createdAt < next)
@@ -340,36 +334,39 @@ function monthlySeriesFromDates(
 
 export type Period = "week" | "month" | "year";
 
-/** Bucket definition per reporting period: how far back, and how to slice. */
+/**
+ * Bucket definition per reporting period.
+ *
+ * `boundary(now, k)` is the start of the bucket k periods before now, resolved
+ * from the branch calendar each time rather than by adding a fixed duration to
+ * a single anchor. Adding durations drifts across a daylight-saving change,
+ * because a Belgrade day is 23 or 25 hours through one.
+ */
 const PERIODS: Record<
   Period,
   {
     label: string;
     buckets: number;
-    step: (d: Date, n: number) => Date;
-    start: (d: Date) => Date;
+    boundary: (now: Date, periodsAgo: number) => Date;
     format: string;
   }
 > = {
   week: {
     label: "Last 12 weeks",
     buckets: 12,
-    step: (d, n) => addDays(d, n * 7),
-    start: (d) => startOfWeek(d, { weekStartsOn: 1 }),
+    boundary: (now, k) => businessWeekStart(subDays(now, k * 7)),
     format: "dd MMM",
   },
   month: {
     label: "Last 12 months",
     buckets: 12,
-    step: (d, n) => addMonths(d, n),
-    start: startOfMonth,
+    boundary: (now, k) => businessMonthStart(subMonths(now, k)),
     format: "MMM",
   },
   year: {
     label: "Last 5 years",
     buckets: 5,
-    step: (d, n) => addMonths(d, n * 12),
-    start: startOfYear,
+    boundary: (now, k) => businessYearStart(subMonths(now, k * 12)),
     format: "yyyy",
   },
 };
@@ -380,10 +377,10 @@ function bucketSeries(
   pick: (row: { totalPrice: unknown; status: string }) => number
 ): SeriesPoint[] {
   const cfg = PERIODS[period];
-  const anchor = cfg.start(new Date());
+  const now = new Date();
   return Array.from({ length: cfg.buckets }, (_, i) => {
-    const from = cfg.step(anchor, i - (cfg.buckets - 1));
-    const to = cfg.step(anchor, i - (cfg.buckets - 2));
+    const from = cfg.boundary(now, cfg.buckets - 1 - i);
+    const to = cfg.boundary(now, cfg.buckets - 2 - i);
     const value = rows
       .filter((r) => r.createdAt >= from && r.createdAt < to)
       .reduce((sum, r) => sum + pick(r), 0);
@@ -394,8 +391,10 @@ function bucketSeries(
 export async function getAnalytics(period: Period = "month") {
   const now = new Date();
   const cfg = PERIODS[period];
-  // Window the whole page to the selected period, KPIs included.
-  const since = cfg.step(cfg.start(now), -(cfg.buckets - 1));
+  // Window the whole page to the selected period, KPIs included. Same
+  // boundary the first bucket uses, so the KPIs and the chart cover exactly
+  // the same span.
+  const since = cfg.boundary(now, cfg.buckets - 1);
 
   const [rows, fleet, cancelled, totalReservations] = await prisma.$transaction(
     [

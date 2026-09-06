@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
+import { formatEur, toMoney } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ async function VehicleTable({
   isAdmin: boolean;
   dense?: boolean;
 }) {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   return (
     <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
       <Table>
@@ -103,7 +104,7 @@ async function VehicleTable({
               <TableCell
                 className={cn("text-right tabular-nums", dense && "py-2")}
               >
-                {Number(vehicle.pricePerDay).toFixed(2)} EUR
+                {formatEur(vehicle.pricePerDay, locale)}
               </TableCell>
               {isAdmin && (
                 <TableCell className={cn("text-right", dense && "py-2")}>
@@ -223,7 +224,7 @@ export default async function VehiclesPage({
                     transmission: v.transmission,
                     fuelType: v.fuelType,
                     seats: v.seats,
-                    pricePerDay: String(v.pricePerDay),
+                    pricePerDay: toMoney(v.pricePerDay),
                     status: v.status,
                     image: v.images[0]?.url ?? null,
                     registrationDue: reg.state === "due",

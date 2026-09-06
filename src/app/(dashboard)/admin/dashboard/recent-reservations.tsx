@@ -5,6 +5,7 @@ import { enUS, sq } from "date-fns/locale";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { vehicleLabel } from "@/lib/vehicle-label";
+import { formatEur } from "@/lib/money";
 import {
   Table,
   TableBody,
@@ -83,7 +84,7 @@ export function RecentReservations({ items }: { items: Item[] }) {
                   {format(r.returnDate, "dd MMM", { locale: dateLocale })}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {Number(r.totalPrice).toFixed(2)} EUR
+                  {formatEur(r.totalPrice, locale)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={r.status} />

@@ -16,6 +16,7 @@ import {
 } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { formatAmount, formatEur } from "@/lib/money";
 import { enUS, sq } from "date-fns/locale";
 
 const addDays = (d: Date, n: number) =>
@@ -178,10 +179,12 @@ export function ExtendReservation({
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">
-              {t("admin.ratePerDay", { rate: pricePerDay.toFixed(2) })}
+              {t("admin.ratePerDay", {
+                rate: formatAmount(pricePerDay, locale),
+              })}
             </dt>
             <dd className="font-display font-bold tabular-nums">
-              +{addedPrice.toFixed(2)} EUR
+              +{formatEur(addedPrice, locale)}
             </dd>
           </div>
         </dl>

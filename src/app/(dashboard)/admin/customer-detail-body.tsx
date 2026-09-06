@@ -8,12 +8,12 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { SectionTitle, Row } from "./detail-primitives";
 import { useI18n } from "@/components/shared/locale-provider";
-
-const eur = (v: unknown) => `${Number(v).toFixed(2)} EUR`;
+import { formatEur } from "@/lib/money";
 
 export function CustomerDetailBody({ detail }: { detail: CustomerDetail }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  const eur = (v: number | string) => formatEur(v, locale);
   const all = detail.reservations;
   const active = all.filter(
     (r) => r.status === "ACTIVE" || r.status === "CONFIRMED"
@@ -94,6 +94,7 @@ function ReservationRow({
 }) {
   const { locale } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  const eur = (v: number | string) => formatEur(v, locale);
   return (
     <li className="flex items-center gap-2 py-2 text-xs">
       <div className="min-w-0 flex-1">

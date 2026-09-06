@@ -6,6 +6,7 @@ import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/lib/vehicle-label";
+import { formatEur } from "@/lib/money";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
@@ -36,7 +37,7 @@ export type Row = {
  */
 export function ReservationRows({ rows }: { rows: Row[] }) {
   const { openReservation } = useDetailDrawer();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   if (rows.length === 0) {
     return (
@@ -80,7 +81,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             {format(r.returnDate, "dd MMM yyyy")}
           </TableCell>
           <TableCell className="text-right tabular-nums">
-            {Number(r.totalPrice).toFixed(2)} EUR
+            {formatEur(r.totalPrice, locale)}
           </TableCell>
           <TableCell>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -114,7 +115,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
 /** Mobile equivalent — same rule: the card is the target, buttons are not. */
 export function ReservationCards({ rows }: { rows: Row[] }) {
   const { openReservation } = useDetailDrawer();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   if (rows.length === 0) {
     return (
@@ -162,7 +163,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                 {format(r.returnDate, "dd MMM yyyy")}
               </span>
               <span className="text-foreground font-semibold tabular-nums">
-                {Number(r.totalPrice).toFixed(2)} EUR
+                {formatEur(r.totalPrice, locale)}
               </span>
             </div>
             <div

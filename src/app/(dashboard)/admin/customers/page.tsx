@@ -12,6 +12,7 @@ import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { parsePageParam } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
+import { formatEur } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function CustomersPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   await requireUser();
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   const { page: rawPage } = await searchParams;
   const page = parsePageParam(rawPage);
   const [customers, insights] = await Promise.all([
@@ -52,8 +53,10 @@ export default async function CustomersPage({
           {
             label: t("admin.topSpender"),
             value: insights.topSpenders[0]
-              ? `${insights.topSpenders[0].value.toLocaleString()} EUR`
-              : "0 EUR",
+              ? formatEur(insights.topSpenders[0].value, locale, {
+                  precision: 0,
+                })
+              : formatEur(0, locale, { precision: 0 }),
             hint: insights.topSpenders[0]?.label,
           },
         ]}

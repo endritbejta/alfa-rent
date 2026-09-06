@@ -14,6 +14,7 @@ import { RecentReservations } from "./recent-reservations";
 import { PendingQueue } from "../reservations/pending-queue";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
+import { formatEur } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -105,11 +106,11 @@ export default async function DashboardPage() {
           },
           {
             label: t("admin.revenueWeek"),
-            value: `${kpis.revenueWeek.toLocaleString()} EUR`,
+            value: formatEur(kpis.revenueWeek, locale, { precision: 0 }),
           },
           {
             label: t("admin.revenueMonth"),
-            value: `${kpis.revenueMonth.toLocaleString()} EUR`,
+            value: formatEur(kpis.revenueMonth, locale, { precision: 0 }),
           },
         ]}
       />

@@ -20,8 +20,7 @@ import { vehicleLabel } from "@/lib/vehicle-label";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { InspectionAction } from "./reservations/inspection-action";
 import { useI18n } from "@/components/shared/locale-provider";
-
-const eur = (v: unknown) => `${Number(v).toFixed(2)} EUR`;
+import { formatEur } from "@/lib/money";
 
 export function ReservationBody({
   detail,
@@ -36,6 +35,7 @@ export function ReservationBody({
 }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  const eur = (v: number | string) => formatEur(v, locale);
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
 

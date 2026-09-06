@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/shared/locale-provider";
+import { formatEur } from "@/lib/money";
 import { enUS, sq } from "date-fns/locale";
 import { REPAIR_FIELD_NAMES } from "@/lib/validations/repair";
 
@@ -31,9 +32,6 @@ type Stats = {
   averageCost: number;
 };
 
-const eur = (n: number) =>
-  `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} EUR`;
-
 /**
  * Repairs are unplanned costs, deliberately separate from routine service:
  * the yearly total is what tells staff a vehicle is becoming a money pit.
@@ -49,6 +47,8 @@ export function RepairsPanel({
 }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  // Whole euros: repair costs sit on compact metric tiles.
+  const eur = (n: number) => formatEur(n, locale, { precision: 0 });
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

@@ -3,14 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
-import { loginSchema, type LoginInput } from "@/lib/validations/auth";
+import type { LoginInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/shared/locale-provider";
 import { Eye, EyeOff } from "lucide-react";
+
+/*
+ * These two rules are react-hook-form's own, not the zod schema the server
+ * checks. Pulling zodResolver in here put the whole of zod — a 64 KiB gzip
+ * chunk of its own, since nothing else on this route uses it — on the first
+ * page every staff member loads, to answer "is this an email" and "is this
+ * blank". loginSchema still runs in lib/auth, where the answer is binding;
+ * this is only the hint that saves a round trip. The type still comes from
+ * the schema, so the two cannot drift.
+ */
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const { t } = useI18n();
@@ -21,7 +31,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginInput>();
 
   const onSubmit = async (data: LoginInput) => {
     setAuthError(null);
@@ -44,7 +54,10 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           autoComplete="email"
           aria-invalid={errors.email ? true : undefined}
           aria-describedby={errors.email ? "email-error" : undefined}
-          {...register("email")}
+          {...register("email", {
+            required: t("auth.emailRequired"),
+            pattern: { value: EMAIL, message: t("auth.emailInvalid") },
+          })}
         />
         {errors.email && (
           <p id="email-error" role="alert" className="text-destructive text-sm">
@@ -62,7 +75,9 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
             className="pr-11"
             aria-invalid={errors.password ? true : undefined}
             aria-describedby={errors.password ? "password-error" : undefined}
-            {...register("password")}
+            {...register("password", {
+              required: t("auth.passwordRequired"),
+            })}
           />
           <button
             type="button"

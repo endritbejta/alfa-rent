@@ -25,6 +25,7 @@ import {
 import { syncVehicleImages } from "@/services/image.service";
 import { addRepair, deleteRepair } from "@/services/fleet.service";
 import { parseRepairFields } from "@/lib/validations/repair";
+import { reportError } from "@/lib/observability";
 
 export type ActionResult = { error: string } | undefined;
 
@@ -66,18 +67,60 @@ export async function createVehicleAction(
   formData: FormData
 ): Promise<ActionResult> {
   await requireRole("ADMIN");
-  let vehicleId: string;
+
+  let input: ReturnType<typeof createVehicleSchema.parse>;
+  let images: ReturnType<typeof parseVehicleImagesField>;
   try {
-    const input = createVehicleSchema.parse(parseVehicleFields(formData));
-    const images = parseVehicleImagesField(formData.get("images"));
-    const vehicle = await createVehicle(input);
-    vehicleId = vehicle.id;
-    await syncVehicleImages(vehicle.id, images);
+    input = createVehicleSchema.parse(parseVehicleFields(formData));
+    images = parseVehicleImagesField(formData.get("images"));
   } catch (error) {
+    // Nothing has been written yet, so the operator can correct the form and
+    // submit again without creating anything.
     return { error: normalizeError(error).body.error.message };
   }
+
+  let vehicle: Awaited<ReturnType<typeof createVehicle>>;
+  try {
+    vehicle = await createVehicle(input);
+  } catch (error) {
+    // Still nothing created — a duplicate plate belongs on the form, not on
+    // the error boundary.
+    return { error: normalizeError(error).body.error.message };
+  }
+
+  /*
+   * The gallery cannot join that insert: syncVehicleImages makes Cloudinary
+   * calls, and holding a database transaction open across network I/O against
+   * a pooler capped at one connection is worse than the problem it solves.
+   *
+   * So the vehicle exists from here on, whatever happens next — and reporting
+   * a photo failure as though nothing had been created is what let an operator
+   * hit Save again and get a *second* vehicle. A plateless one has a random
+   * slug suffix, so no unique constraint stopped it.
+   *
+   * Instead: keep the vehicle, take them to it, and carry the reason the
+   * photos did not attach. The vehicle is real; the gallery is the part that
+   * needs another go, and the edit page is where that is done.
+   */
+  let photosAttached = true;
+  try {
+    await syncVehicleImages(vehicle.id, images);
+  } catch (error) {
+    photosAttached = false;
+    // The specific reason goes to the error report, not into the URL: a
+    // querystring is admin-visible text, and the operator's actionable
+    // information is "the photos are not on yet", which the page states.
+    reportError(error, {
+      scope: "create-vehicle-images",
+      vehicleId: vehicle.id,
+      imageCount: images.length,
+    });
+  }
+
   revalidatePath("/admin/vehicles");
-  redirect(`/admin/vehicles/${vehicleId}/edit?created=1`);
+  redirect(
+    `/admin/vehicles/${vehicle.id}/edit${photosAttached ? "?created=1" : "?photos=failed"}`
+  );
 }
 
 export async function updateVehicleAction(

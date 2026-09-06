@@ -2,7 +2,8 @@ import { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { deleteAllVehicleImages } from "@/services/image.service";
+import { deleteImage } from "@/lib/cloudinary";
+import { reportError } from "@/lib/observability";
 import type {
   CreateVehicleInput,
   UpdateVehicleInput,
@@ -323,10 +324,47 @@ export async function deleteVehicle(id: string): Promise<void> {
     });
     return;
   }
-  // Hard delete: clear Cloudinary assets first — the DB cascade only
-  // removes the rows, not the hosted files.
-  await deleteAllVehicleImages(id);
-  await prisma.vehicle.delete({ where: { id } });
+  /*
+   * Row first, hosted files second.
+   *
+   * The previous order destroyed every Cloudinary asset and *then* deleted the
+   * vehicle — and that delete can fail: Reservation.vehicleId is
+   * onDelete: Restrict, and a public booking landing between the counts above
+   * and this point raises a foreign-key violation. The operator saw an error,
+   * the vehicle was still there, and its entire gallery was permanently gone.
+   *
+   * Deleting inside a transaction means a restricted delete rolls the image
+   * rows back with it. Only once the row is committed away are the hosted
+   * files genuinely unreferenced, so destroying them cannot lose a photo that
+   * something still points at. The reverse failure — a file left behind after
+   * the row is gone — is a stranded asset, which costs storage and can be
+   * swept, rather than a broken gallery.
+   */
+  const orphanedPublicIds = await prisma.$transaction(async (tx) => {
+    const images = await tx.vehicleImage.findMany({
+      where: { vehicleId: id },
+      select: { publicId: true },
+    });
+    // The cascade removes the rows; this throws instead if a reservation
+    // appeared, and the whole transaction unwinds.
+    await tx.vehicle.delete({ where: { id } });
+    return images.map((image) => image.publicId);
+  });
+
+  // In parallel, and tolerant: the vehicle is already gone, so a Cloudinary
+  // failure here must not be reported to the operator as a failed delete.
+  const results = await Promise.allSettled(
+    orphanedPublicIds.map((publicId) => deleteImage(publicId))
+  );
+  const stranded = orphanedPublicIds.filter(
+    (_, i) => results[i]!.status === "rejected"
+  );
+  if (stranded.length > 0) {
+    reportError(
+      new Error("Vehicle deleted but some Cloudinary assets were not removed"),
+      { scope: "delete-vehicle", vehicleId: id, stranded }
+    );
+  }
 }
 
 /**

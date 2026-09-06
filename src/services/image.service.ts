@@ -100,12 +100,3 @@ export async function syncVehicleImages(
     });
   }
 }
-
-/** Removes all Cloudinary assets for a vehicle (used before hard delete). */
-export async function deleteAllVehicleImages(vehicleId: string): Promise<void> {
-  const images = await prisma.vehicleImage.findMany({ where: { vehicleId } });
-  for (const image of images) {
-    await deleteImage(image.publicId);
-  }
-  await prisma.vehicleImage.deleteMany({ where: { vehicleId } });
-}

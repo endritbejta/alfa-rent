@@ -397,6 +397,8 @@ const en = {
   "admin.removePhoto": "Remove photo",
   "admin.uploadFailed": "Upload failed",
   "admin.networkError": "Network error",
+  "admin.photosNotAttached":
+    "The vehicle was saved, but its photos could not be attached. Add them below and save again.",
   "admin.photoFormats": "Use JPEG, PNG, WebP or AVIF photos",
   "admin.photoSize": "Each photo must be 10 MB or smaller",
   "admin.photoErrors":
@@ -1004,6 +1006,8 @@ const sq: TranslationDictionary = {
   "admin.removePhoto": "Hiq foton",
   "admin.uploadFailed": "Ngarkimi dështoi",
   "admin.networkError": "Gabim në rrjet",
+  "admin.photosNotAttached":
+    "Vetura u ruajt, por fotot nuk mund të bashkëngjiteshin. Shtoji më poshtë dhe ruaj përsëri.",
   "admin.photoFormats": "Përdor foto JPEG, PNG, WebP ose AVIF",
   "admin.photoSize": "Çdo foto duhet të jetë 10 MB ose më e vogël",
   "admin.photoErrors":

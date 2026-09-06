@@ -7,7 +7,7 @@ import {
 } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { CalendarRange, Clock, Mail, Phone, Car } from "lucide-react";
-import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/utils/vehicle";
 import { cn } from "@/lib/utils";

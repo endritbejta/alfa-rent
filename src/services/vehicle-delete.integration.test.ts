@@ -104,8 +104,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.reservation.deleteMany({ where: { customerId: ids.customer } });
+  // Includes the stranded-asset vehicle the last case creates: the happy path
+  // deletes it itself, but a failing run left it behind with two fake image
+  // URLs, and the dev site then threw on every next/image render of them.
   await prisma.vehicle.deleteMany({
-    where: { id: { in: [ids.blocked, ids.deletable, ids.retiring] } },
+    where: { id: { startsWith: `del-`, endsWith: suffix } },
   });
   await prisma.customer.deleteMany({ where: { id: ids.customer } });
   await prisma.$disconnect();

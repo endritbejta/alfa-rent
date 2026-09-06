@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { createManualReservationAction } from "./actions";
-import { useDetailDrawer } from "../reservation-detail";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";

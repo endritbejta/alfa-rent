@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import type { ReservationStatus } from "@prisma/client";
-import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/utils/vehicle";

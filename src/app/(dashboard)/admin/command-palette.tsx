@@ -12,7 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { searchAdminAction } from "./search-actions";
-import { useDetailDrawer } from "./reservation-detail";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import type { SearchHit } from "@/services/search.service";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";

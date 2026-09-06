@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
-import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import {
   Table,
   TableBody,

@@ -96,6 +96,7 @@
   --color-brand-fill: var(--brand-fill);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-hover: var(--success-hover);
   --color-brand-hover: var(--brand-hover);
 
   /* Semantic light/dark surface and interaction roles */
@@ -244,6 +245,7 @@
      "this is the safe forward action" reads differently from "this is Alfa". */
   --success: #0f7a4a;
   --success-foreground: #ffffff;
+  --success-hover: #0c6540;
 
   --st-available: #12805c;
   --st-reserved: #2563eb;
@@ -261,7 +263,14 @@
   --popover: #161414;
   --popover-foreground: #f1efee;
   --primary: #e8535c; /* desaturated red for charcoal grounds */
-  --primary-foreground: #ffffff;
+  /*
+   * Ink, not white. The fill above is lightened on purpose for charcoal
+   * grounds, and a white label on it measures 3.61:1 — below AA for the
+   * 14px the Button renders at, and 3.00:1 on --brand-hover, which is worse.
+   * Darkening the red instead would undo the reason the value exists, so the
+   * label darkens to meet it: 5.09:1 at rest, 6.13:1 hovered.
+   */
+  --primary-foreground: #161414;
   --brand-hover: #f06a72;
   --secondary: #1e1c1c;
   --secondary-foreground: #f1efee;
@@ -272,7 +281,15 @@
   --destructive: #e36065;
   --border: rgba(255, 255, 255, 0.1);
   --divider: rgba(255, 255, 255, 0.07);
-  --input: rgba(255, 255, 255, 0.16);
+  /*
+   * A solid warm neutral, the same move light makes and for the same reason
+   * — a control boundary has to stay identifiable against both the sheets
+   * and the canvas. The low-alpha white this replaces measured 1.62:1 on
+   * card and 1.52:1 on background, against the 3:1 that WCAG 1.4.11 asks of
+   * a non-text boundary, so form fields had effectively no border in dark.
+   * This reads 3.39:1 and 3.66:1, mirroring light's 3.36:1 and 3.01:1.
+   */
+  --input: #6e6968;
   --control: #1e1c1c;
   --ring: #e8535c;
   --surface-hover: rgba(255, 255, 255, 0.07);
@@ -309,7 +326,13 @@
   --brand: #e8535c;
   --brand-fill: #dc2028;
   --success: #1aa36a;
-  --success-foreground: #ffffff;
+  /* White measures 3.24:1 here; ink reads 5.67:1. Same reasoning as
+     --primary-foreground above. */
+  --success-foreground: #161414;
+  /* Dark lifts on hover rather than darkening — darkening a fill that is
+     already carrying a dark label takes the label with it (the old
+     color-mix landed at 4.31:1). */
+  --success-hover: #25c081;
 
   --tint: rgba(255, 255, 255, 0.07);
   --tint-hover: rgba(255, 255, 255, 0.11);

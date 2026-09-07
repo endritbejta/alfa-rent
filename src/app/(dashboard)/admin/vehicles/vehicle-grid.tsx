@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Cog, Fuel, Users } from "lucide-react";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useI18n } from "@/components/shared/locale-provider";
+import { formatAmount } from "@/lib/money";
 
 type Item = {
   id: string;
@@ -16,7 +17,7 @@ type Item = {
   transmission: string;
   fuelType: string;
   seats: number;
-  pricePerDay: string;
+  pricePerDay: number;
   status: "AVAILABLE" | "RENTED" | "SERVICE" | "INACTIVE";
   image: string | null;
   registrationDue: boolean;
@@ -28,7 +29,7 @@ type Item = {
  * straight to the edit page rather than a read-only drawer.
  */
 export function VehicleGrid({ items }: { items: Item[] }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   return (
     <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
       {items.map((v) => (
@@ -110,7 +111,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
               ))}
             </div>
             <p className="font-display border-t pt-3 text-lg font-bold">
-              {Number(v.pricePerDay)}
+              {formatAmount(v.pricePerDay, locale)}
               <span className="text-muted-foreground font-sans text-xs font-medium">
                 {" "}
                 {t("admin.perDay")}

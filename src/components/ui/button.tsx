@@ -26,7 +26,7 @@ const buttonVariants = cva(
           "bg-destructive text-white hover:bg-destructive/85",
         // Confirmation actions across the app share this one green.
         success:
-          "bg-success text-success-foreground shadow-sm hover:bg-[color-mix(in_oklch,var(--success),black_14%)] focus-visible:ring-[color-mix(in_oklch,var(--success),transparent_60%)] active:scale-[0.98]",
+          "bg-success text-success-foreground hover:bg-success-hover shadow-sm focus-visible:ring-[color-mix(in_oklch,var(--success),transparent_60%)] active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

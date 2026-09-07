@@ -13,6 +13,9 @@
     "postinstall": "prisma generate",
     "prepare": "husky",
     "db:seed": "prisma db seed",
+    "db:setup": "bash scripts/db-setup.sh",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && bash scripts/db-setup.sh --seed",
     "vercel-build": "prisma migrate deploy && next build"
   },
   "engines": {

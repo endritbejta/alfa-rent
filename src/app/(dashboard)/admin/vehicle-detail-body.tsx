@@ -16,9 +16,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { SectionTitle, Row } from "./detail-primitives";
 import { useI18n } from "@/components/shared/locale-provider";
-
-const eur = (n: number) =>
-  `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} EUR`;
+import { formatEur } from "@/lib/money";
 
 const REG_TONE = {
   expired: "text-destructive",
@@ -30,6 +28,8 @@ const REG_TONE = {
 export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  // Whole euros: these are running totals on compact metric tiles.
+  const eur = (n: number) => formatEur(n, locale, { precision: 0 });
   const { vehicle, registration, costs } = detail;
   const [cover, ...rest] = vehicle.images;
   const active = vehicle.reservations.find((r) => r.status === "ACTIVE");

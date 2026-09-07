@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import {
   isBookingDayBlocked,
@@ -60,6 +61,9 @@ type VehicleOption = {
   imageUrl?: string;
 };
 
+/** Generous: a slow phone connection submitting a booking is not a failure. */
+const BOOKING_REQUEST_TIMEOUT_MS = 20_000;
+
 type Confirmation = {
   id: string;
   totalPrice: number;
@@ -89,6 +93,7 @@ export function BookingForm({
       : null
   );
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const confirmationHeading = useRef<HTMLHeadingElement>(null);
   const now = new Date();
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const latestReturnDate = fromDateValue(
@@ -137,35 +142,62 @@ export function BookingForm({
       ? !isBookingRangeAvailable(pickedFrom, toDateValue(date), bookingCalendar)
       : false;
 
+  /*
+   * On success the form is replaced by the confirmation card. Scrolling to
+   * the top is the sighted half of that; without moving focus, a screen
+   * reader is given no signal at all — not that the booking succeeded, not
+   * that a reference number exists, not that the form has gone. Combined
+   * with a network failure being equally silent, success and failure
+   * sounded identical.
+   *
+   * preventScroll, then scroll deliberately: focusing an element scrolls it
+   * into view on its own, and the card is meant to start at the top.
+   */
   useEffect(() => {
     if (!confirmation) return;
+    confirmationHeading.current?.focus({ preventScroll: true });
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [confirmation]);
 
+  /**
+   * Everything from the request onward is inside the try, including
+   * response.json(): a proxy that answers a 502 with an HTML body fails there,
+   * not at the fetch. Without this the promise rejects, react-hook-form clears
+   * isSubmitting and rethrows, and React 19 does not route an event-handler
+   * rejection to an error boundary — so the button would quietly return to
+   * "Send" and the customer would be told nothing at all.
+   */
   const onSubmit = async (data: FormValues) => {
     setServerError(null);
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        vehicleId: data.vehicleId,
-        pickupDate: `${data.from}T10:00:00Z`,
-        returnDate: `${data.to}T10:00:00Z`,
-        customer: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-        },
-        notes: data.notes || undefined,
-      }),
-    });
-    const json: ApiResponse<Confirmation> = await response.json();
-    if (!json.success) {
-      setServerError(json.error.message);
-      return;
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        // Without this a stalled connection never settles, so the catch below
+        // never runs and the form sits in "Sending…" indefinitely.
+        signal: AbortSignal.timeout(BOOKING_REQUEST_TIMEOUT_MS),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vehicleId: data.vehicleId,
+          pickupDate: `${data.from}T10:00:00Z`,
+          returnDate: `${data.to}T10:00:00Z`,
+          customer: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+          },
+          notes: data.notes || undefined,
+        }),
+      });
+      const json: ApiResponse<Confirmation> = await response.json();
+      if (!json.success) {
+        setServerError(json.error.message);
+        return;
+      }
+      setConfirmation(json.data);
+    } catch {
+      setServerError(t("booking.sendError"));
     }
-    setConfirmation(json.data);
   };
 
   if (confirmation) {
@@ -174,7 +206,11 @@ export function BookingForm({
         <span className="bg-status-available/10 text-status-available mx-auto flex h-16 w-16 items-center justify-center rounded-full">
           <CheckCircle2 className="h-8 w-8" />
         </span>
-        <h2 className="font-display mt-5 text-2xl font-bold">
+        <h2
+          ref={confirmationHeading}
+          tabIndex={-1}
+          className="font-display mt-5 text-2xl font-bold outline-none"
+        >
           {t("booking.received")}
         </h2>
         <p className="text-muted-foreground mx-auto mt-3 max-w-md text-sm leading-relaxed">
@@ -464,6 +500,7 @@ export function BookingForm({
         >
           {isSubmitting ? t("booking.sending") : t("booking.send")}
         </Button>
+        <PendingStatus message={isSubmitting ? t("booking.sending") : null} />
         <p className="text-muted-foreground mt-3 text-center text-xs leading-relaxed">
           {t("booking.noPayment")}
         </p>

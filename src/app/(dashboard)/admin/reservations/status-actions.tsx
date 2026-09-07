@@ -5,6 +5,7 @@ import type { ReservationStatus } from "@prisma/client";
 import { updateReservationStatusAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const NEXT_ACTIONS: Partial<
@@ -57,6 +58,7 @@ export function StatusActions({
                   setError(result.error);
                   return;
                 }
+                toasts.success(t("toast.reservationUpdated"));
                 onSuccess?.();
               });
             }}

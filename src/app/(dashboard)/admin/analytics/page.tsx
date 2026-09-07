@@ -9,6 +9,7 @@ import { BarList } from "@/components/dashboard/bar-list";
 import { cn } from "@/lib/utils";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
+import { formatEur } from "@/lib/money";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function AnalyticsPage({
   searchParams: Promise<{ period?: string }>;
 }) {
   await requireUser();
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   const { period: raw } = await searchParams;
   const period: Period = PERIODS.some((p) => p.key === raw)
     ? (raw as Period)
@@ -68,7 +69,7 @@ export default async function AnalyticsPage({
         stats={[
           {
             label: t("admin.revenue"),
-            value: `${Math.round(data.totalRevenue).toLocaleString()} EUR`,
+            value: formatEur(data.totalRevenue, locale, { precision: 0 }),
           },
           { label: t("admin.bookings"), value: data.totalReservations },
           {

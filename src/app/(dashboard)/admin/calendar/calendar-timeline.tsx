@@ -3,12 +3,21 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
-import { createManualReservationAction } from "@/app/(dashboard)/admin/calendar/actions";
-import { useDetailDrawer } from "@/app/(dashboard)/admin/reservation-detail";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { createManualReservationAction } from "./actions";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toasts } from "@/components/dashboard/toaster";
 import { cn } from "@/lib/utils";
 
 type BarStatus = "PENDING" | "CONFIRMED" | "ACTIVE";
@@ -462,6 +471,7 @@ function BookingModal({
         return;
       }
       router.refresh();
+      toasts.success(t("toast.reservationCreated"));
       onClose();
     });
   };
@@ -481,33 +491,30 @@ function BookingModal({
     },
   ];
 
+  /*
+   * Through Dialog, like every other overlay in the admin. Hand-rolled, this
+   * was the only one with no dialog semantics at all: no role, no
+   * aria-modal, no label on its heading, Tab walked straight out into the
+   * calendar behind it, and closing dropped the operator at the top of the
+   * document. Its backdrop was also a full-viewport <button aria-label=
+   * "Close">, which made "Close" the first thing a keyboard user reached
+   * inside the overlay, ahead of every field.
+   *
+   * The component only mounts while it is open, so `open` is constant and
+   * every dismissal — Escape, the backdrop, the close button — arrives as
+   * onOpenChange(false).
+   */
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        type="button"
-        aria-label={t("common.close")}
-        className="bg-overlay-modal absolute inset-0"
-        onClick={onClose}
-      />
-      <div className="bg-card relative z-10 w-full max-w-md rounded-xl border p-6 shadow-lg">
-        <div className="mb-5 flex items-start justify-between">
-          <div>
-            <h2 className="font-display text-lg font-bold">
-              {t("admin.addReservation")}
-            </h2>
-            <p className="text-muted-foreground text-xs">
-              {t("admin.manualReservationHelp")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-            className="cursor-pointer"
-          >
-            <X className="text-muted-foreground h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display text-lg font-bold">
+            {t("admin.addReservation")}
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-xs">
+            {t("admin.manualReservationHelp")}
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="space-y-4">
           <label className="block">
@@ -612,8 +619,9 @@ function BookingModal({
           >
             {pending ? t("admin.saving") : t("admin.createReservation")}
           </Button>
+          <PendingStatus message={pending ? t("admin.saving") : null} />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

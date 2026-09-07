@@ -5,14 +5,24 @@ import {
 } from "@prisma/client";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
-import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { calculateTotalPrice, rentalDays } from "@/utils/pricing";
-import { latestUnder, withTimeOfDay } from "@/utils/rental-dates";
+import type { TranslationKey } from "@/lib/i18n/translations";
+import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+  phrase,
+} from "@/lib/errors";
+import { calculateTotalPrice, rentalDays } from "@/lib/pricing";
+import { latestUnder, withTimeOfDay } from "@/lib/rental-dates";
 import {
   getReservationTiming,
   rentalCalendarDay,
 } from "@/lib/reservation-lifecycle";
-import { findOrCreateCustomerByEmail } from "@/services/customer.service";
+import {
+  findOrCreateCustomerByEmail,
+  getCustomerSpend,
+} from "@/services/customer.service";
 import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
@@ -50,7 +60,11 @@ function assertRegistrationCovers(
 ) {
   if (!registrationCovers(registrationExpiry, returnDate)) {
     throw new ValidationError(
-      `The vehicle's registration expires on ${day(registrationExpiry!)}; the rental cannot run past it.`
+      `The vehicle's registration expires on ${day(registrationExpiry!)}; the rental cannot run past it.`,
+      {
+        key: "err.registrationExpires",
+        values: { date: day(registrationExpiry!) },
+      }
     );
   }
 }
@@ -155,7 +169,10 @@ export async function createReservation(input: CreateBookingInput): Promise<{
 }> {
   const { available } = await checkAvailability(input);
   if (!available) {
-    throw new ConflictError("Vehicle is already booked for the selected dates");
+    throw new ConflictError(
+      "Vehicle is already booked for the selected dates",
+      { key: "err.alreadyBooked" }
+    );
   }
 
   const customer = await findOrCreateCustomerByEmail(input.customer);
@@ -172,7 +189,9 @@ export async function createReservation(input: CreateBookingInput): Promise<{
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
     if (!isPublicBookableVehicleStatus(vehicle.status)) {
-      throw new ConflictError("Vehicle is not available for booking");
+      throw new ConflictError("Vehicle is not available for booking", {
+        key: "err.notBookable",
+      });
     }
     assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
@@ -220,7 +239,9 @@ export async function createManualReservation(
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
     if (vehicle.status === "INACTIVE") {
-      throw new ConflictError("Vehicle is not available for booking");
+      throw new ConflictError("Vehicle is not available for booking", {
+        key: "err.notBookable",
+      });
     }
     assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
@@ -305,7 +326,14 @@ export async function updateReservationStatus(
 
     if (!ALLOWED_TRANSITIONS[reservation.status].includes(nextStatus)) {
       throw new ValidationError(
-        `Cannot change a ${reservation.status} reservation to ${nextStatus}`
+        `Cannot change a ${reservation.status} reservation to ${nextStatus}`,
+        {
+          key: "err.badTransition",
+          values: {
+            from: phrase(RESERVATION_STATUS_KEYS[reservation.status]),
+            to: phrase(RESERVATION_STATUS_KEYS[nextStatus]),
+          },
+        }
       );
     }
 
@@ -313,7 +341,13 @@ export async function updateReservationStatus(
       throw new ValidationError(
         nextStatus === "ACTIVE"
           ? "Record the pickup inspection to start this rental"
-          : "Record the return inspection to complete this rental"
+          : "Record the return inspection to complete this rental",
+        {
+          key:
+            nextStatus === "ACTIVE"
+              ? "err.pickupInspectionFirst"
+              : "err.returnInspectionFirst",
+        }
       );
     }
 
@@ -330,7 +364,8 @@ export async function updateReservationStatus(
     });
     if (changed.count !== 1) {
       throw new ConflictError(
-        "Reservation changed while you were working. Refresh and try again."
+        "Reservation changed while you were working. Refresh and try again.",
+        { key: "err.changedUnderYou" }
       );
     }
     return tx.reservation.findUniqueOrThrow({ where: { id } });
@@ -347,8 +382,23 @@ export async function cancelReservation(id: string): Promise<Reservation> {
  * Computed alongside the detail so the drawer can bound its date input up
  * front: staff see the ceiling instead of discovering it by being refused.
  */
+/**
+ * Why an extension is refused, as a code rather than a sentence.
+ *
+ * The drawer used to identify these by comparing `reason` against the exact
+ * English string this service produced, so editing the wording here silently
+ * degraded the UI to a generic message — and one of the four cases never
+ * matched at all, because it was interpolated from the status. A code is also
+ * what makes the message translatable: the service has no locale.
+ */
+export type ExtensionRefusal =
+  | "NOT_YET_CONFIRMED"
+  | "BOOKED_IMMEDIATELY_AFTER"
+  | "REGISTRATION_ENDS"
+  | "NOT_EXTENDABLE";
+
 export type ExtensionWindow =
-  | { allowed: false; reason: string }
+  | { allowed: false; reason: ExtensionRefusal }
   | {
       allowed: true;
       /** null means nothing on the calendar limits it. */
@@ -410,18 +460,45 @@ async function getExtensionWindow(reservation: {
       allowed: false,
       reason:
         tightest.by === "booking"
-          ? "The vehicle is booked again immediately after this rental."
-          : "The vehicle's registration expires at the end of this rental.",
+          ? "BOOKED_IMMEDIATELY_AFTER"
+          : "REGISTRATION_ENDS",
     };
   }
 
   return { allowed: true, latestReturn: tightest.at, limitedBy: tightest.by };
 }
 
-function extensionRefusal(status: ReservationStatus): string {
-  if (status === "PENDING") return "Confirm this request before extending it.";
-  return `A ${status.toLowerCase()} reservation cannot be extended.`;
+function extensionRefusal(status: ReservationStatus): ExtensionRefusal {
+  // PENDING is a request staff have not decided yet; COMPLETED and CANCELLED
+  // are history. Only the first is worth a specific instruction.
+  return status === "PENDING" ? "NOT_YET_CONFIRMED" : "NOT_EXTENDABLE";
 }
+
+/**
+ * The same refusals as prose, for the paths that throw.
+ *
+ * The drawer never reaches these — it has the code and its own translations.
+ * But every export of a `"use server"` file is a callable endpoint, so
+ * extendReservation can be invoked without the drawer ever computing a window,
+ * and a thrown AppError's message is shown verbatim. English until server
+ * errors are translated wholesale.
+ */
+/** The same refusals, named for the reader's language. */
+const REFUSAL_KEYS = {
+  NOT_YET_CONFIRMED: "err.notYetConfirmed",
+  BOOKED_IMMEDIATELY_AFTER: "err.bookedImmediatelyAfter",
+  REGISTRATION_ENDS: "err.registrationEnds",
+  NOT_EXTENDABLE: "err.notExtendable",
+} satisfies Record<ExtensionRefusal, TranslationKey>;
+
+const REFUSAL_MESSAGES = {
+  NOT_YET_CONFIRMED: "Confirm this request before extending it.",
+  BOOKED_IMMEDIATELY_AFTER:
+    "The vehicle is booked again immediately after this rental.",
+  REGISTRATION_ENDS:
+    "The vehicle's registration expires at the end of this rental.",
+  NOT_EXTENDABLE: "This reservation cannot be extended.",
+} satisfies Record<ExtensionRefusal, string>;
 
 /**
  * Extends a rental in place — no second booking, no gap in the record.
@@ -446,13 +523,20 @@ export async function extendReservation(
     if (!reservation) throw new NotFoundError("Reservation");
 
     if (!EXTENDABLE_STATUSES.includes(reservation.status)) {
-      throw new ValidationError(extensionRefusal(reservation.status));
+      const refusal = extensionRefusal(reservation.status);
+      throw new ValidationError(REFUSAL_MESSAGES[refusal], {
+        key: REFUSAL_KEYS[refusal],
+      });
     }
 
     const target = withTimeOfDay(reservation.returnDate, newReturnDate);
     if (target.getTime() <= reservation.returnDate.getTime()) {
       throw new ValidationError(
-        `The new return date must be after the current one (${day(reservation.returnDate)}).`
+        `The new return date must be after the current one (${day(reservation.returnDate)}).`,
+        {
+          key: "err.returnMustBeLater",
+          values: { date: day(reservation.returnDate) },
+        }
       );
     }
 
@@ -471,7 +555,11 @@ export async function extendReservation(
     });
     if (clash) {
       throw new ConflictError(
-        `This vehicle is booked again from ${day(clash.pickupDate)}, so it cannot be kept until ${day(target)}.`
+        `This vehicle is booked again from ${day(clash.pickupDate)}, so it cannot be kept until ${day(target)}.`,
+        {
+          key: "err.bookedAgainFrom",
+          values: { from: day(clash.pickupDate), until: day(target) },
+        }
       );
     }
 
@@ -496,7 +584,8 @@ export async function extendReservation(
     });
     if (changed.count !== 1) {
       throw new ConflictError(
-        "Reservation changed while you were working. Refresh and try again."
+        "Reservation changed while you were working. Refresh and try again.",
+        { key: "err.changedUnderYou" }
       );
     }
     return tx.reservation.findUniqueOrThrow({ where: { id } });
@@ -554,11 +643,19 @@ export async function getReservationDetail(id: string) {
     },
   });
   if (!reservation) throw new NotFoundError("Reservation");
+  const [extension, customerSpend] = await Promise.all([
+    // Bundled with the detail so opening the drawer is still one round trip.
+    getExtensionWindow(reservation),
+    // Aggregated rather than summed from the 20 reservations included above:
+    // that reduce understated a repeat customer and disagreed with the number
+    // the customer drawer showed for the same person.
+    getCustomerSpend(reservation.customerId),
+  ]);
   return {
     ...reservation,
     timing: getReservationTiming(reservation),
-    // Bundled with the detail so opening the drawer is still one round trip.
-    extension: await getExtensionWindow(reservation),
+    extension,
+    customer: { ...reservation.customer, spend: customerSpend },
   };
 }
 

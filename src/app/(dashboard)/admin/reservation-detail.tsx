@@ -1,17 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
-import Image from "next/image";
-import { format } from "date-fns";
-import { enUS, sq } from "date-fns/locale";
-import {
-  Mail,
-  Phone,
-  Car,
-  CalendarRange,
-  Receipt,
-  ClipboardCheck,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   getReservationDetailAction,
   getVehicleDetailAction,
@@ -20,42 +10,56 @@ import {
   type VehicleDetail,
   type CustomerDetail,
 } from "./detail-actions";
+import {
+  readDrawerTarget,
+  withDrawerTarget,
+  withoutDrawerTarget,
+  type DrawerKind,
+} from "./drawer-url";
+import {
+  DetailDrawerContext,
+  type DetailDrawerHandle,
+} from "@/components/dashboard/detail-drawer-context";
 import { DetailDrawer } from "@/components/dashboard/detail-drawer";
-import { StatusBadge } from "@/components/shared/status-badge";
-import { StatusActions } from "./reservations/status-actions";
-import { ExtendReservation } from "./reservations/extend-reservation";
+import { ReservationBody } from "./reservation-body";
 import { VehicleDetailBody } from "./vehicle-detail-body";
 import { CustomerDetailBody } from "./customer-detail-body";
-import { SectionTitle, Row, DrawerSkeleton } from "./detail-primitives";
-import { vehicleLabel } from "@/utils/vehicle";
-import { ReservationAttention } from "@/components/shared/reservation-attention";
-import { InspectionAction } from "./reservations/inspection-action";
+import { DrawerSkeleton } from "./detail-primitives";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { useI18n } from "@/components/shared/locale-provider";
-
-type Loaded =
-  | { kind: "reservation"; data: ReservationDetail }
-  | { kind: "vehicle"; data: VehicleDetail }
-  | { kind: "customer"; data: CustomerDetail };
-
-type Ctx = {
-  openReservation: (id: string) => void;
-  openVehicle: (id: string) => void;
-  openCustomer: (id: string) => void;
-};
-
-const DetailContext = createContext<Ctx>({
-  openReservation: () => {},
-  openVehicle: () => {},
-  openCustomer: () => {},
-});
+import { reportError } from "@/lib/observability";
 
 /**
- * One drawer for the whole admin. Widgets call open*(id) and the payload
- * is fetched on demand, so summary lists stay light and no screen has to
- * navigate away to show detail.
+ * Which record is loaded, tagged with the request that asked for it. Keying
+ * the payload rather than tracking a separate `loading` flag means the drawer
+ * cannot show one reservation's body under another's heading when two opens
+ * land out of order, and there is no state to set synchronously in an effect.
  */
-export const useReservationDetail = () => useContext(DetailContext);
-export const useDetailDrawer = () => useContext(DetailContext);
+type Loaded =
+  | { key: string; kind: "reservation"; data: ReservationDetail }
+  | { key: string; kind: "vehicle"; data: VehicleDetail }
+  | { key: string; kind: "customer"; data: CustomerDetail };
+
+async function fetchDetail(
+  key: string,
+  kind: DrawerKind,
+  id: string
+): Promise<Loaded | { error: string }> {
+  switch (kind) {
+    case "reservation": {
+      const result = await getReservationDetailAction(id);
+      return "error" in result ? result : { key, kind, data: result.data };
+    }
+    case "vehicle": {
+      const result = await getVehicleDetailAction(id);
+      return "error" in result ? result : { key, kind, data: result.data };
+    }
+    case "customer": {
+      const result = await getCustomerDetailAction(id);
+      return "error" in result ? result : { key, kind, data: result.data };
+    }
+  }
+}
 
 export function ReservationDetailProvider({
   children,
@@ -63,407 +67,139 @@ export function ReservationDetailProvider({
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const target = readDrawerTarget(searchParams);
+
   const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // `message: undefined` is a request that never came back with an answer at
+  // all — the action rejected rather than returning one.
+  const [failure, setFailure] = useState<{
+    key: string;
+    message?: string;
+  } | null>(null);
+  // Bumped to re-fetch the record already on screen without touching the URL.
+  const [reloads, setReloads] = useState(0);
 
-  const load = useCallback(
-    async <T,>(
-      kind: Loaded["kind"],
-      fetcher: () => Promise<{ data: T } | { error: string }>
-    ) => {
-      setOpen(true);
-      setLoading(true);
-      setError(null);
-      setLoaded(null);
-      const result = await fetcher();
-      if ("error" in result) setError(result.error);
-      else setLoaded({ kind, data: result.data } as Loaded);
-      setLoading(false);
-    },
-    []
+  const kind = target?.kind ?? null;
+  const id = target?.id ?? null;
+  const requestKey = kind && id ? `${kind}:${id}:${reloads}` : null;
+
+  useEffect(() => {
+    if (!kind || !id || !requestKey) return;
+    let cancelled = false;
+    void fetchDetail(requestKey, kind, id)
+      .then((result) => {
+        if (cancelled) return;
+        if ("error" in result)
+          setFailure({ key: requestKey, message: result.error });
+        else setLoaded(result);
+      })
+      /*
+       * The detail actions call requireUser() outside their try, so an
+       * expired session rejects the action rather than returning an error.
+       * Without this the promise was simply dropped and the drawer sat on its
+       * skeleton for as long as the operator was willing to wait.
+       */
+      .catch((cause: unknown) => {
+        if (cancelled) return;
+        reportError(cause, { scope: "detail-drawer", kind, id });
+        setFailure({ key: requestKey });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [kind, id, requestKey]);
+
+  /*
+   * pushState rather than router.push. The filters and pagination navigate
+   * because the server renders their result; the drawer's payload comes from
+   * a server action, so a navigation would re-render the whole admin page to
+   * change nothing. Next syncs useSearchParams with the History API, so the
+   * URL is still the state and Back still works.
+   */
+  const openDetail = useCallback((kind: DrawerKind, id: string) => {
+    window.history.pushState(
+      null,
+      "",
+      `?${withDrawerTarget(window.location.search, { kind, id })}`
+    );
+  }, []);
+
+  // Closing replaces rather than pushes: dismissing the drawer should not
+  // become another step to press Back through.
+  const close = useCallback(() => {
+    const query = withoutDrawerTarget(window.location.search);
+    window.history.replaceState(
+      null,
+      "",
+      query ? `?${query}` : window.location.pathname
+    );
+  }, []);
+
+  const handle = useMemo<DetailDrawerHandle>(
+    () => ({
+      openReservation: (id) => openDetail("reservation", id),
+      openVehicle: (id) => openDetail("vehicle", id),
+      openCustomer: (id) => openDetail("customer", id),
+    }),
+    [openDetail]
   );
 
-  const openReservation = useCallback(
-    (id: string) => {
-      void load("reservation", () => getReservationDetailAction(id));
-    },
-    [load]
-  );
-  const openVehicle = useCallback(
-    (id: string) => {
-      void load("vehicle", () => getVehicleDetailAction(id));
-    },
-    [load]
-  );
-  const openCustomer = useCallback(
-    (id: string) => {
-      void load("customer", () => getCustomerDetailAction(id));
-    },
-    [load]
-  );
+  // While closing, the panel stays mounted for its exit animation — so the
+  // last record keeps rendering rather than blanking on the way out.
+  const body = !target || loaded?.key === requestKey ? loaded : null;
+  const message =
+    failure?.key === requestKey
+      ? (failure.message ?? t("admin.detailUnavailable"))
+      : null;
+  const loading = requestKey !== null && !body && !message;
 
   const title =
-    loaded?.kind === "reservation"
-      ? `${loaded.data.customer.firstName} ${loaded.data.customer.lastName}`
-      : loaded?.kind === "vehicle"
-        ? `${loaded.data.vehicle.brand} ${loaded.data.vehicle.model}`
-        : loaded?.kind === "customer"
-          ? `${loaded.data.firstName} ${loaded.data.lastName}`
+    body?.kind === "reservation"
+      ? `${body.data.customer.firstName} ${body.data.customer.lastName}`
+      : body?.kind === "vehicle"
+        ? `${body.data.vehicle.brand} ${body.data.vehicle.model}`
+        : body?.kind === "customer"
+          ? `${body.data.firstName} ${body.data.lastName}`
           : t("admin.details");
 
   const subtitle =
-    loaded?.kind === "reservation"
-      ? vehicleLabel(loaded.data.vehicle)
-      : loaded?.kind === "vehicle"
-        ? (loaded.data.vehicle.plate ?? String(loaded.data.vehicle.year))
-        : loaded?.kind === "customer"
-          ? loaded.data.email
+    body?.kind === "reservation"
+      ? vehicleLabel(body.data.vehicle)
+      : body?.kind === "vehicle"
+        ? (body.data.vehicle.plate ?? String(body.data.vehicle.year))
+        : body?.kind === "customer"
+          ? body.data.email
           : undefined;
 
   return (
-    <DetailContext.Provider
-      value={{ openReservation, openVehicle, openCustomer }}
-    >
+    <DetailDrawerContext.Provider value={handle}>
       {children}
       <DetailDrawer
-        open={open}
-        onClose={() => setOpen(false)}
+        open={target !== null}
+        onClose={close}
         title={title}
         subtitle={subtitle}
       >
         {loading && <DrawerSkeleton />}
-        {error && (
+        {message && (
           <p role="alert" className="text-destructive text-sm">
-            {error}
+            {message}
           </p>
         )}
-        {loaded?.kind === "reservation" && (
+        {body?.kind === "reservation" && (
           <ReservationBody
-            detail={loaded.data}
-            onDone={() => setOpen(false)}
+            detail={body.data}
+            onDone={close}
             // An extension rewrites the dates and total shown here, so the
             // drawer reloads in place rather than dismissing — the operator
             // stays on the record they just changed and sees the result.
-            onChanged={() => openReservation(loaded.data.id)}
+            onChanged={() => setReloads((n) => n + 1)}
           />
         )}
-        {loaded?.kind === "vehicle" && (
-          <VehicleDetailBody detail={loaded.data} />
-        )}
-        {loaded?.kind === "customer" && (
-          <CustomerDetailBody detail={loaded.data} />
-        )}
+        {body?.kind === "vehicle" && <VehicleDetailBody detail={body.data} />}
+        {body?.kind === "customer" && <CustomerDetailBody detail={body.data} />}
       </DetailDrawer>
-    </DetailContext.Provider>
-  );
-}
-
-const eur = (v: unknown) => `${Number(v).toFixed(2)} EUR`;
-
-function ReservationBody({
-  detail,
-  onDone,
-  onChanged,
-}: {
-  detail: ReservationDetail;
-  /** Completing a task here should feel finished — the drawer dismisses. */
-  onDone: () => void;
-  /** An edit that leaves the reservation open — reload, stay put. */
-  onChanged: () => void;
-}) {
-  const { locale, t } = useI18n();
-  const dateLocale = locale === "sq" ? sq : enUS;
-  const cover = detail.vehicle.images[0];
-  const history = detail.customer.reservations;
-  const spend = history
-    .filter((r) => r.status === "ACTIVE" || r.status === "COMPLETED")
-    .reduce((sum, r) => sum + Number(r.totalPrice), 0);
-
-  return (
-    <div className="space-y-6">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-900">
-        {cover ? (
-          <Image
-            src={cover.url}
-            alt={vehicleLabel(detail.vehicle)}
-            fill
-            sizes="26rem"
-            className="object-cover"
-          />
-        ) : (
-          <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
-            {detail.vehicle.brand}
-          </span>
-        )}
-        <span className="absolute top-3 right-3">
-          <StatusBadge status={detail.vehicle.status} />
-        </span>
-      </div>
-
-      <section>
-        <SectionTitle icon={CalendarRange}>
-          {t("admin.thisReservation")}
-        </SectionTitle>
-        <div className="space-y-2 text-sm">
-          <Row label={t("admin.status")}>
-            <span className="flex flex-wrap justify-end gap-1.5">
-              <StatusBadge status={detail.status} />
-              <ReservationAttention attention={detail.timing.attention} />
-            </span>
-          </Row>
-          <Row label={t("admin.pickup")}>
-            {format(detail.pickupDate, "EEE dd MMM yyyy", {
-              locale: dateLocale,
-            })}
-          </Row>
-          <Row label={t("admin.return")}>
-            {format(detail.returnDate, "EEE dd MMM yyyy", {
-              locale: dateLocale,
-            })}
-          </Row>
-          <Row label={t("admin.total")}>
-            <span className="font-display font-bold">
-              {eur(detail.totalPrice)}
-            </span>
-          </Row>
-          <Row label={t("admin.payment")}>
-            <span className="text-muted-foreground">
-              {detail.status === "COMPLETED"
-                ? t("admin.settledReturn")
-                : t("admin.duePickup")}
-            </span>
-          </Row>
-          <Row label={t("admin.booked")}>
-            {format(detail.createdAt, "dd MMM yyyy", { locale: dateLocale })}
-          </Row>
-          {detail.startedAt && (
-            <Row label={t("admin.handover")}>
-              {format(detail.startedAt, "dd MMM yyyy, HH:mm", {
-                locale: dateLocale,
-              })}
-            </Row>
-          )}
-          {detail.completedAt && (
-            <Row label={t("admin.returned")}>
-              {format(detail.completedAt, "dd MMM yyyy, HH:mm", {
-                locale: dateLocale,
-              })}
-            </Row>
-          )}
-          {detail.notes && (
-            <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">
-              {detail.notes}
-            </p>
-          )}
-        </div>
-        <ExtendReservation
-          reservationId={detail.id}
-          returnDate={detail.returnDate}
-          pricePerDay={detail.vehicle.pricePerDay}
-          extension={detail.extension}
-          onExtended={onChanged}
-        />
-
-        <div className="mt-3">
-          <div className="flex flex-wrap justify-end gap-2">
-            <InspectionAction
-              reservationId={detail.id}
-              status={detail.status}
-              timing={detail.timing}
-              signerName={`${detail.customer.firstName} ${detail.customer.lastName}`}
-              onSuccess={onChanged}
-            />
-            <StatusActions
-              reservationId={detail.id}
-              status={detail.status}
-              onSuccess={onDone}
-            />
-          </div>
-        </div>
-      </section>
-
-      {detail.inspections.length > 0 && (
-        <section>
-          <SectionTitle icon={ClipboardCheck}>
-            {t("admin.inspections", { count: detail.inspections.length })}
-          </SectionTitle>
-          <div className="space-y-3">
-            {detail.inspections.map((inspection) => (
-              <article
-                key={inspection.id}
-                className="bg-secondary/60 rounded-xl border p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">
-                      {inspection.type === "PICKUP"
-                        ? t("admin.pickupCondition")
-                        : t("admin.returnCondition")}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {t("admin.recordedBy", {
-                        date: format(
-                          inspection.createdAt,
-                          "dd MMM yyyy, HH:mm",
-                          {
-                            locale: dateLocale,
-                          }
-                        ),
-                        name: inspection.createdBy.name,
-                      })}
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold tabular-nums">
-                    {t("admin.fuelPercent", {
-                      mileage: inspection.mileage.toLocaleString(locale),
-                      fuel: inspection.fuelLevel,
-                    })}
-                  </span>
-                </div>
-
-                {(inspection.exteriorNotes ||
-                  inspection.interiorNotes ||
-                  inspection.damageNotes) && (
-                  <dl className="mt-3 space-y-1 text-xs">
-                    {inspection.exteriorNotes && (
-                      <div>
-                        <dt className="text-muted-foreground inline">
-                          {t("admin.exterior")}:{" "}
-                        </dt>
-                        <dd className="inline">{inspection.exteriorNotes}</dd>
-                      </div>
-                    )}
-                    {inspection.interiorNotes && (
-                      <div>
-                        <dt className="text-muted-foreground inline">
-                          {t("admin.interior")}:{" "}
-                        </dt>
-                        <dd className="inline">{inspection.interiorNotes}</dd>
-                      </div>
-                    )}
-                    {inspection.damageNotes && (
-                      <div>
-                        <dt className="text-destructive inline font-semibold">
-                          {t("admin.damage")}:{" "}
-                        </dt>
-                        <dd className="inline">{inspection.damageNotes}</dd>
-                      </div>
-                    )}
-                  </dl>
-                )}
-
-                {inspection.photos.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {inspection.photos.map((photo) => (
-                      <div
-                        key={photo.id}
-                        className="bg-media relative aspect-square overflow-hidden rounded-lg"
-                      >
-                        <Image
-                          src={photo.url}
-                          alt={t("admin.inspectionPhoto", {
-                            type:
-                              inspection.type === "PICKUP"
-                                ? t("admin.pickup").toLowerCase()
-                                : t("admin.return").toLowerCase(),
-                          })}
-                          fill
-                          sizes="8rem"
-                          className="object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <p className="text-muted-foreground mt-3 border-t pt-2 text-[11px]">
-                  {t("admin.acknowledgedBy", {
-                    name: inspection.signerName,
-                    time: format(inspection.acknowledgedAt, "HH:mm", {
-                      locale: dateLocale,
-                    }),
-                  })}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section>
-        <SectionTitle icon={Mail}>{t("admin.customer")}</SectionTitle>
-        <div className="space-y-2 text-sm">
-          <Row label={t("admin.name")}>
-            {detail.customer.firstName} {detail.customer.lastName}
-          </Row>
-          <Row label={t("admin.email")}>
-            <span className="truncate">{detail.customer.email}</span>
-          </Row>
-          <Row label={t("admin.phone")}>
-            <span className="flex items-center gap-1.5">
-              <Phone className="text-muted-foreground h-3 w-3" />
-              {detail.customer.phone}
-            </span>
-          </Row>
-          <Row label={t("admin.lifetimeSpend")}>
-            <span className="font-semibold">{spend.toFixed(2)} EUR</span>
-          </Row>
-          {detail.customer.notes && (
-            <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">
-              {detail.customer.notes === "Repeat customer, prefers automatic."
-                ? t("admin.demoRepeatCustomer")
-                : detail.customer.notes}
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section>
-        <SectionTitle icon={Car}>{t("admin.vehicle")}</SectionTitle>
-        <div className="space-y-2 text-sm">
-          <Row label={t("admin.category")}>
-            {detail.vehicle.category.charAt(0) +
-              detail.vehicle.category.slice(1).toLowerCase()}
-          </Row>
-          <Row label={t("admin.dayRate")}>
-            {eur(detail.vehicle.pricePerDay)}
-          </Row>
-          {detail.vehicle.registrationExpiry && (
-            <Row label={t("admin.registration")}>
-              {format(detail.vehicle.registrationExpiry, "dd MMM yyyy", {
-                locale: dateLocale,
-              })}
-            </Row>
-          )}
-        </div>
-      </section>
-
-      <section>
-        <SectionTitle icon={Receipt}>
-          {t("admin.reservationHistory", { count: history.length })}
-        </SectionTitle>
-        <ul className="divide-y">
-          {history.map((r) => (
-            <li key={r.id} className="flex items-center gap-2 py-2 text-xs">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">
-                  {vehicleLabel(r.vehicle)}
-                </p>
-                <p className="text-muted-foreground">
-                  {format(r.pickupDate, "dd MMM", { locale: dateLocale })} -{" "}
-                  {format(r.returnDate, "dd MMM yyyy", {
-                    locale: dateLocale,
-                  })}
-                </p>
-              </div>
-              <span className="tabular-nums">{eur(r.totalPrice)}</span>
-              <StatusBadge status={r.status} />
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+    </DetailDrawerContext.Provider>
   );
 }

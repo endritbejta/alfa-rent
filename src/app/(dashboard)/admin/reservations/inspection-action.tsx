@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
+import { toasts } from "@/components/dashboard/toaster";
 
 export function InspectionAction({
   reservationId,
@@ -90,6 +92,7 @@ export function InspectionAction({
         return;
       }
       setOpen(false);
+      toasts.success(t("toast.inspectionRecorded"));
       onSuccess?.();
     });
   };
@@ -277,6 +280,15 @@ export function InspectionAction({
                         ? t("admin.saveStartRental")
                         : t("admin.saveCompleteRental")}
               </Button>
+              <PendingStatus
+                message={
+                  uploading
+                    ? t("admin.uploadingPhotos")
+                    : pending
+                      ? t("admin.savingInspection")
+                      : null
+                }
+              />
             </DialogFooter>
           </form>
         </DialogContent>

@@ -1,0 +1,30 @@
+# Local development database.
+#
+# Credentials and database name match the DATABASE_URL already in
+# .env.example, so `cp .env.example .env` needs no editing to connect.
+#
+# postgres:16 is the same major version CI runs (.github/workflows/ci.yml), so
+# the GiST exclusion constraint, btree_gist and the RLS statements in
+# prisma/migrations behave here exactly as they do there.
+services:
+  postgres:
+    image: postgres:16
+    container_name: alfa-rent-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: alfa_rent
+    ports:
+      - "5432:5432"
+    volumes:
+      - alfa-rent-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `npm run db:setup` waits on this before applying migrations.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d alfa_rent"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  alfa-rent-pgdata:

@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
+import { toasts } from "@/components/dashboard/toaster";
+import { formatEur } from "@/lib/money";
 import { enUS, sq } from "date-fns/locale";
+import { REPAIR_FIELD_NAMES } from "@/lib/validations/repair";
 
 type Repair = {
   id: string;
@@ -30,9 +34,6 @@ type Stats = {
   averageCost: number;
 };
 
-const eur = (n: number) =>
-  `${n.toLocaleString(undefined, { maximumFractionDigits: 0 })} EUR`;
-
 /**
  * Repairs are unplanned costs, deliberately separate from routine service:
  * the yearly total is what tells staff a vehicle is becoming a money pit.
@@ -48,6 +49,8 @@ export function RepairsPanel({
 }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  // Whole euros: repair costs sit on compact metric tiles.
+  const eur = (n: number) => formatEur(n, locale, { precision: 0 });
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -62,20 +65,33 @@ export function RepairsPanel({
         return;
       }
       setOpen(false);
+      toasts.success(t("toast.repairAdded"));
     });
   };
 
+  /**
+   * Collects this panel's own inputs rather than using a <form>, because it
+   * renders inside VehicleForm's <form> and HTML forbids nesting one.
+   *
+   * The fields carry aria-required instead of `required` for the same reason:
+   * a native `required` here belongs to the *vehicle* form, so leaving this
+   * panel open with an empty cost blocked saving the vehicle, pointing the
+   * browser at a field in a different card. aria-required keeps the fields
+   * announced as required without joining that form's validation.
+   */
   const submitFields = () => {
     const fields = Array.from(
       repairFieldsRef.current?.querySelectorAll<HTMLInputElement>(
         "input[name]"
       ) ?? []
     );
-    const invalidField = fields.find(
-      (field) => field.required && !field.value.trim()
+    const missing = fields.find(
+      (field) =>
+        field.getAttribute("aria-required") === "true" && !field.value.trim()
     );
-    if (invalidField) {
+    if (missing) {
       setError(t("admin.requiredField"));
+      missing.focus();
       return;
     }
 
@@ -154,46 +170,56 @@ export function RepairsPanel({
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="date">{t("admin.date")}</Label>
+              <Label htmlFor={REPAIR_FIELD_NAMES.date}>{t("admin.date")}</Label>
               {/* Required, so no clear: an empty date has no meaning here. */}
               <DateField
-                id="date"
-                name="date"
+                id={REPAIR_FIELD_NAMES.date}
+                name={REPAIR_FIELD_NAMES.date}
                 defaultValue={new Date()}
                 clearable={false}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cost">{t("admin.cost")}</Label>
+              <Label htmlFor={REPAIR_FIELD_NAMES.cost}>{t("admin.cost")}</Label>
               <Input
-                id="cost"
-                name="cost"
+                id={REPAIR_FIELD_NAMES.cost}
+                name={REPAIR_FIELD_NAMES.cost}
                 type="number"
                 step="0.01"
                 min={1}
-                required
+                aria-required="true"
               />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="description">{t("admin.workDone")}</Label>
+            <Label htmlFor={REPAIR_FIELD_NAMES.description}>
+              {t("admin.workDone")}
+            </Label>
             <Input
-              id="description"
-              name="description"
-              required
+              id={REPAIR_FIELD_NAMES.description}
+              name={REPAIR_FIELD_NAMES.description}
+              aria-required="true"
               placeholder={t("admin.workPlaceholder")}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="reference">{t("admin.invoiceReference")}</Label>
-              <Input id="reference" name="reference" placeholder="INV-1234" />
+              <Label htmlFor={REPAIR_FIELD_NAMES.reference}>
+                {t("admin.invoiceReference")}
+              </Label>
+              <Input
+                id={REPAIR_FIELD_NAMES.reference}
+                name={REPAIR_FIELD_NAMES.reference}
+                placeholder="INV-1234"
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="notes">{t("admin.notes")}</Label>
+              <Label htmlFor={REPAIR_FIELD_NAMES.notes}>
+                {t("admin.notes")}
+              </Label>
               <Input
-                id="notes"
-                name="notes"
+                id={REPAIR_FIELD_NAMES.notes}
+                name={REPAIR_FIELD_NAMES.notes}
                 placeholder={t("admin.partsPlaceholder")}
               />
             </div>
@@ -212,6 +238,7 @@ export function RepairsPanel({
           >
             {pending ? t("admin.saving") : t("admin.saveRepair")}
           </Button>
+          <PendingStatus message={pending ? t("admin.saving") : null} />
         </div>
       )}
 
@@ -244,6 +271,7 @@ export function RepairsPanel({
                   startTransition(async () => {
                     const result = await deleteRepairAction(vehicleId, r.id);
                     if (result?.error) setError(result.error);
+                    else toasts.success(t("toast.repairDeleted"));
                   })
                 }
               >

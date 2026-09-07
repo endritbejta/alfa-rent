@@ -1,18 +1,37 @@
 import { requireRole } from "@/lib/auth/guards";
 import { getVehicleById } from "@/services/vehicle.service";
 import { getVehicleFleetProfile } from "@/services/fleet.service";
-import { VehicleForm } from "@/components/forms/vehicle-form";
+import { VehicleForm } from "../../vehicle-form";
 import { RepairsPanel } from "./repairs";
 import { deleteVehicleAction, updateVehicleAction } from "../../actions";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
+import { getI18n } from "@/lib/i18n/server";
+import { AlertTriangle } from "lucide-react";
+import { ToastOnArrival } from "@/components/dashboard/toast-on-arrival";
 
 export default async function EditVehiclePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ photos?: string; created?: string }>;
 }) {
   await requireRole("ADMIN");
   const { id } = await params;
+  /*
+   * createVehicleAction sends the operator here with ?photos=failed when the
+   * vehicle saved but its gallery did not. The vehicle genuinely exists at
+   * that point, so the previous behaviour — reporting it as a failed create —
+   * invited a second submit and a duplicate vehicle. A flag rather than the
+   * message itself: the querystring is admin-visible text, and the specific
+   * Cloudinary reason is in the error report, not something to act on here.
+   */
+  const [{ photos, created }, { t }] = await Promise.all([
+    searchParams,
+    getI18n(),
+  ]);
+  const photosFailed = photos === "failed";
+
   const [vehicle, profile] = await Promise.all([
     getVehicleById(id),
     getVehicleFleetProfile(id),
@@ -23,6 +42,18 @@ export default async function EditVehiclePage({
 
   return (
     <PageBody>
+      {created === "1" && (
+        <ToastOnArrival param="created" message={t("toast.vehicleCreated")} />
+      )}
+      {photosFailed && (
+        <div
+          role="alert"
+          className="border-destructive/30 bg-destructive/[0.06] text-destructive mb-5 flex items-start gap-2 rounded-lg border p-4 text-sm"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{t("admin.photosNotAttached")}</span>
+        </div>
+      )}
       <VehicleForm
         action={updateWithId}
         // Decimal cannot cross into a client component — convert at the edge.

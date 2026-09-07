@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
-import { normalizeError, TooManyRequestsError } from "@/lib/errors";
+import { TooManyRequestsError } from "@/lib/errors";
+import { errorMessage } from "@/lib/errors-i18n";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   draftFolder,
@@ -13,42 +14,26 @@ import {
 } from "@/lib/cloudinary";
 import {
   createVehicleSchema,
+  parseVehicleFields,
   updateVehicleSchema,
 } from "@/lib/validations/vehicle";
 import { parseVehicleImagesField } from "@/lib/validations/image";
 import {
   createVehicle,
   deleteVehicle,
+  PUBLIC_VEHICLES_TAG,
   updateVehicle,
+  type VehicleRemoval,
 } from "@/services/vehicle.service";
 import { syncVehicleImages } from "@/services/image.service";
 import { addRepair, deleteRepair } from "@/services/fleet.service";
-import { repairSchema } from "@/lib/validations/repair";
+import { parseRepairFields } from "@/lib/validations/repair";
+import { reportError } from "@/lib/observability";
 
 export type ActionResult = { error: string } | undefined;
+export type RemovalResult = { error: string } | { removal: VehicleRemoval };
 
 /** Vehicle management is ADMIN-only; EMPLOYEE manages reservations. */
-
-function parseVehicleFields(formData: FormData) {
-  return {
-    brand: formData.get("brand"),
-    model: formData.get("model"),
-    plate: formData.get("plate") || undefined,
-    year: Number(formData.get("year")),
-    category: formData.get("category"),
-    transmission: formData.get("transmission"),
-    fuelType: formData.get("fuelType"),
-    seats: Number(formData.get("seats")),
-    pricePerDay: Number(formData.get("pricePerDay")),
-    description: formData.get("description"),
-    status: formData.get("status") ?? undefined,
-    registrationDate: formData.get("registrationDate") || undefined,
-    registrationExpiry: formData.get("registrationExpiry") || undefined,
-    lastServiceDate: formData.get("lastServiceDate") || undefined,
-    nextServiceDate: formData.get("nextServiceDate") || undefined,
-    serviceNotes: formData.get("serviceNotes") || undefined,
-  };
-}
 
 /**
  * Mints a short-lived Cloudinary signature so the browser can upload the
@@ -67,7 +52,8 @@ export async function signVehicleUploadAction(
     if (!limit.allowed) {
       throw new TooManyRequestsError(
         "Too many uploads. Please wait a moment and try again.",
-        limit.retryAfter
+        limit.retryAfter,
+        { key: "err.tooManyUploads" }
       );
     }
 
@@ -78,7 +64,7 @@ export async function signVehicleUploadAction(
 
     return { signature: signUpload(folder) };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }
 
@@ -86,18 +72,61 @@ export async function createVehicleAction(
   formData: FormData
 ): Promise<ActionResult> {
   await requireRole("ADMIN");
-  let vehicleId: string;
+
+  let input: ReturnType<typeof createVehicleSchema.parse>;
+  let images: ReturnType<typeof parseVehicleImagesField>;
   try {
-    const input = createVehicleSchema.parse(parseVehicleFields(formData));
-    const images = parseVehicleImagesField(formData.get("images"));
-    const vehicle = await createVehicle(input);
-    vehicleId = vehicle.id;
+    input = createVehicleSchema.parse(parseVehicleFields(formData));
+    images = parseVehicleImagesField(formData.get("images"));
+  } catch (error) {
+    // Nothing has been written yet, so the operator can correct the form and
+    // submit again without creating anything.
+    return { error: await errorMessage(error) };
+  }
+
+  let vehicle: Awaited<ReturnType<typeof createVehicle>>;
+  try {
+    vehicle = await createVehicle(input);
+  } catch (error) {
+    // Still nothing created — a duplicate plate belongs on the form, not on
+    // the error boundary.
+    return { error: await errorMessage(error) };
+  }
+
+  /*
+   * The gallery cannot join that insert: syncVehicleImages makes Cloudinary
+   * calls, and holding a database transaction open across network I/O against
+   * a pooler capped at one connection is worse than the problem it solves.
+   *
+   * So the vehicle exists from here on, whatever happens next — and reporting
+   * a photo failure as though nothing had been created is what let an operator
+   * hit Save again and get a *second* vehicle. A plateless one has a random
+   * slug suffix, so no unique constraint stopped it.
+   *
+   * Instead: keep the vehicle, take them to it, and carry the reason the
+   * photos did not attach. The vehicle is real; the gallery is the part that
+   * needs another go, and the edit page is where that is done.
+   */
+  let photosAttached = true;
+  try {
     await syncVehicleImages(vehicle.id, images);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    photosAttached = false;
+    // The specific reason goes to the error report, not into the URL: a
+    // querystring is admin-visible text, and the operator's actionable
+    // information is "the photos are not on yet", which the page states.
+    reportError(error, {
+      scope: "create-vehicle-images",
+      vehicleId: vehicle.id,
+      imageCount: images.length,
+    });
   }
+
   revalidatePath("/admin/vehicles");
-  redirect(`/admin/vehicles/${vehicleId}/edit?created=1`);
+  updateTag(PUBLIC_VEHICLES_TAG);
+  redirect(
+    `/admin/vehicles/${vehicle.id}/edit${photosAttached ? "?created=1" : "?photos=failed"}`
+  );
 }
 
 export async function updateVehicleAction(
@@ -111,23 +140,28 @@ export async function updateVehicleAction(
     await updateVehicle(vehicleId, input);
     await syncVehicleImages(vehicleId, images);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/vehicles");
-  redirect("/admin/vehicles");
+  updateTag(PUBLIC_VEHICLES_TAG);
+  // The list is where the operator lands, so that is where the save is
+  // confirmed — a redirect leaves no client behind to say it.
+  redirect("/admin/vehicles?saved=1");
 }
 
 export async function deleteVehicleAction(
   vehicleId: string
-): Promise<ActionResult> {
+): Promise<RemovalResult> {
   await requireRole("ADMIN");
+  let removal: VehicleRemoval;
   try {
-    await deleteVehicle(vehicleId);
+    removal = await deleteVehicle(vehicleId);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/vehicles");
-  return undefined;
+  updateTag(PUBLIC_VEHICLES_TAG);
+  return { removal };
 }
 
 export async function addRepairAction(
@@ -136,16 +170,10 @@ export async function addRepairAction(
 ): Promise<ActionResult> {
   await requireRole("ADMIN");
   try {
-    const input = repairSchema.parse({
-      date: formData.get("date"),
-      cost: formData.get("cost"),
-      description: formData.get("description"),
-      notes: formData.get("notes") || undefined,
-      reference: formData.get("reference") || undefined,
-    });
+    const input = parseRepairFields(formData);
     await addRepair(vehicleId, input);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
   revalidatePath("/admin/vehicles");
@@ -160,7 +188,7 @@ export async function deleteRepairAction(
   try {
     await deleteRepair(repairId);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
   return undefined;

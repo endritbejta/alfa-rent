@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getPublicVehicleBySlug } from "@/services/vehicle.service";
 import { getVehicleBookingCalendar } from "@/services/reservation.service";
 import { BookingForm } from "@/components/forms/booking-form";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { NotFoundError } from "@/lib/errors";
@@ -85,7 +85,7 @@ export default async function BookingPage({
                 ? t("vehicle.automatic")
                 : t("vehicle.manual"),
             seats: vehicle.seats,
-            pricePerDay: Number(vehicle.pricePerDay),
+            pricePerDay: vehicle.pricePerDay,
             imageUrl: vehicle.images[0]?.url,
           }}
           initialFrom={from}

@@ -44,6 +44,9 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
  * them here turns a confusing round-trip failure into an instant, specific
  * message. Raise alongside the Cloudinary plan, not on its own.
  */
+/** A phone photo on a slow connection is slow, not broken. */
+const UPLOAD_TIMEOUT_MS = 60_000;
+
 const MAX_BYTES = 10 * 1024 * 1024;
 
 type CloudinaryUploadResponse = {
@@ -231,6 +234,18 @@ export function MediaGrid({
         resolve();
       };
 
+      /*
+       * xhr.timeout defaults to 0 — no limit. A stalled upload otherwise
+       * leaves this promise unresolved and the tile stuck on "uploading",
+       * which the inspection form's Save button is gated on: the operator
+       * cannot submit and is told nothing.
+       */
+      xhr.timeout = UPLOAD_TIMEOUT_MS;
+      xhr.ontimeout = () => {
+        patch(item.key, { status: "error", message: t("admin.networkError") });
+        resolve();
+      };
+
       xhr.onerror = () => {
         patch(item.key, { status: "error", message: t("admin.networkError") });
         resolve();
@@ -321,6 +336,11 @@ export function MediaGrid({
         </p>
       </div>
 
+      {/*
+        A drop target: drag events have no keyboard equivalent to pair with,
+        and the keyboard path into the file picker is the button inside.
+      */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         className="p-5"
         onDragOver={(e) => {
@@ -335,13 +355,14 @@ export function MediaGrid({
         }}
       >
         {items.length === 0 ? (
-          <div
-            role="button"
-            tabIndex={0}
+          // A real button rather than a div wearing role="button": it holds
+          // only text and an icon, so nothing is lost, and Enter and Space
+          // come for free instead of being hand-rolled.
+          <button
+            type="button"
             onClick={open}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && open()}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors",
+              "flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors",
               dragging
                 ? "border-brand bg-brand/[0.06]"
                 : "border-input hover:border-brand/40 hover:bg-surface-hover"
@@ -355,13 +376,14 @@ export function MediaGrid({
             >
               <Upload className="h-5 w-5" />
             </span>
-            <p className="text-sm font-semibold">
+            {/* Spans, not paragraphs: a button's content model is phrasing. */}
+            <span className="block text-sm font-semibold">
               {dragging ? t("admin.dropUpload") : t("admin.dragPhotos")}
-            </p>
-            <p className="text-muted-foreground mt-1 text-xs">
+            </span>
+            <span className="text-muted-foreground mt-1 block text-xs">
               {t("admin.browsePhotos")}
-            </p>
-          </div>
+            </span>
+          </button>
         ) : (
           <DndContext
             sensors={sensors}

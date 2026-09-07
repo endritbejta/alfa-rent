@@ -14,6 +14,7 @@ import { RecentReservations } from "./recent-reservations";
 import { PendingQueue } from "../reservations/pending-queue";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
+import { formatEur } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -95,12 +96,21 @@ export default async function DashboardPage() {
           },
           { label: t("admin.available"), value: kpis.available, tone: "good" },
           {
+            // A vehicle in service earns nothing and is invisible on the
+            // storefront, and nothing else on the dashboard reports it. Without
+            // this, a car parked in SERVICE — including one left there by a
+            // return that could not release it — stays forgotten.
+            label: t("admin.inService"),
+            value: kpis.maintenance,
+            tone: kpis.maintenance > 0 ? "warn" : "default",
+          },
+          {
             label: t("admin.revenueWeek"),
-            value: `${kpis.revenueWeek.toLocaleString()} EUR`,
+            value: formatEur(kpis.revenueWeek, locale, { precision: 0 }),
           },
           {
             label: t("admin.revenueMonth"),
-            value: `${kpis.revenueMonth.toLocaleString()} EUR`,
+            value: formatEur(kpis.revenueMonth, locale, { precision: 0 }),
           },
         ]}
       />

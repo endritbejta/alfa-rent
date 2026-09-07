@@ -561,6 +561,13 @@ async function main() {
   console.log("Seeding database (rich dataset)...");
 
   await prisma.repair.deleteMany();
+  // Payments must go before reservations: Payment.reservationId is
+  // onDelete: Restrict, so a single payment row makes reservation.deleteMany()
+  // fail with P2003 and aborts the whole seed. PaymentEvent cascades from
+  // Payment, and inspections cascade from Reservation, so neither needs a line.
+  // Reachable as soon as a bank adapter is registered; verified against a live
+  // database rather than assumed.
+  await prisma.payment.deleteMany();
   await prisma.reservation.deleteMany();
   await prisma.vehicleImage.deleteMany();
   await prisma.vehicle.deleteMany();

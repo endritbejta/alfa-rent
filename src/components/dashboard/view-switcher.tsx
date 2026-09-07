@@ -1,59 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Rows3 } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
 import { cn } from "@/lib/utils";
+import { DEFAULT_VIEW, VIEWS, type View } from "@/components/dashboard/view";
+
+const ICONS = { grid: LayoutGrid, list: List, compact: Rows3 } as const;
+const LABELS = {
+  grid: "admin.grid",
+  list: "admin.list",
+  compact: "admin.compact",
+} as const;
 
 /**
- * Server-rendered views passed in as slots; the client only toggles
- * visibility — no serialization of Prisma rows across the boundary.
+ * Which view a list is in, in the URL rather than in React state.
+ *
+ * The three views used to be passed in as fully rendered slots and toggled
+ * client-side, so every fleet render shipped twenty-four vehicles three times
+ * over and only one of them was ever shown. Now the server renders the one
+ * that was asked for. The choice also survives a reload and can be sent to
+ * someone, which the local state could not do.
+ *
+ * router.push, not the History API: unlike the detail drawer, the markup for
+ * the other view only exists on the server.
  */
 export function ViewSwitcher({
-  grid,
-  list,
-  compact,
+  active,
+  basePath,
+  views = VIEWS,
 }: {
-  grid: React.ReactNode;
-  list: React.ReactNode;
-  compact?: React.ReactNode;
+  active: View;
+  basePath: string;
+  views?: readonly View[];
 }) {
-  const [view, setView] = useState<"grid" | "list" | "compact">("grid");
   const { t } = useI18n();
-  const options = [
-    { key: "grid" as const, icon: LayoutGrid, label: t("admin.grid") },
-    { key: "list" as const, icon: List, label: t("admin.list") },
-    ...(compact
-      ? [{ key: "compact" as const, icon: Rows3, label: t("admin.compact") }]
-      : []),
-  ];
+  const router = useRouter();
+  const params = useSearchParams();
+
+  const select = (view: View) => {
+    const next = new URLSearchParams(params.toString());
+    if (view === DEFAULT_VIEW) next.delete("view");
+    else next.set("view", view);
+    const query = next.toString();
+    router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
+  };
 
   return (
-    <div>
-      <div className="mb-4 flex justify-end">
-        <div className="bg-secondary inline-flex rounded-full border p-0.5">
-          {options.map(({ key, icon: Icon, label }) => (
+    <div className="mb-4 flex justify-end">
+      <div className="bg-secondary inline-flex rounded-full border p-0.5">
+        {views.map((view) => {
+          const Icon = ICONS[view];
+          return (
             <button
-              key={key}
+              key={view}
               type="button"
-              aria-pressed={view === key}
-              onClick={() => setView(key)}
+              aria-pressed={active === view}
+              onClick={() => select(view)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                view === key
+                active === view
                   ? "bg-card text-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               <Icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{label}</span>
+              <span className="hidden sm:inline">{t(LABELS[view])}</span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
-      {view === "grid" && grid}
-      {view === "list" && list}
-      {view === "compact" && compact}
     </div>
   );
 }

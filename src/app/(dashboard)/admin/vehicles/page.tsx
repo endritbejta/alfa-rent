@@ -11,6 +11,8 @@ import { adminVehicleFilterSchema } from "@/lib/validations/vehicle";
 import { getFleetInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
+import { readView } from "@/components/dashboard/view";
+import { ToastOnArrival } from "@/components/dashboard/toast-on-arrival";
 import { VehicleGrid } from "./vehicle-grid";
 import { VehicleFilters } from "./vehicle-filters";
 import { FleetStatusFilter } from "./fleet-status-filter";
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
+import { formatEur, toMoney } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +45,7 @@ async function VehicleTable({
   isAdmin: boolean;
   dense?: boolean;
 }) {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   return (
     <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
       <Table>
@@ -103,7 +106,7 @@ async function VehicleTable({
               <TableCell
                 className={cn("text-right tabular-nums", dense && "py-2")}
               >
-                {Number(vehicle.pricePerDay).toFixed(2)} EUR
+                {formatEur(vehicle.pricePerDay, locale)}
               </TableCell>
               {isAdmin && (
                 <TableCell className={cn("text-right", dense && "py-2")}>
@@ -143,6 +146,8 @@ export default async function VehiclesPage({
   // Each field falls back on its own (see the schema), so an unreadable
   // param drops only that filter — it can never silently widen the query
   // back to the whole fleet.
+  const view = readView(params.view);
+  const justSaved = params.saved === "1";
   const parsed = adminVehicleFilterSchema.safeParse(params);
   const filters = parsed.success
     ? parsed.data
@@ -176,6 +181,9 @@ export default async function VehiclesPage({
 
   return (
     <PageBody>
+      {justSaved && (
+        <ToastOnArrival param="saved" message={t("toast.vehicleSaved")} />
+      )}
       <PageHeader
         title={t("admin.vehicles")}
         description={t("admin.fleetDescription")}
@@ -208,33 +216,36 @@ export default async function VehiclesPage({
         </div>
       ) : (
         <>
-          <ViewSwitcher
-            grid={
-              <VehicleGrid
-                items={items.map((v) => {
-                  const reg = registrationState(v.registrationExpiry);
-                  return {
-                    id: v.id,
-                    brand: v.brand,
-                    model: v.model,
-                    plate: v.plate,
-                    year: v.year,
-                    category: v.category,
-                    transmission: v.transmission,
-                    fuelType: v.fuelType,
-                    seats: v.seats,
-                    pricePerDay: String(v.pricePerDay),
-                    status: v.status,
-                    image: v.images[0]?.url ?? null,
-                    registrationDue: reg.state === "due",
-                    registrationExpired: reg.state === "expired",
-                  };
-                })}
-              />
-            }
-            list={<VehicleTable vehicles={items} isAdmin={isAdmin} />}
-            compact={<VehicleTable vehicles={items} isAdmin={isAdmin} dense />}
-          />
+          <ViewSwitcher active={view} basePath="/admin/vehicles" />
+          {view === "grid" ? (
+            <VehicleGrid
+              items={items.map((v) => {
+                const reg = registrationState(v.registrationExpiry);
+                return {
+                  id: v.id,
+                  brand: v.brand,
+                  model: v.model,
+                  plate: v.plate,
+                  year: v.year,
+                  category: v.category,
+                  transmission: v.transmission,
+                  fuelType: v.fuelType,
+                  seats: v.seats,
+                  pricePerDay: toMoney(v.pricePerDay),
+                  status: v.status,
+                  image: v.images[0]?.url ?? null,
+                  registrationDue: reg.state === "due",
+                  registrationExpired: reg.state === "expired",
+                };
+              })}
+            />
+          ) : (
+            <VehicleTable
+              vehicles={items}
+              isAdmin={isAdmin}
+              dense={view === "compact"}
+            />
+          )}
           <Pagination
             page={page}
             totalPages={totalPages}

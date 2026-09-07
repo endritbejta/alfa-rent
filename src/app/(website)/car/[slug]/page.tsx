@@ -58,7 +58,7 @@ export async function generateMetadata({
   const { locale, t } = await getI18n();
   const description = getVehicleDescription(vehicle, locale);
   return {
-    title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — ${Number(vehicle.pricePerDay)} EUR/${t("common.perDay")}`,
+    title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — ${vehicle.pricePerDay} EUR/${t("common.perDay")}`,
     description: description.slice(0, 155),
     openGraph: vehicle.images[0]
       ? { images: [{ url: vehicle.images[0].url }] }
@@ -125,7 +125,7 @@ export default async function VehiclePage({
                 src={cover.url}
                 alt={`${vehicle.brand} ${vehicle.model}`}
                 fill
-                priority
+                preload
                 sizes="(max-width: 1024px) 100vw, 60vw"
                 className="object-cover"
               />
@@ -192,7 +192,7 @@ export default async function VehiclePage({
         >
           <div className="bg-card rounded-2xl border p-6 shadow-sm">
             <p className="font-display text-3xl font-bold">
-              {Number(vehicle.pricePerDay)}
+              {vehicle.pricePerDay}
               <span className="text-muted-foreground font-sans text-sm font-medium">
                 {" "}
                 EUR / {t("common.perDay")}
@@ -204,7 +204,7 @@ export default async function VehiclePage({
             <AvailabilityWidget
               vehicleId={vehicle.id}
               slug={vehicle.slug}
-              pricePerDay={Number(vehicle.pricePerDay)}
+              pricePerDay={vehicle.pricePerDay}
               initialFrom={from}
               initialTo={to}
               initialRangeAvailable={initialRangeAvailable}
@@ -215,7 +215,7 @@ export default async function VehiclePage({
       </div>
 
       <MobileBookingBar
-        pricePerDay={Number(vehicle.pricePerDay)}
+        pricePerDay={vehicle.pricePerDay}
         perDayLabel={t("common.perDay")}
         bookLabel={t("common.bookVehicle")}
       />

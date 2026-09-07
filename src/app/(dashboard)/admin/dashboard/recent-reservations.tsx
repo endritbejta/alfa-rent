@@ -2,9 +2,10 @@
 
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
-import { useReservationDetail } from "@/app/(dashboard)/admin/reservation-detail";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
+import { formatEur } from "@/lib/money";
 import {
   Table,
   TableBody,
@@ -27,7 +28,7 @@ type Item = {
 
 /** Recent reservations, each row opening the shared detail drawer. */
 export function RecentReservations({ items }: { items: Item[] }) {
-  const { openReservation } = useReservationDetail();
+  const { openReservation } = useDetailDrawer();
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
 
@@ -83,7 +84,7 @@ export function RecentReservations({ items }: { items: Item[] }) {
                   {format(r.returnDate, "dd MMM", { locale: dateLocale })}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {Number(r.totalPrice).toFixed(2)} EUR
+                  {formatEur(r.totalPrice, locale)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={r.status} />

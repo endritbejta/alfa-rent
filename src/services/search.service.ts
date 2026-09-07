@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 
 export type SearchHit = {
   kind: "vehicle" | "reservation" | "customer";

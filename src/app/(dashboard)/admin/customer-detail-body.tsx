@@ -5,32 +5,26 @@ import { enUS, sq } from "date-fns/locale";
 import { Mail, Phone, Receipt, IdCard } from "lucide-react";
 import type { CustomerDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import { SectionTitle, Row } from "./detail-primitives";
 import { useI18n } from "@/components/shared/locale-provider";
-
-const eur = (v: unknown) => `${Number(v).toFixed(2)} EUR`;
+import { formatEur } from "@/lib/money";
 
 export function CustomerDetailBody({ detail }: { detail: CustomerDetail }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  const eur = (v: number | string) => formatEur(v, locale);
   const all = detail.reservations;
   const active = all.filter(
     (r) => r.status === "ACTIVE" || r.status === "CONFIRMED"
   );
   const cancelled = all.filter((r) => r.status === "CANCELLED");
-  const spend = all
-    .filter((r) => r.status === "ACTIVE" || r.status === "COMPLETED")
-    .reduce((sum, r) => sum + Number(r.totalPrice), 0);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-2">
         <Metric label={t("admin.rentals")} value={String(all.length)} />
-        <Metric
-          label={t("admin.lifetime")}
-          value={`${Math.round(spend)} EUR`}
-        />
+        <Metric label={t("admin.lifetime")} value={eur(detail.spend)} />
         <Metric label={t("admin.cancelled")} value={String(cancelled.length)} />
       </div>
 
@@ -100,6 +94,7 @@ function ReservationRow({
 }) {
   const { locale } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
+  const eur = (v: number | string) => formatEur(v, locale);
   return (
     <li className="flex items-center gap-2 py-2 text-xs">
       <div className="min-w-0 flex-1">

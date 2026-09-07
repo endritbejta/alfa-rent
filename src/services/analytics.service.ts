@@ -1,20 +1,12 @@
-import {
-  addDays,
-  addMonths,
-  format,
-  startOfMonth,
-  startOfWeek,
-  startOfYear,
-  subMonths,
-  subDays,
-} from "date-fns";
+import { addDays, format, subMonths, subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
-import { vehicleLabel } from "@/utils/vehicle";
+import { vehicleLabel } from "@/lib/vehicle-label";
 import {
   businessDay,
   businessDayStart,
   businessMonthStart,
   businessWeekStart,
+  businessYearStart,
 } from "@/lib/reservation-lifecycle";
 
 export type SeriesPoint = { label: string; value: number };
@@ -29,8 +21,8 @@ function monthlySeries(
 ): SeriesPoint[] {
   const now = new Date();
   return Array.from({ length: months }, (_, i) => {
-    const month = startOfMonth(subMonths(now, months - 1 - i));
-    const next = startOfMonth(subMonths(now, months - 2 - i));
+    const month = businessMonthStart(subMonths(now, months - 1 - i));
+    const next = businessMonthStart(subMonths(now, months - 2 - i));
     const value = rows
       .filter((r) => r.createdAt >= month && r.createdAt < next)
       .reduce((sum, r) => sum + pick(r), 0);
@@ -39,10 +31,12 @@ function monthlySeries(
 }
 
 function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
-  const today = businessDayStart(new Date());
+  const now = new Date();
   return Array.from({ length: days }, (_, i) => {
-    const day = subDays(today, days - 1 - i);
-    const next = addDays(day, 1);
+    // Each boundary is resolved from the calendar day, not by adding 24h to
+    // the previous one: a Belgrade day is 23 or 25 hours across a DST change.
+    const day = businessDayStart(subDays(now, days - 1 - i));
+    const next = businessDayStart(subDays(now, days - 2 - i));
     return {
       label: format(day, "dd MMM"),
       value: rows.filter((r) => r.createdAt >= day && r.createdAt < next)
@@ -51,48 +45,31 @@ function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
   });
 }
 
-export async function getDashboardData() {
-  const now = new Date();
-  const todayStart = businessDayStart(now);
-  const weekStart = businessWeekStart(now);
-  const monthStart = businessMonthStart(now);
-  const horizon = addDays(todayStart, 7);
-  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
+/**
+ * Today's and the next seven days' handovers.
+ *
+ * Its own reader because the calendar needs exactly this and nothing else.
+ * It used to call getDashboardData for it — thirteen queries for two lists —
+ * which made the calendar the heaviest page in the app at nineteen.
+ *
+ * `select`, not `include`: these rows go to a client component, and
+ * Prisma.Decimal cannot cross that boundary.
+ */
+const scheduleSelect = {
+  id: true,
+  pickupDate: true,
+  returnDate: true,
+  vehicle: { select: { brand: true, model: true, plate: true } },
+  customer: { select: { firstName: true, lastName: true } },
+} as const;
 
-  const [
-    fleetTotal,
-    available,
-    rentedNow,
-    maintenance,
-    pending,
-    revenueWeek,
-    revenueMonth,
-    upcomingPickups,
-    upcomingReturns,
-    recentReservations,
-    pendingRequests,
-    revenueRows,
-    overdue,
-  ] = await prisma.$transaction([
-    prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
-    prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
-    prisma.reservation.count({ where: { status: "ACTIVE" } }),
-    prisma.vehicle.count({ where: { status: "SERVICE" } }),
-    prisma.reservation.count({ where: { status: "PENDING" } }),
-    prisma.reservation.aggregate({
-      _sum: { totalPrice: true },
-      where: {
-        status: { in: [...REVENUE_STATUSES] },
-        createdAt: { gte: weekStart },
-      },
-    }),
-    prisma.reservation.aggregate({
-      _sum: { totalPrice: true },
-      where: {
-        status: { in: [...REVENUE_STATUSES] },
-        createdAt: { gte: monthStart },
-      },
-    }),
+const SCHEDULE_HORIZON_DAYS = 7;
+
+export async function getUpcomingSchedule() {
+  const todayStart = businessDayStart(new Date());
+  const horizon = addDays(todayStart, SCHEDULE_HORIZON_DAYS);
+
+  const [upcomingPickups, upcomingReturns] = await Promise.all([
     prisma.reservation.findMany({
       where: {
         status: "CONFIRMED",
@@ -100,15 +77,7 @@ export async function getDashboardData() {
       },
       orderBy: { pickupDate: "asc" },
       take: 5,
-      // `select`, not `include`: these rows are handed to a client
-      // component, and Prisma Decimal cannot cross that boundary.
-      select: {
-        id: true,
-        pickupDate: true,
-        returnDate: true,
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: { select: { firstName: true, lastName: true } },
-      },
+      select: scheduleSelect,
     }),
     prisma.reservation.findMany({
       where: {
@@ -117,46 +86,89 @@ export async function getDashboardData() {
       },
       orderBy: { returnDate: "asc" },
       take: 5,
-      select: {
-        id: true,
-        pickupDate: true,
-        returnDate: true,
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: { select: { firstName: true, lastName: true } },
-      },
+      select: scheduleSelect,
     }),
-    prisma.reservation.findMany({
-      take: 6,
-      orderBy: { createdAt: "desc" },
-      include: {
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: { select: { firstName: true, lastName: true } },
-      },
-    }),
-    // The queue that should be cleared before the day's numbers matter.
-    prisma.reservation.findMany({
-      where: { status: "PENDING" },
-      orderBy: { createdAt: "asc" },
-      take: 10,
-      include: {
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: {
-          select: { firstName: true, lastName: true, email: true },
+  ]);
+
+  return { upcomingPickups, upcomingReturns };
+}
+
+export async function getDashboardData() {
+  const now = new Date();
+  const weekStart = businessWeekStart(now);
+  const monthStart = businessMonthStart(now);
+  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
+
+  const [
+    [
+      fleetTotal,
+      available,
+      rentedNow,
+      maintenance,
+      pending,
+      revenueWeek,
+      revenueMonth,
+      recentReservations,
+      pendingRequests,
+      revenueRows,
+      overdue,
+    ],
+    { upcomingPickups, upcomingReturns },
+  ] = await Promise.all([
+    prisma.$transaction([
+      prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
+      prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
+      prisma.reservation.count({ where: { status: "ACTIVE" } }),
+      prisma.vehicle.count({ where: { status: "SERVICE" } }),
+      prisma.reservation.count({ where: { status: "PENDING" } }),
+      prisma.reservation.aggregate({
+        _sum: { totalPrice: true },
+        where: {
+          status: { in: [...REVENUE_STATUSES] },
+          createdAt: { gte: weekStart },
         },
-      },
-    }),
-    prisma.reservation.findMany({
-      where: { createdAt: { gte: subMonths(now, 6) } },
-      select: { createdAt: true, totalPrice: true, status: true },
-    }),
-    prisma.reservation.count({
-      where: {
-        OR: [
-          { status: "CONFIRMED", pickupDate: { lt: businessToday } },
-          { status: "ACTIVE", returnDate: { lt: businessToday } },
-        ],
-      },
-    }),
+      }),
+      prisma.reservation.aggregate({
+        _sum: { totalPrice: true },
+        where: {
+          status: { in: [...REVENUE_STATUSES] },
+          createdAt: { gte: monthStart },
+        },
+      }),
+      prisma.reservation.findMany({
+        take: 6,
+        orderBy: { createdAt: "desc" },
+        include: {
+          vehicle: { select: { brand: true, model: true, plate: true } },
+          customer: { select: { firstName: true, lastName: true } },
+        },
+      }),
+      // The queue that should be cleared before the day's numbers matter.
+      prisma.reservation.findMany({
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        take: 10,
+        include: {
+          vehicle: { select: { brand: true, model: true, plate: true } },
+          customer: {
+            select: { firstName: true, lastName: true, email: true },
+          },
+        },
+      }),
+      prisma.reservation.findMany({
+        where: { createdAt: { gte: subMonths(now, 6) } },
+        select: { createdAt: true, totalPrice: true, status: true },
+      }),
+      prisma.reservation.count({
+        where: {
+          OR: [
+            { status: "CONFIRMED", pickupDate: { lt: businessToday } },
+            { status: "ACTIVE", returnDate: { lt: businessToday } },
+          ],
+        },
+      }),
+    ]),
+    getUpcomingSchedule(),
   ]);
 
   const revenueSeries = monthlySeries(revenueRows, 6, (r) =>
@@ -328,8 +340,8 @@ function monthlySeriesFromDates(
 ): SeriesPoint[] {
   const now = new Date();
   return Array.from({ length: months }, (_, i) => {
-    const month = startOfMonth(subMonths(now, months - 1 - i));
-    const next = startOfMonth(subMonths(now, months - 2 - i));
+    const month = businessMonthStart(subMonths(now, months - 1 - i));
+    const next = businessMonthStart(subMonths(now, months - 2 - i));
     return {
       label: format(month, "MMM"),
       value: rows.filter((r) => r.createdAt >= month && r.createdAt < next)
@@ -340,36 +352,39 @@ function monthlySeriesFromDates(
 
 export type Period = "week" | "month" | "year";
 
-/** Bucket definition per reporting period: how far back, and how to slice. */
+/**
+ * Bucket definition per reporting period.
+ *
+ * `boundary(now, k)` is the start of the bucket k periods before now, resolved
+ * from the branch calendar each time rather than by adding a fixed duration to
+ * a single anchor. Adding durations drifts across a daylight-saving change,
+ * because a Belgrade day is 23 or 25 hours through one.
+ */
 const PERIODS: Record<
   Period,
   {
     label: string;
     buckets: number;
-    step: (d: Date, n: number) => Date;
-    start: (d: Date) => Date;
+    boundary: (now: Date, periodsAgo: number) => Date;
     format: string;
   }
 > = {
   week: {
     label: "Last 12 weeks",
     buckets: 12,
-    step: (d, n) => addDays(d, n * 7),
-    start: (d) => startOfWeek(d, { weekStartsOn: 1 }),
+    boundary: (now, k) => businessWeekStart(subDays(now, k * 7)),
     format: "dd MMM",
   },
   month: {
     label: "Last 12 months",
     buckets: 12,
-    step: (d, n) => addMonths(d, n),
-    start: startOfMonth,
+    boundary: (now, k) => businessMonthStart(subMonths(now, k)),
     format: "MMM",
   },
   year: {
     label: "Last 5 years",
     buckets: 5,
-    step: (d, n) => addMonths(d, n * 12),
-    start: startOfYear,
+    boundary: (now, k) => businessYearStart(subMonths(now, k * 12)),
     format: "yyyy",
   },
 };
@@ -380,10 +395,10 @@ function bucketSeries(
   pick: (row: { totalPrice: unknown; status: string }) => number
 ): SeriesPoint[] {
   const cfg = PERIODS[period];
-  const anchor = cfg.start(new Date());
+  const now = new Date();
   return Array.from({ length: cfg.buckets }, (_, i) => {
-    const from = cfg.step(anchor, i - (cfg.buckets - 1));
-    const to = cfg.step(anchor, i - (cfg.buckets - 2));
+    const from = cfg.boundary(now, cfg.buckets - 1 - i);
+    const to = cfg.boundary(now, cfg.buckets - 2 - i);
     const value = rows
       .filter((r) => r.createdAt >= from && r.createdAt < to)
       .reduce((sum, r) => sum + pick(r), 0);
@@ -394,8 +409,10 @@ function bucketSeries(
 export async function getAnalytics(period: Period = "month") {
   const now = new Date();
   const cfg = PERIODS[period];
-  // Window the whole page to the selected period, KPIs included.
-  const since = cfg.step(cfg.start(now), -(cfg.buckets - 1));
+  // Window the whole page to the selected period, KPIs included. Same
+  // boundary the first bucket uses, so the KPIs and the chart cover exactly
+  // the same span.
+  const since = cfg.boundary(now, cfg.buckets - 1);
 
   const [rows, fleet, cancelled, totalReservations] = await prisma.$transaction(
     [

@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getI18n } from "@/lib/i18n/server";
+import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { LanguageSelector } from "@/components/shared/language-selector";
 import { BrandLogo } from "@/components/shared/brand-logo";
 import { ShieldCheck } from "lucide-react";
@@ -24,12 +25,7 @@ export default async function LoginPage({
 }) {
   const { t } = await getI18n();
   const { callbackUrl } = await searchParams;
-  // Only allow relative redirect targets — an absolute URL here would be
-  // an open-redirect vector.
-  const target =
-    callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
-      ? callbackUrl
-      : "/admin/dashboard";
+  const target = safeCallbackUrl(callbackUrl);
 
   return (
     <main className="bg-band text-band-foreground relative flex min-h-screen items-center justify-center overflow-hidden p-5">

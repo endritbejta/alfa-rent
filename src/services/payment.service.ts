@@ -14,6 +14,7 @@ import { verifyPaymentAccessToken } from "@/lib/payments/access-token";
 import type { PaymentWebhookEvent } from "@/lib/payments/provider";
 import { getPaymentProvider } from "@/lib/payments/registry";
 import { canApplyPaymentStatus } from "@/lib/payments/status";
+import { reportError } from "@/lib/observability";
 
 const REUSABLE_CHECKOUT_STATUSES: PaymentStatus[] = ["PENDING", "PROCESSING"];
 
@@ -28,7 +29,9 @@ function amountToMinorUnits(amount: { toFixed(digits: number): string }) {
   const value = Number(amount.toFixed(2));
   const minor = Math.round(value * 100);
   if (!Number.isSafeInteger(minor) || minor <= 0) {
-    throw new ConflictError("Reservation total is not payable");
+    throw new ConflictError("Reservation total is not payable", {
+      key: "err.totalNotPayable",
+    });
   }
   return minor;
 }
@@ -82,7 +85,8 @@ export async function createPaymentCheckout(
   }
   if (!["PENDING", "CONFIRMED"].includes(reservation.status)) {
     throw new ConflictError(
-      "Only pending or confirmed reservations can be paid online"
+      "Only pending or confirmed reservations can be paid online",
+      { key: "err.notPayableStatus" }
     );
   }
 
@@ -145,7 +149,11 @@ export async function createPaymentCheckout(
         failureMessage: "The bank checkout could not be created",
       },
     });
-    console.error("Payment checkout creation failed:", error);
+    reportError(error, {
+      scope: "payment-checkout",
+      reservationId,
+      paymentId: payment.id,
+    });
     throw new ServiceUnavailableError(
       "The bank checkout is temporarily unavailable. No payment was taken."
     );
@@ -193,9 +201,15 @@ export async function applyPaymentEvent(event: PaymentWebhookEvent) {
       data: {
         status: event.status,
         lastEventAt: event.occurredAt,
+        // Left undefined on a non-success event on purpose: a payment that
+        // already settled keeps the moment it settled.
         paidAt: event.status === "SUCCEEDED" ? event.occurredAt : undefined,
-        failureCode: event.failureCode,
-        failureMessage: event.failureMessage,
+        // `?? null`, not the bare value. These describe the *current* status,
+        // and Prisma reads undefined as "leave unchanged" — so a
+        // FAILED → SUCCEEDED transition (which the status table allows) would
+        // otherwise keep the old decline reason attached to a paid booking.
+        failureCode: event.failureCode ?? null,
+        failureMessage: event.failureMessage ?? null,
       },
     });
   });

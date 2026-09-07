@@ -18,7 +18,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     // Decimal does not survive JSON as a number; make the contract explicit.
     items: page.items.map((v) => ({
       ...v,
-      pricePerDay: Number(v.pricePerDay),
+      pricePerDay: v.pricePerDay,
     })),
   });
 });

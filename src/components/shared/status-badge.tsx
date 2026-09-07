@@ -3,7 +3,7 @@
 import type { ReservationStatus, VehicleStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
-import type { TranslationKey } from "@/lib/i18n/translations";
+import { STATUS_KEYS } from "@/lib/status-labels";
 
 type Status = VehicleStatus | ReservationStatus;
 
@@ -37,18 +37,6 @@ const DOT_HUES: Record<Status, string> = {
   CANCELLED: "bg-destructive",
 };
 
-const LABELS: Record<Status, TranslationKey> = {
-  AVAILABLE: "vehicle.available",
-  RENTED: "vehicle.rented",
-  SERVICE: "vehicle.maintenance",
-  INACTIVE: "vehicle.inactive",
-  PENDING: "vehicle.pending",
-  CONFIRMED: "vehicle.confirmed",
-  ACTIVE: "vehicle.active",
-  COMPLETED: "vehicle.completed",
-  CANCELLED: "vehicle.cancelled",
-};
-
 export function StatusBadge({
   status,
   variant = "surface",
@@ -72,7 +60,7 @@ export function StatusBadge({
           variant === "overlay" ? DOT_HUES[status] : "bg-current"
         )}
       />
-      {t(LABELS[status])}
+      {t(STATUS_KEYS[status])}
     </span>
   );
 }

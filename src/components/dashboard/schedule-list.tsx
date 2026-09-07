@@ -4,8 +4,8 @@ import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/empty-state";
-import { vehicleLabel } from "@/utils/vehicle";
-import { useReservationDetail } from "@/app/(dashboard)/admin/reservation-detail";
+import { vehicleLabel } from "@/lib/vehicle-label";
+import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { useI18n } from "@/components/shared/locale-provider";
 
 type ScheduleItem = {
@@ -24,7 +24,7 @@ export function ScheduleList({
   items: ScheduleItem[];
   kind: "pickup" | "return";
 }) {
-  const { openReservation } = useReservationDetail();
+  const { openReservation } = useDetailDrawer();
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
   if (items.length === 0) {

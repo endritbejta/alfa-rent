@@ -1,7 +1,7 @@
 "use server";
 
 import { requireUser } from "@/lib/auth/guards";
-import { normalizeError } from "@/lib/errors";
+import { errorMessage } from "@/lib/errors-i18n";
 import { searchAdmin, type SearchHit } from "@/services/search.service";
 
 /**
@@ -15,6 +15,6 @@ export async function searchAdminAction(
     await requireUser();
     return { hits: await searchAdmin(query) };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }

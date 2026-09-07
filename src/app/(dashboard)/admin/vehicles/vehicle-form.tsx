@@ -23,8 +23,8 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import type { ActionResult } from "@/app/(dashboard)/admin/vehicles/actions";
-import { signVehicleUploadAction } from "@/app/(dashboard)/admin/vehicles/actions";
+import type { ActionResult, RemovalResult } from "./actions";
+import { signVehicleUploadAction } from "./actions";
 import { MediaGrid } from "@/components/forms/media-grid";
 import {
   DateField,
@@ -37,6 +37,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
+import { toasts } from "@/components/dashboard/toaster";
 
 /**
  * A plain, already-serialized vehicle — deliberately not Prisma's
@@ -69,7 +71,7 @@ export type VehicleFormValues = {
 type Props = {
   action: (formData: FormData) => Promise<ActionResult>;
   vehicle?: VehicleFormValues;
-  onDeleteVehicle?: () => Promise<ActionResult>;
+  onDeleteVehicle?: () => Promise<RemovalResult>;
   repairsPanel?: React.ReactNode;
 };
 
@@ -180,6 +182,7 @@ export function VehicleForm({
                 ? t("admin.saveChanges")
                 : t("admin.createVehicle")}
           </Button>
+          <PendingStatus message={pending ? t("admin.saving") : null} />
         </div>
       </div>
 
@@ -321,7 +324,16 @@ export function VehicleForm({
                   defaultValue={vehicle?.status ?? "AVAILABLE"}
                 >
                   {Object.values(VehicleStatus).map((s) => (
-                    <option key={s} value={s}>
+                    <option
+                      key={s}
+                      value={s}
+                      // RENTED is a fact about a reservation, not something to
+                      // pick: only the pickup handover sets it and only the
+                      // return clears it. It stays in the list so a rented
+                      // vehicle still shows its own status, but it cannot be
+                      // chosen — the service refuses it either way.
+                      disabled={s === "RENTED" && vehicle?.status !== "RENTED"}
+                    >
                       {s === "AVAILABLE"
                         ? t("vehicle.available")
                         : s === "RENTED"
@@ -552,10 +564,18 @@ export function VehicleForm({
         onConfirm={() =>
           startDelete(async () => {
             const result = await onDeleteVehicle?.();
-            if (result?.error) {
+            if (result && "error" in result) {
               setError(result.error);
               setConfirm(null);
               return;
+            }
+            if (result?.removal === "retired") {
+              toasts.success(
+                t("toast.vehicleRetired"),
+                t("toast.vehicleRetiredWhy")
+              );
+            } else if (result) {
+              toasts.success(t("toast.vehicleDeleted"));
             }
             router.push("/admin/vehicles");
           })

@@ -12,6 +12,7 @@ import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 
 type Quote = { available: boolean; totalPrice: number | null };
@@ -75,7 +76,11 @@ export function AvailabilityWidget({
       setError(null);
       try {
         const res = await fetch(
-          `/api/availability?vehicleId=${vehicleId}&pickupDate=${from}T10:00:00Z&returnDate=${to}T10:00:00Z`
+          `/api/availability?vehicleId=${vehicleId}&pickupDate=${from}T10:00:00Z&returnDate=${to}T10:00:00Z`,
+          // A quote is re-requested on every date change, so it can fail fast:
+          // without a bound, a stalled request leaves "Checking…" on screen
+          // because the finally that clears it never runs.
+          { signal: AbortSignal.timeout(10_000) }
         );
         const json: ApiResponse<Quote> = await res.json();
         if (cancelled) return;
@@ -125,6 +130,7 @@ export function AvailabilityWidget({
         bookingCalendar={bookingCalendar}
       />
 
+      <PendingStatus message={loading ? t("availability.checking") : null} />
       {loading && (
         <p className="text-muted-foreground text-sm">
           {t("availability.checking")}

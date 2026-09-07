@@ -1,12 +1,44 @@
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import type { ApiFailure } from "@/types/api";
+import { reportError } from "@/lib/observability";
+import type { TranslationKey } from "@/lib/i18n/translations";
+
+/**
+ * A value to interpolate into an error message. Wrap it in `phrase()` when it
+ * is itself something the app translates — a status, a category — so it comes
+ * out in the reader's language rather than as PENDING or SEDAN.
+ */
+export type ErrorValue = string | number | { key: TranslationKey };
+
+export const phrase = (key: TranslationKey): ErrorValue => ({ key });
+
+/**
+ * What an error says, in a form that can be said in either language.
+ *
+ * The service layer has no locale — it runs before anything knows who is
+ * asking — so it names the message instead of writing it, and the boundary
+ * that answers the request resolves it. Every message used to be an English
+ * literal rendered verbatim, so an Albanian operator got
+ * "Cannot change a COMPLETED reservation to CONFIRMED" in an otherwise fully
+ * translated interface.
+ *
+ * The English sentence stays on the error as `message`: it is what the logs
+ * and the public JSON API carry, and it is the fallback for the throw sites
+ * that have not been given a key yet.
+ */
+export type ErrorText = {
+  key: TranslationKey;
+  values?: Record<string, ErrorValue>;
+};
 
 export class AppError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly status: number
+    public readonly status: number,
+    /** Names the message so it can be read in the operator's language. */
+    public readonly text?: ErrorText
   ) {
     super(message);
     this.name = new.target.name;
@@ -14,32 +46,50 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string) {
-    super(message, "VALIDATION_ERROR", 400);
+  constructor(message: string, text?: ErrorText) {
+    super(message, "VALIDATION_ERROR", 400, text);
   }
 }
 
+/**
+ * Named resources rather than free text, so the sentence can be said in
+ * either language. The English word stays in `message` for the log and the
+ * public API; the key is what an operator reads.
+ */
+const RESOURCE_KEYS = {
+  Vehicle: "err.resource.vehicle",
+  Reservation: "err.resource.reservation",
+  Customer: "err.resource.customer",
+  Payment: "err.resource.payment",
+  Record: "err.resource.record",
+} as const satisfies Record<string, TranslationKey>;
+
+export type Resource = keyof typeof RESOURCE_KEYS;
+
 export class NotFoundError extends AppError {
-  constructor(resource: string) {
-    super(`${resource} not found`, "NOT_FOUND", 404);
+  constructor(resource: Resource) {
+    super(`${resource} not found`, "NOT_FOUND", 404, {
+      key: "err.notFound",
+      values: { resource: phrase(RESOURCE_KEYS[resource]) },
+    });
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string) {
-    super(message, "CONFLICT", 409);
+  constructor(message: string, text?: ErrorText) {
+    super(message, "CONFLICT", 409, text);
   }
 }
 
 export class UnauthorizedError extends AppError {
   constructor(message = "Authentication required") {
-    super(message, "UNAUTHORIZED", 401);
+    super(message, "UNAUTHORIZED", 401, { key: "err.unauthorized" });
   }
 }
 
 export class ForbiddenError extends AppError {
   constructor(message = "Insufficient permissions") {
-    super(message, "FORBIDDEN", 403);
+    super(message, "FORBIDDEN", 403, { key: "err.forbidden" });
   }
 }
 
@@ -47,9 +97,10 @@ export class TooManyRequestsError extends AppError {
   constructor(
     message = "Too many requests. Please wait a moment and try again.",
     /** Seconds until the caller may retry — mirrored into Retry-After. */
-    public readonly retryAfter = 60
+    public readonly retryAfter = 60,
+    text: ErrorText = { key: "err.tooManyRequests" }
   ) {
-    super(message, "RATE_LIMITED", 429);
+    super(message, "RATE_LIMITED", 429, text);
   }
 }
 
@@ -98,7 +149,9 @@ export function normalizeError(error: unknown): {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return normalizeError(
-        new ConflictError("A record with this value already exists")
+        new ConflictError("A record with this value already exists", {
+          key: "err.duplicateValue",
+        })
       );
     }
     if (error.code === "P2025") {
@@ -106,7 +159,9 @@ export function normalizeError(error: unknown): {
     }
     if (error.code === "P2003") {
       return normalizeError(
-        new ConflictError("Operation violates a data relationship")
+        new ConflictError("Operation violates a data relationship", {
+          key: "err.relationshipViolated",
+        })
       );
     }
   }
@@ -118,11 +173,13 @@ export function normalizeError(error: unknown): {
     error.message.includes("reservations_no_overlap")
   ) {
     return normalizeError(
-      new ConflictError("Vehicle is already booked for the selected dates")
+      new ConflictError("Vehicle is already booked for the selected dates", {
+        key: "err.alreadyBooked",
+      })
     );
   }
 
-  console.error("Unhandled error:", error);
+  reportError(error, { scope: "normalize-error" });
   return {
     status: 500,
     body: {

@@ -1,9 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { PUBLIC_VEHICLES_TAG } from "@/services/vehicle.service";
 import type { ReservationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth/guards";
-import { normalizeError, TooManyRequestsError } from "@/lib/errors";
+import { TooManyRequestsError } from "@/lib/errors";
+import { errorMessage } from "@/lib/errors-i18n";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   inspectionFolder,
@@ -49,7 +51,7 @@ export async function signInspectionUploadAction(
       signature: signUpload(inspectionFolder(reservationId, safeType)),
     };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }
 
@@ -73,12 +75,15 @@ export async function recordRentalInspectionAction(
     });
     await recordRentalInspection(reservationId, user.id, input);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");
   revalidatePath("/admin/vehicles");
+  // A pickup inspection marks the vehicle RENTED and a return releases it,
+  // and the storefront shows that status.
+  updateTag(PUBLIC_VEHICLES_TAG);
   return undefined;
 }
 
@@ -96,7 +101,7 @@ export async function updateReservationStatusAction(
     const input = updateReservationStatusSchema.parse({ status });
     await updateReservationStatus(reservationId, input.status);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");
@@ -118,7 +123,7 @@ export async function extendReservationAction(
     const input = extendReservationSchema.parse({ returnDate });
     await extendReservation(reservationId, input.returnDate);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");

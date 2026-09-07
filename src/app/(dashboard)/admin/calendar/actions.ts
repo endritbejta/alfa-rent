@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
-import { normalizeError } from "@/lib/errors";
+import { errorMessage } from "@/lib/errors-i18n";
 import { manualReservationSchema } from "@/lib/validations/reservation";
 import { createManualReservation } from "@/services/reservation.service";
 
@@ -16,7 +16,7 @@ export async function createManualReservationAction(
     const parsed = manualReservationSchema.parse(input);
     await createManualReservation(parsed);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/calendar");
   revalidatePath("/admin/dashboard");

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ConflictError, phrase, ValidationError } from "@/lib/errors";
+import {
+  ConflictError,
+  NotFoundError,
+  phrase,
+  ValidationError,
+} from "@/lib/errors";
 import { dictionaries, translate } from "@/lib/i18n/translations";
 import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
 
@@ -15,7 +20,7 @@ import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
  */
 const read = (
   locale: "en" | "sq",
-  error: ValidationError | ConflictError
+  error: ValidationError | ConflictError | NotFoundError
 ): string => {
   const text = error.text;
   if (!text) throw new Error("this error was not named");
@@ -77,6 +82,18 @@ describe("a named error", () => {
     // Never the raw enum in either language.
     expect(read("en", error)).not.toContain("COMPLETED");
     expect(read("sq", error)).not.toContain("CONFIRMED");
+  });
+
+  /**
+   * The resource names are a typed union rather than free text, so the word
+   * inside the sentence is translatable — and a typo at a call site no
+   * longer compiles.
+   */
+  it("names the resource that is missing", () => {
+    const error = new NotFoundError("Vehicle");
+    expect(read("en", error)).toBe("That vehicle no longer exists");
+    expect(read("sq", error)).toBe("Kjo veturë nuk ekziston më");
+    expect(error.message).toBe("Vehicle not found");
   });
 
   it("keeps the English sentence for the log and the public API", () => {

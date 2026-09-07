@@ -137,6 +137,58 @@ const en = {
   "err.registrationExpires":
     "The vehicle's registration expires on {date}; the rental cannot run past it.",
   "err.alreadyBooked": "Vehicle is already booked for the selected dates",
+  "err.statusNotSettable":
+    "A vehicle becomes rented when its pickup inspection is recorded, not by being set here.",
+  "err.onActiveRental":
+    "This vehicle is out on an active rental. Complete the return inspection before marking it available.",
+  "err.openReservationsRetire":
+    "This vehicle has open reservations. Cancel or complete them before retiring it.",
+  "err.openReservationsDelete":
+    "This vehicle has open reservations. Cancel or complete them first, or set it to inactive.",
+  "err.tooManyPhotos": "At most {count} photos per vehicle",
+  "err.duplicatePhoto": "The same photo was added twice",
+  "err.photoNotThisVehicle": "That photo does not belong to this vehicle",
+  "err.uploadUnverified":
+    "An upload could not be verified. Remove the photo and add it again.",
+  "err.photoNotRemoved":
+    "One photo could not be removed. Save again to finish.",
+  "err.photosNotRemoved":
+    "{count} photos could not be removed. Save again to finish.",
+  "err.notInspectable": "This reservation cannot be inspected: {status}.",
+  "err.pickupInspectionRequired": "The pickup inspection is required first",
+  "err.returnInspectionRequired": "The return inspection is required first",
+  "err.pickupInspectionExists": "The pickup inspection is already recorded",
+  "err.returnInspectionExists": "The return inspection is already recorded",
+  "err.rentalWindowEnded":
+    "This rental window has ended. Update the dates or cancel the reservation.",
+  "err.pickupOnPickupDate":
+    "The pickup inspection is available on the pickup date.",
+  "err.vehicleMustBeAvailable": "The vehicle must be available before handover",
+  "err.renewRegistration":
+    "Renew the vehicle registration before starting this rental",
+  "err.mileageBelowPickup":
+    "Return mileage cannot be below the pickup mileage ({km} km)",
+  "err.inspectionPhotoUnverified":
+    "An inspection photo could not be verified. Remove it and upload it again.",
+  "err.vehicleNoLongerAvailable":
+    "The vehicle is no longer available for this handover",
+  "err.totalNotPayable": "This reservation total cannot be paid online",
+  "err.notPayableStatus":
+    "Only pending or confirmed reservations can be paid online",
+  "err.duplicateValue": "Something with this value already exists",
+  "err.relationshipViolated":
+    "Another record depends on this one, so it cannot be changed",
+  "err.tooManyRequests":
+    "Too many requests. Please wait a moment and try again.",
+  "err.tooManyUploads": "Too many uploads. Please wait a moment and try again.",
+  "err.unauthorized": "Please sign in again",
+  "err.forbidden": "You do not have permission for this",
+  "err.notFound": "That {resource} no longer exists",
+  "err.resource.vehicle": "vehicle",
+  "err.resource.reservation": "reservation",
+  "err.resource.customer": "customer",
+  "err.resource.payment": "payment",
+  "err.resource.record": "record",
   "err.notBookable": "This vehicle is not available for booking",
   /*
    * The two states are shown as labels rather than folded into the sentence.
@@ -788,6 +840,54 @@ const sq: TranslationDictionary = {
   "err.registrationExpires":
     "Regjistrimi i veturës skadon më {date}; qiraja nuk mund të vazhdojë përtej.",
   "err.alreadyBooked": "Vetura është e rezervuar për datat e zgjedhura",
+  "err.statusNotSettable":
+    "Vetura kalon në qira kur regjistrohet inspektimi i marrjes, jo duke u caktuar këtu.",
+  "err.onActiveRental":
+    "Kjo veturë është në qira aktive. Përfundo inspektimin e kthimit para se ta shënosh të lirë.",
+  "err.openReservationsRetire":
+    "Kjo veturë ka rezervime të hapura. Anuloji ose përfundoji para se ta tërheqësh.",
+  "err.openReservationsDelete":
+    "Kjo veturë ka rezervime të hapura. Anuloji ose përfundoji së pari, ose shënoje si inaktive.",
+  "err.tooManyPhotos": "Maksimumi {count} foto për veturë",
+  "err.duplicatePhoto": "E njëjta foto u shtua dy herë",
+  "err.photoNotThisVehicle": "Kjo foto nuk i takon kësaj veture",
+  "err.uploadUnverified":
+    "Një ngarkim nuk u verifikua. Hiqe foton dhe shtoje përsëri.",
+  "err.photoNotRemoved": "Një foto nuk u hoq. Ruaj përsëri për ta përfunduar.",
+  "err.photosNotRemoved":
+    "{count} foto nuk u hoqën. Ruaj përsëri për ta përfunduar.",
+  "err.notInspectable": "Ky rezervim nuk mund të inspektohet: {status}.",
+  "err.pickupInspectionRequired": "Duhet së pari inspektimi i marrjes",
+  "err.returnInspectionRequired": "Duhet së pari inspektimi i kthimit",
+  "err.pickupInspectionExists": "Inspektimi i marrjes është regjistruar tashmë",
+  "err.returnInspectionExists": "Inspektimi i kthimit është regjistruar tashmë",
+  "err.rentalWindowEnded":
+    "Kjo periudhë e qirasë ka përfunduar. Përditëso datat ose anulo rezervimin.",
+  "err.pickupOnPickupDate": "Inspektimi i marrjes bëhet në datën e marrjes.",
+  "err.vehicleMustBeAvailable": "Vetura duhet të jetë e lirë para dorëzimit",
+  "err.renewRegistration":
+    "Rinovo regjistrimin e veturës para se ta nisësh këtë qira",
+  "err.mileageBelowPickup":
+    "Kilometrazhi i kthimit nuk mund të jetë nën atë të marrjes ({km} km)",
+  "err.inspectionPhotoUnverified":
+    "Një foto e inspektimit nuk u verifikua. Hiqe dhe ngarkoje përsëri.",
+  "err.vehicleNoLongerAvailable": "Vetura nuk është më e lirë për këtë dorëzim",
+  "err.totalNotPayable": "Totali i këtij rezervimi nuk mund të paguhet online",
+  "err.notPayableStatus":
+    "Vetëm rezervimet në pritje ose të konfirmuara mund të paguhen online",
+  "err.duplicateValue": "Diçka me këtë vlerë ekziston tashmë",
+  "err.relationshipViolated":
+    "Një regjistrim tjetër varet nga ky, kështu që nuk mund të ndryshohet",
+  "err.tooManyRequests": "Shumë kërkesa. Prit një moment dhe provo përsëri.",
+  "err.tooManyUploads": "Shumë ngarkime. Prit një moment dhe provo përsëri.",
+  "err.unauthorized": "Kyçu përsëri",
+  "err.forbidden": "Nuk ke leje për këtë",
+  "err.notFound": "Kjo {resource} nuk ekziston më",
+  "err.resource.vehicle": "veturë",
+  "err.resource.reservation": "rezervim",
+  "err.resource.customer": "klient",
+  "err.resource.payment": "pagesë",
+  "err.resource.record": "e dhënë",
   "err.notBookable": "Kjo veturë nuk është e disponueshme për rezervim",
   "err.badTransition": "Ky kalim nuk lejohet: {from} → {to}.",
   "err.pickupInspectionFirst":

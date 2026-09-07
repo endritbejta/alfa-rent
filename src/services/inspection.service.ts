@@ -5,7 +5,13 @@ import {
   inspectionFolder,
   verifyUploadSignature,
 } from "@/lib/cloudinary";
-import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import {
+  ConflictError,
+  NotFoundError,
+  phrase,
+  ValidationError,
+} from "@/lib/errors";
+import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
 import { getReservationTiming } from "@/lib/reservation-lifecycle";
 import type { RentalInspectionInput } from "@/lib/validations/inspection";
 import { reportError } from "@/lib/observability";
@@ -45,32 +51,55 @@ export async function recordRentalInspection(
     const expected = expectedInspection(reservation.status);
     if (!expected) {
       throw new ValidationError(
-        `A ${reservation.status.toLowerCase()} reservation cannot be inspected`
+        `A ${reservation.status.toLowerCase()} reservation cannot be inspected`,
+        {
+          key: "err.notInspectable",
+          values: {
+            status: phrase(RESERVATION_STATUS_KEYS[reservation.status]),
+          },
+        }
       );
     }
     if (input.type !== expected) {
       throw new ValidationError(
-        `${expected === "PICKUP" ? "Pickup" : "Return"} inspection is required`
+        `${expected === "PICKUP" ? "Pickup" : "Return"} inspection is required`,
+        {
+          key:
+            expected === "PICKUP"
+              ? "err.pickupInspectionRequired"
+              : "err.returnInspectionRequired",
+        }
       );
     }
     if (reservation.inspections.some((item) => item.type === input.type)) {
       throw new ConflictError(
-        `${input.type === "PICKUP" ? "Pickup" : "Return"} inspection already exists`
+        `${input.type === "PICKUP" ? "Pickup" : "Return"} inspection already exists`,
+        {
+          key:
+            input.type === "PICKUP"
+              ? "err.pickupInspectionExists"
+              : "err.returnInspectionExists",
+        }
       );
     }
 
     if (input.type === "PICKUP") {
       const timing = getReservationTiming(reservation, now);
       if (!timing.canStart) {
+        const ended = timing.startBlockedReason === "Rental window has ended";
         throw new ValidationError(
-          timing.startBlockedReason === "Rental window has ended"
+          ended
             ? "This rental window has ended. Update the dates or cancel the reservation."
-            : "The pickup inspection is available on the pickup date."
+            : "The pickup inspection is available on the pickup date.",
+          {
+            key: ended ? "err.rentalWindowEnded" : "err.pickupOnPickupDate",
+          }
         );
       }
       if (reservation.vehicle.status !== "AVAILABLE") {
         throw new ConflictError(
-          "Vehicle must be available before the handover"
+          "Vehicle must be available before the handover",
+          { key: "err.vehicleMustBeAvailable" }
         );
       }
       if (
@@ -78,7 +107,8 @@ export async function recordRentalInspection(
         reservation.returnDate > reservation.vehicle.registrationExpiry
       ) {
         throw new ConflictError(
-          "Renew the vehicle registration before starting this rental"
+          "Renew the vehicle registration before starting this rental",
+          { key: "err.renewRegistration" }
         );
       }
     } else {
@@ -87,7 +117,13 @@ export async function recordRentalInspection(
       );
       if (pickup && input.mileage < pickup.mileage) {
         throw new ValidationError(
-          `Return mileage cannot be below pickup mileage (${pickup.mileage.toLocaleString()} km)`
+          `Return mileage cannot be below pickup mileage (${pickup.mileage.toLocaleString()} km)`,
+          {
+            key: "err.mileageBelowPickup",
+            // Grouped by the reader's locale at the boundary, not by the
+            // server's default — toLocaleString() here is for the log line.
+            values: { km: pickup.mileage },
+          }
         );
       }
     }
@@ -99,7 +135,8 @@ export async function recordRentalInspection(
         !verifyUploadSignature(photo)
       ) {
         throw new ValidationError(
-          "An inspection photo could not be verified. Remove it and upload it again."
+          "An inspection photo could not be verified. Remove it and upload it again.",
+          { key: "err.inspectionPhotoUnverified" }
         );
       }
     }
@@ -135,7 +172,8 @@ export async function recordRentalInspection(
       });
       if (advanced.count !== 1) {
         throw new ConflictError(
-          "Reservation changed while you were working. Refresh and try again."
+          "Reservation changed while you were working. Refresh and try again.",
+          { key: "err.changedUnderYou" }
         );
       }
       const rented = await tx.vehicle.updateMany({
@@ -144,7 +182,8 @@ export async function recordRentalInspection(
       });
       if (rented.count !== 1) {
         throw new ConflictError(
-          "Vehicle is no longer available for this handover"
+          "Vehicle is no longer available for this handover",
+          { key: "err.vehicleNoLongerAvailable" }
         );
       }
     } else {
@@ -154,7 +193,8 @@ export async function recordRentalInspection(
       });
       if (advanced.count !== 1) {
         throw new ConflictError(
-          "Reservation changed while you were working. Refresh and try again."
+          "Reservation changed while you were working. Refresh and try again.",
+          { key: "err.changedUnderYou" }
         );
       }
       /**

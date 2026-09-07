@@ -52,7 +52,8 @@ export async function signVehicleUploadAction(
     if (!limit.allowed) {
       throw new TooManyRequestsError(
         "Too many uploads. Please wait a moment and try again.",
-        limit.retryAfter
+        limit.retryAfter,
+        { key: "err.tooManyUploads" }
       );
     }
 

@@ -51,9 +51,27 @@ export class ValidationError extends AppError {
   }
 }
 
+/**
+ * Named resources rather than free text, so the sentence can be said in
+ * either language. The English word stays in `message` for the log and the
+ * public API; the key is what an operator reads.
+ */
+const RESOURCE_KEYS = {
+  Vehicle: "err.resource.vehicle",
+  Reservation: "err.resource.reservation",
+  Customer: "err.resource.customer",
+  Payment: "err.resource.payment",
+  Record: "err.resource.record",
+} as const satisfies Record<string, TranslationKey>;
+
+export type Resource = keyof typeof RESOURCE_KEYS;
+
 export class NotFoundError extends AppError {
-  constructor(resource: string) {
-    super(`${resource} not found`, "NOT_FOUND", 404);
+  constructor(resource: Resource) {
+    super(`${resource} not found`, "NOT_FOUND", 404, {
+      key: "err.notFound",
+      values: { resource: phrase(RESOURCE_KEYS[resource]) },
+    });
   }
 }
 
@@ -65,13 +83,13 @@ export class ConflictError extends AppError {
 
 export class UnauthorizedError extends AppError {
   constructor(message = "Authentication required") {
-    super(message, "UNAUTHORIZED", 401);
+    super(message, "UNAUTHORIZED", 401, { key: "err.unauthorized" });
   }
 }
 
 export class ForbiddenError extends AppError {
   constructor(message = "Insufficient permissions") {
-    super(message, "FORBIDDEN", 403);
+    super(message, "FORBIDDEN", 403, { key: "err.forbidden" });
   }
 }
 
@@ -79,9 +97,10 @@ export class TooManyRequestsError extends AppError {
   constructor(
     message = "Too many requests. Please wait a moment and try again.",
     /** Seconds until the caller may retry — mirrored into Retry-After. */
-    public readonly retryAfter = 60
+    public readonly retryAfter = 60,
+    text: ErrorText = { key: "err.tooManyRequests" }
   ) {
-    super(message, "RATE_LIMITED", 429);
+    super(message, "RATE_LIMITED", 429, text);
   }
 }
 
@@ -130,7 +149,9 @@ export function normalizeError(error: unknown): {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return normalizeError(
-        new ConflictError("A record with this value already exists")
+        new ConflictError("A record with this value already exists", {
+          key: "err.duplicateValue",
+        })
       );
     }
     if (error.code === "P2025") {
@@ -138,7 +159,9 @@ export function normalizeError(error: unknown): {
     }
     if (error.code === "P2003") {
       return normalizeError(
-        new ConflictError("Operation violates a data relationship")
+        new ConflictError("Operation violates a data relationship", {
+          key: "err.relationshipViolated",
+        })
       );
     }
   }
@@ -150,7 +173,9 @@ export function normalizeError(error: unknown): {
     error.message.includes("reservations_no_overlap")
   ) {
     return normalizeError(
-      new ConflictError("Vehicle is already booked for the selected dates")
+      new ConflictError("Vehicle is already booked for the selected dates", {
+        key: "err.alreadyBooked",
+      })
     );
   }
 

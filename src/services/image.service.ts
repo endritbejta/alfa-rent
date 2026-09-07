@@ -31,7 +31,8 @@ export async function syncVehicleImages(
 ): Promise<void> {
   if (items.length > MAX_VEHICLE_IMAGES) {
     throw new ValidationError(
-      `At most ${MAX_VEHICLE_IMAGES} images per vehicle`
+      `At most ${MAX_VEHICLE_IMAGES} images per vehicle`,
+      { key: "err.tooManyPhotos", values: { count: MAX_VEHICLE_IMAGES } }
     );
   }
 
@@ -47,17 +48,23 @@ export async function syncVehicleImages(
   for (const item of items) {
     const key = item.kind === "existing" ? item.id : item.publicId;
     if (seen.has(key))
-      throw new ValidationError("The same photo was added twice");
+      throw new ValidationError("The same photo was added twice", {
+        key: "err.duplicatePhoto",
+      });
     seen.add(key);
 
     if (item.kind === "existing") {
       // An id from another vehicle would otherwise reassign its photo here.
       if (!ownedIds.has(item.id)) {
-        throw new ValidationError("That photo does not belong to this vehicle");
+        throw new ValidationError(
+          "That photo does not belong to this vehicle",
+          { key: "err.photoNotThisVehicle" }
+        );
       }
     } else if (!verifyUploadSignature(item)) {
       throw new ValidationError(
-        "An upload could not be verified. Remove the photo and add it again."
+        "An upload could not be verified. Remove the photo and add it again.",
+        { key: "err.uploadUnverified" }
       );
     }
   }
@@ -156,7 +163,10 @@ export async function syncVehicleImages(
     throw new ValidationError(
       failed === 1
         ? "One photo could not be removed. Save again to finish."
-        : `${failed} photos could not be removed. Save again to finish.`
+        : `${failed} photos could not be removed. Save again to finish.`,
+      failed === 1
+        ? { key: "err.photoNotRemoved" }
+        : { key: "err.photosNotRemoved", values: { count: failed } }
     );
   }
 }

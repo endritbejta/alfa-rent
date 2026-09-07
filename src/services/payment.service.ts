@@ -29,7 +29,9 @@ function amountToMinorUnits(amount: { toFixed(digits: number): string }) {
   const value = Number(amount.toFixed(2));
   const minor = Math.round(value * 100);
   if (!Number.isSafeInteger(minor) || minor <= 0) {
-    throw new ConflictError("Reservation total is not payable");
+    throw new ConflictError("Reservation total is not payable", {
+      key: "err.totalNotPayable",
+    });
   }
   return minor;
 }
@@ -83,7 +85,8 @@ export async function createPaymentCheckout(
   }
   if (!["PENDING", "CONFIRMED"].includes(reservation.status)) {
     throw new ConflictError(
-      "Only pending or confirmed reservations can be paid online"
+      "Only pending or confirmed reservations can be paid online",
+      { key: "err.notPayableStatus" }
     );
   }
 

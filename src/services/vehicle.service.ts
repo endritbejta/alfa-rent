@@ -266,7 +266,8 @@ async function assertStatusChangeAllowed(
 
   if (!OPERATOR_SETTABLE_STATUSES.includes(next)) {
     throw new ValidationError(
-      "A vehicle becomes rented when its pickup inspection is recorded, not by being set here."
+      "A vehicle becomes rented when its pickup inspection is recorded, not by being set here.",
+      { key: "err.statusNotSettable" }
     );
   }
 
@@ -284,7 +285,8 @@ async function assertStatusChangeAllowed(
   // rental and strand it: the return releases only a RENTED vehicle.
   if (next === "AVAILABLE" && activeCount > 0) {
     throw new ConflictError(
-      "This vehicle is out on an active rental. Complete the return inspection before marking it available."
+      "This vehicle is out on an active rental. Complete the return inspection before marking it available.",
+      { key: "err.onActiveRental" }
     );
   }
 
@@ -292,7 +294,8 @@ async function assertStatusChangeAllowed(
   // commitments against it.
   if (next === "INACTIVE" && openCount > 0) {
     throw new ConflictError(
-      "This vehicle has open reservations. Cancel or complete them before retiring it."
+      "This vehicle has open reservations. Cancel or complete them before retiring it.",
+      { key: "err.openReservationsRetire" }
     );
   }
 }
@@ -333,7 +336,8 @@ export async function deleteVehicle(id: string): Promise<VehicleRemoval> {
   });
   if (activeCount > 0) {
     throw new ConflictError(
-      "Vehicle has open reservations. Cancel or complete them first, or set the vehicle to INACTIVE."
+      "Vehicle has open reservations. Cancel or complete them first, or set the vehicle to INACTIVE.",
+      { key: "err.openReservationsDelete" }
     );
   }
   // Completed/cancelled history is preserved by soft-retiring instead of

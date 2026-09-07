@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 import { formatEur } from "@/lib/money";
 import { enUS, sq } from "date-fns/locale";
 import { REPAIR_FIELD_NAMES } from "@/lib/validations/repair";
@@ -63,6 +64,7 @@ export function RepairsPanel({
         return;
       }
       setOpen(false);
+      toasts.success(t("toast.repairAdded"));
     });
   };
 
@@ -267,6 +269,7 @@ export function RepairsPanel({
                   startTransition(async () => {
                     const result = await deleteRepairAction(vehicleId, r.id);
                     if (result?.error) setError(result.error);
+                    else toasts.success(t("toast.repairDeleted"));
                   })
                 }
               >

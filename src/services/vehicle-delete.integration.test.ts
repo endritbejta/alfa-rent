@@ -136,7 +136,9 @@ describe("deleting a vehicle", () => {
   it("soft-retires a vehicle with settled history, keeping its photos", async () => {
     deleteImage.mockClear();
 
-    await deleteVehicle(ids.retiring);
+    // Says which of the two it did, so the operator is not told a vehicle
+    // was removed while it is still on the list as inactive.
+    expect(await deleteVehicle(ids.retiring)).toBe("retired");
 
     const retired = await prisma.vehicle.findUniqueOrThrow({
       where: { id: ids.retiring },
@@ -165,7 +167,7 @@ describe("deleting a vehicle", () => {
       rowStillPresent.push(row !== null);
     });
 
-    await deleteVehicle(ids.deletable);
+    expect(await deleteVehicle(ids.deletable)).toBe("deleted");
 
     expect(deleteImage).toHaveBeenCalledTimes(2);
     // Never destroy an asset that a live row still references.
@@ -196,7 +198,7 @@ describe("deleting a vehicle", () => {
     deleteImage.mockClear();
     deleteImage.mockRejectedValue(new Error("cloudinary unavailable"));
 
-    await expect(deleteVehicle(id)).resolves.toBeUndefined();
+    await expect(deleteVehicle(id)).resolves.toBe("deleted");
     expect(await prisma.vehicle.findUnique({ where: { id } })).toBeNull();
 
     deleteImage.mockResolvedValue(undefined);

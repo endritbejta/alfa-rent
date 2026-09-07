@@ -317,7 +317,14 @@ export async function updateVehicle(
   });
 }
 
-export async function deleteVehicle(id: string): Promise<void> {
+/**
+ * Which of the two things a "delete" turned out to be. The caller has to be
+ * able to say, because telling an operator a vehicle was removed when it is
+ * still on the list as INACTIVE is worse than saying nothing.
+ */
+export type VehicleRemoval = "deleted" | "retired";
+
+export async function deleteVehicle(id: string): Promise<VehicleRemoval> {
   const activeCount = await prisma.reservation.count({
     where: {
       vehicleId: id,
@@ -339,7 +346,7 @@ export async function deleteVehicle(id: string): Promise<void> {
       where: { id },
       data: { status: "INACTIVE" },
     });
-    return;
+    return "retired";
   }
   /*
    * Row first, hosted files second.
@@ -382,6 +389,7 @@ export async function deleteVehicle(id: string): Promise<void> {
       { scope: "delete-vehicle", vehicleId: id, stranded }
     );
   }
+  return "deleted";
 }
 
 /**

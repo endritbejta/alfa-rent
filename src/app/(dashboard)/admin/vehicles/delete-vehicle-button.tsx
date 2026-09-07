@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 
 export function DeleteVehicleButton({ vehicleId }: { vehicleId: string }) {
   const { t } = useI18n();
@@ -23,11 +24,18 @@ export function DeleteVehicleButton({ vehicleId }: { vehicleId: string }) {
   const confirm = () =>
     startTransition(async () => {
       const result = await deleteVehicleAction(vehicleId);
-      if (result?.error) {
+      if ("error" in result) {
         setError(result.error);
         return;
       }
       setOpen(false);
+      // "Removed" would be a new untruth for a vehicle with history: that one
+      // is still on the list, as inactive.
+      if (result.removal === "retired") {
+        toasts.success(t("toast.vehicleRetired"), t("toast.vehicleRetiredWhy"));
+      } else {
+        toasts.success(t("toast.vehicleDeleted"));
+      }
     });
 
   return (

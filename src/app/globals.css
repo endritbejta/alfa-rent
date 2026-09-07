@@ -501,6 +501,12 @@
     transition: opacity var(--motion-hover) var(--ease-standard) !important;
     transform: none !important;
   }
+
+  /* A toast still needs to appear, just without travelling to get there. */
+  [data-toast] {
+    transition: opacity var(--motion-hover) var(--ease-standard) !important;
+    translate: none !important;
+  }
 }
 
 /*

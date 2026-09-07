@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, LogOut, Menu, X } from "lucide-react";
 import { AdminNav } from "./admin-nav";
 import { CommandPalette } from "./command-palette";
 import { ReservationDetailProvider } from "./reservation-detail";
+import { Toaster } from "@/components/dashboard/toaster";
 import {
   SIDEBAR_COLLAPSED,
   SIDEBAR_COOKIE,
@@ -196,10 +197,11 @@ export function AdminShell({
   }, [toggleCollapsed]);
 
   return (
-    <ReservationDetailProvider>
-      <CommandPalette pendingCount={pendingCount} />
-      <div className="tabular-shell flex min-h-screen">
-        {/*
+    <Toaster>
+      <ReservationDetailProvider>
+        <CommandPalette pendingCount={pendingCount} />
+        <div className="tabular-shell flex min-h-screen">
+          {/*
           The floating rail. The aside is a transparent, sticky, full-height
           padding frame; the charcoal panel floats inside it with the bench
           showing on all four sides. This is the personality move — a black
@@ -208,79 +210,80 @@ export function AdminShell({
           black-white-red stays black. (Glass here would be inert anyway:
           nothing scrolls behind a flex-column sidebar.)
         */}
-        <aside
-          className={cn(
-            "sticky top-0 hidden h-screen shrink-0 p-3 lg:block",
-            collapsed ? "w-[88px]" : "w-[264px]"
-          )}
-        >
-          <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-[20px] shadow-lg">
-            <SidebarChrome
-              user={user}
-              signOutAction={signOutAction}
-              pendingCount={pendingCount}
-              collapsed={collapsed}
-              onToggleCollapsed={toggleCollapsed}
-            />
-          </div>
-        </aside>
-
-        {/* Mobile drawer — never collapsed; on a phone there is no in-between. */}
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent
-            side="left"
-            showCloseButton={false}
-            className="bg-sidebar text-sidebar-foreground border-sidebar-border w-72 gap-0 p-0 lg:hidden"
+          <aside
+            className={cn(
+              "sticky top-0 hidden h-screen shrink-0 p-3 lg:block",
+              collapsed ? "w-[88px]" : "w-[264px]"
+            )}
           >
-            <SheetClose
-              aria-label={t("admin.closeMenu")}
-              className="text-sidebar-foreground/70 hover:text-sidebar-foreground absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </SheetClose>
-            <SidebarChrome
-              user={user}
-              signOutAction={signOutAction}
-              pendingCount={pendingCount}
-            />
-          </SheetContent>
-        </Sheet>
+            <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-[20px] shadow-lg">
+              <SidebarChrome
+                user={user}
+                signOutAction={signOutAction}
+                pendingCount={pendingCount}
+                collapsed={collapsed}
+                onToggleCollapsed={toggleCollapsed}
+              />
+            </div>
+          </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Mobile topbar — glass, because content genuinely scrolls under
+          {/* Mobile drawer — never collapsed; on a phone there is no in-between. */}
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetContent
+              side="left"
+              showCloseButton={false}
+              className="bg-sidebar text-sidebar-foreground border-sidebar-border w-72 gap-0 p-0 lg:hidden"
+            >
+              <SheetClose
+                aria-label={t("admin.closeMenu")}
+                className="text-sidebar-foreground/70 hover:text-sidebar-foreground absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </SheetClose>
+              <SidebarChrome
+                user={user}
+                signOutAction={signOutAction}
+                pendingCount={pendingCount}
+              />
+            </SheetContent>
+          </Sheet>
+
+          <div className="flex min-w-0 flex-1 flex-col">
+            {/* Mobile topbar — glass, because content genuinely scrolls under
               it here (unlike the desktop rail). Translucent charcoal, not the
               light popover glass: the bar is the brand surface and its text is
               near-white, which would vanish on a light frost. */}
-          <header className="text-sidebar-foreground border-sidebar-border sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-[color-mix(in_srgb,var(--sidebar)_88%,transparent)] px-4 backdrop-blur-xl lg:hidden">
-            <p className="font-display font-bold">
-              ALFA <span className="text-sidebar-primary">RENT</span>
-            </p>
-            <button
-              type="button"
-              aria-label={t("admin.openMenu")}
-              onClick={() => setOpen(true)}
-              className="relative"
-            >
-              <Menu className="h-5 w-5" />
-              {pendingCount > 0 && (
-                <span className="bg-brand absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
-          </header>
+            <header className="text-sidebar-foreground border-sidebar-border sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-[color-mix(in_srgb,var(--sidebar)_88%,transparent)] px-4 backdrop-blur-xl lg:hidden">
+              <p className="font-display font-bold">
+                ALFA <span className="text-sidebar-primary">RENT</span>
+              </p>
+              <button
+                type="button"
+                aria-label={t("admin.openMenu")}
+                onClick={() => setOpen(true)}
+                className="relative"
+              >
+                <Menu className="h-5 w-5" />
+                {pendingCount > 0 && (
+                  <span className="bg-brand absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+            </header>
 
-          {/* The ceiling moved into PageBody (per page). The banner keeps it
+            {/* The ceiling moved into PageBody (per page). The banner keeps it
               here so alerts align with page content; :empty guards the margin
               when nothing is showing. The calendar opts out and runs full-width. */}
-          <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            <div className="mx-auto w-full max-w-[1440px] [&:not(:empty)]:mb-6">
-              {banner}
-            </div>
-            {children}
-          </main>
+            <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+              <div className="mx-auto w-full max-w-[1440px] [&:not(:empty)]:mb-6">
+                {banner}
+              </div>
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-    </ReservationDetailProvider>
+      </ReservationDetailProvider>
+    </Toaster>
   );
 }

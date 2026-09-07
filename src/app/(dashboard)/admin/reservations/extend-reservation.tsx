@@ -16,6 +16,7 @@ import {
 } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 import { formatAmount, formatEur } from "@/lib/money";
 import { enUS, sq } from "date-fns/locale";
 
@@ -108,6 +109,7 @@ export function ExtendReservation({
         return;
       }
       reset();
+      toasts.success(t("toast.reservationExtended"));
       onExtended();
     });
   };

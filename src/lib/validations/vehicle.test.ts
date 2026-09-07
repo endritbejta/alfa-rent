@@ -121,6 +121,7 @@ describe("adminVehicleFilterSchema", () => {
       brand: "Kia",
       page: "2",
       view: "compact",
+      saved: "1",
     });
     expect(parsed.success).toBe(true);
     expect(parsed.data).toMatchObject({

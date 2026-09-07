@@ -7,13 +7,14 @@ import { deleteVehicleAction, updateVehicleAction } from "../../actions";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
 import { AlertTriangle } from "lucide-react";
+import { ToastOnArrival } from "@/components/dashboard/toast-on-arrival";
 
 export default async function EditVehiclePage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ photos?: string }>;
+  searchParams: Promise<{ photos?: string; created?: string }>;
 }) {
   await requireRole("ADMIN");
   const { id } = await params;
@@ -25,7 +26,10 @@ export default async function EditVehiclePage({
    * message itself: the querystring is admin-visible text, and the specific
    * Cloudinary reason is in the error report, not something to act on here.
    */
-  const [{ photos }, { t }] = await Promise.all([searchParams, getI18n()]);
+  const [{ photos, created }, { t }] = await Promise.all([
+    searchParams,
+    getI18n(),
+  ]);
   const photosFailed = photos === "failed";
 
   const [vehicle, profile] = await Promise.all([
@@ -38,6 +42,9 @@ export default async function EditVehiclePage({
 
   return (
     <PageBody>
+      {created === "1" && (
+        <ToastOnArrival param="created" message={t("toast.vehicleCreated")} />
+      )}
       {photosFailed && (
         <div
           role="alert"

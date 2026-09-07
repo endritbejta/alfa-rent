@@ -23,7 +23,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import type { ActionResult } from "./actions";
+import type { ActionResult, RemovalResult } from "./actions";
 import { signVehicleUploadAction } from "./actions";
 import { MediaGrid } from "@/components/forms/media-grid";
 import {
@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 
 /**
  * A plain, already-serialized vehicle — deliberately not Prisma's
@@ -69,7 +70,7 @@ export type VehicleFormValues = {
 type Props = {
   action: (formData: FormData) => Promise<ActionResult>;
   vehicle?: VehicleFormValues;
-  onDeleteVehicle?: () => Promise<ActionResult>;
+  onDeleteVehicle?: () => Promise<RemovalResult>;
   repairsPanel?: React.ReactNode;
 };
 
@@ -561,10 +562,18 @@ export function VehicleForm({
         onConfirm={() =>
           startDelete(async () => {
             const result = await onDeleteVehicle?.();
-            if (result?.error) {
+            if (result && "error" in result) {
               setError(result.error);
               setConfirm(null);
               return;
+            }
+            if (result?.removal === "retired") {
+              toasts.success(
+                t("toast.vehicleRetired"),
+                t("toast.vehicleRetiredWhy")
+              );
+            } else if (result) {
+              toasts.success(t("toast.vehicleDeleted"));
             }
             router.push("/admin/vehicles");
           })

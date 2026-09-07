@@ -12,6 +12,7 @@ import { getFleetInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
 import { readView } from "@/components/dashboard/view";
+import { ToastOnArrival } from "@/components/dashboard/toast-on-arrival";
 import { VehicleGrid } from "./vehicle-grid";
 import { VehicleFilters } from "./vehicle-filters";
 import { FleetStatusFilter } from "./fleet-status-filter";
@@ -146,6 +147,7 @@ export default async function VehiclesPage({
   // param drops only that filter — it can never silently widen the query
   // back to the whole fleet.
   const view = readView(params.view);
+  const justSaved = params.saved === "1";
   const parsed = adminVehicleFilterSchema.safeParse(params);
   const filters = parsed.success
     ? parsed.data
@@ -179,6 +181,9 @@ export default async function VehiclesPage({
 
   return (
     <PageBody>
+      {justSaved && (
+        <ToastOnArrival param="saved" message={t("toast.vehicleSaved")} />
+      )}
       <PageHeader
         title={t("admin.vehicles")}
         description={t("admin.fleetDescription")}

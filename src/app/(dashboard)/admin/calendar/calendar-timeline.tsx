@@ -9,6 +9,7 @@ import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 import { cn } from "@/lib/utils";
 
 type BarStatus = "PENDING" | "CONFIRMED" | "ACTIVE";
@@ -462,6 +463,7 @@ function BookingModal({
         return;
       }
       router.refresh();
+      toasts.success(t("toast.reservationCreated"));
       onClose();
     });
   };

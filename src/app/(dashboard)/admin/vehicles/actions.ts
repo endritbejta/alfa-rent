@@ -22,6 +22,7 @@ import {
   deleteVehicle,
   PUBLIC_VEHICLES_TAG,
   updateVehicle,
+  type VehicleRemoval,
 } from "@/services/vehicle.service";
 import { syncVehicleImages } from "@/services/image.service";
 import { addRepair, deleteRepair } from "@/services/fleet.service";
@@ -29,6 +30,7 @@ import { parseRepairFields } from "@/lib/validations/repair";
 import { reportError } from "@/lib/observability";
 
 export type ActionResult = { error: string } | undefined;
+export type RemovalResult = { error: string } | { removal: VehicleRemoval };
 
 /** Vehicle management is ADMIN-only; EMPLOYEE manages reservations. */
 
@@ -140,21 +142,24 @@ export async function updateVehicleAction(
   }
   revalidatePath("/admin/vehicles");
   updateTag(PUBLIC_VEHICLES_TAG);
-  redirect("/admin/vehicles");
+  // The list is where the operator lands, so that is where the save is
+  // confirmed — a redirect leaves no client behind to say it.
+  redirect("/admin/vehicles?saved=1");
 }
 
 export async function deleteVehicleAction(
   vehicleId: string
-): Promise<ActionResult> {
+): Promise<RemovalResult> {
   await requireRole("ADMIN");
+  let removal: VehicleRemoval;
   try {
-    await deleteVehicle(vehicleId);
+    removal = await deleteVehicle(vehicleId);
   } catch (error) {
     return { error: normalizeError(error).body.error.message };
   }
   revalidatePath("/admin/vehicles");
   updateTag(PUBLIC_VEHICLES_TAG);
-  return undefined;
+  return { removal };
 }
 
 export async function addRepairAction(

@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 
 export function InspectionAction({
   reservationId,
@@ -90,6 +91,7 @@ export function InspectionAction({
         return;
       }
       setOpen(false);
+      toasts.success(t("toast.inspectionRecorded"));
       onSuccess?.();
     });
   };

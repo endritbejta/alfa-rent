@@ -134,6 +134,34 @@ const en = {
   "availability.continue": "Continue to booking",
   "auth.metaTitle": "Staff Login",
   "toast.region": "Notifications",
+  "err.registrationExpires":
+    "The vehicle's registration expires on {date}; the rental cannot run past it.",
+  "err.alreadyBooked": "Vehicle is already booked for the selected dates",
+  "err.notBookable": "This vehicle is not available for booking",
+  /*
+   * The two states are shown as labels rather than folded into the sentence.
+   * Albanian names them adjectivally — "E përfunduar", "E konfirmuar" — so
+   * "Një rezervim E përfunduar…" comes out ungrammatical, and the forms would
+   * have to agree with the noun. The arrow says the same thing in both
+   * languages and is arguably plainer for an operator.
+   */
+  "err.badTransition": "That change is not allowed: {from} → {to}.",
+  "err.pickupInspectionFirst":
+    "Record the pickup inspection to start this rental",
+  "err.returnInspectionFirst":
+    "Record the return inspection to complete this rental",
+  "err.changedUnderYou":
+    "Reservation changed while you were working. Refresh and try again.",
+  "err.notYetConfirmed": "Confirm this request before extending it.",
+  "err.notExtendable": "This reservation cannot be extended.",
+  "err.bookedImmediatelyAfter":
+    "The vehicle is booked again immediately after this rental.",
+  "err.registrationEnds":
+    "The vehicle's registration expires at the end of this rental.",
+  "err.returnMustBeLater":
+    "The new return date must be after the current one ({date}).",
+  "err.bookedAgainFrom":
+    "This vehicle is booked again from {from}, so it cannot be kept until {until}.",
   "toast.vehicleCreated": "Vehicle added",
   "toast.vehicleSaved": "Changes saved",
   "toast.vehicleDeleted": "Vehicle removed",
@@ -757,6 +785,27 @@ const sq: TranslationDictionary = {
   "availability.continue": "Vazhdo te rezervimi",
   "auth.metaTitle": "Hyrja e Stafit",
   "toast.region": "Njoftimet",
+  "err.registrationExpires":
+    "Regjistrimi i veturës skadon më {date}; qiraja nuk mund të vazhdojë përtej.",
+  "err.alreadyBooked": "Vetura është e rezervuar për datat e zgjedhura",
+  "err.notBookable": "Kjo veturë nuk është e disponueshme për rezervim",
+  "err.badTransition": "Ky kalim nuk lejohet: {from} → {to}.",
+  "err.pickupInspectionFirst":
+    "Regjistro inspektimin e marrjes për të nisur këtë qira",
+  "err.returnInspectionFirst":
+    "Regjistro inspektimin e kthimit për të përfunduar këtë qira",
+  "err.changedUnderYou":
+    "Rezervimi ndryshoi ndërsa punonit. Rifresko dhe provo përsëri.",
+  "err.notYetConfirmed": "Konfirmoje këtë kërkesë para se ta zgjasësh.",
+  "err.notExtendable": "Ky rezervim nuk mund të zgjatet.",
+  "err.bookedImmediatelyAfter":
+    "Vetura rezervohet përsëri menjëherë pas kësaj qiraje.",
+  "err.registrationEnds":
+    "Regjistrimi i veturës skadon në fund të kësaj qiraje.",
+  "err.returnMustBeLater":
+    "Data e re e kthimit duhet të jetë pas asaj aktuale ({date}).",
+  "err.bookedAgainFrom":
+    "Vetura rezervohet përsëri prej {from}, kështu që nuk mund të mbahet deri më {until}.",
   "toast.vehicleCreated": "Vetura u shtua",
   "toast.vehicleSaved": "Ndryshimet u ruajtën",
   "toast.vehicleDeleted": "Vetura u fshi",

@@ -5,7 +5,14 @@ import {
 } from "@prisma/client";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
-import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import type { TranslationKey } from "@/lib/i18n/translations";
+import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+  phrase,
+} from "@/lib/errors";
 import { calculateTotalPrice, rentalDays } from "@/lib/pricing";
 import { latestUnder, withTimeOfDay } from "@/lib/rental-dates";
 import {
@@ -53,7 +60,11 @@ function assertRegistrationCovers(
 ) {
   if (!registrationCovers(registrationExpiry, returnDate)) {
     throw new ValidationError(
-      `The vehicle's registration expires on ${day(registrationExpiry!)}; the rental cannot run past it.`
+      `The vehicle's registration expires on ${day(registrationExpiry!)}; the rental cannot run past it.`,
+      {
+        key: "err.registrationExpires",
+        values: { date: day(registrationExpiry!) },
+      }
     );
   }
 }
@@ -158,7 +169,10 @@ export async function createReservation(input: CreateBookingInput): Promise<{
 }> {
   const { available } = await checkAvailability(input);
   if (!available) {
-    throw new ConflictError("Vehicle is already booked for the selected dates");
+    throw new ConflictError(
+      "Vehicle is already booked for the selected dates",
+      { key: "err.alreadyBooked" }
+    );
   }
 
   const customer = await findOrCreateCustomerByEmail(input.customer);
@@ -175,7 +189,9 @@ export async function createReservation(input: CreateBookingInput): Promise<{
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
     if (!isPublicBookableVehicleStatus(vehicle.status)) {
-      throw new ConflictError("Vehicle is not available for booking");
+      throw new ConflictError("Vehicle is not available for booking", {
+        key: "err.notBookable",
+      });
     }
     assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
@@ -223,7 +239,9 @@ export async function createManualReservation(
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
     if (vehicle.status === "INACTIVE") {
-      throw new ConflictError("Vehicle is not available for booking");
+      throw new ConflictError("Vehicle is not available for booking", {
+        key: "err.notBookable",
+      });
     }
     assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
@@ -308,7 +326,14 @@ export async function updateReservationStatus(
 
     if (!ALLOWED_TRANSITIONS[reservation.status].includes(nextStatus)) {
       throw new ValidationError(
-        `Cannot change a ${reservation.status} reservation to ${nextStatus}`
+        `Cannot change a ${reservation.status} reservation to ${nextStatus}`,
+        {
+          key: "err.badTransition",
+          values: {
+            from: phrase(RESERVATION_STATUS_KEYS[reservation.status]),
+            to: phrase(RESERVATION_STATUS_KEYS[nextStatus]),
+          },
+        }
       );
     }
 
@@ -316,7 +341,13 @@ export async function updateReservationStatus(
       throw new ValidationError(
         nextStatus === "ACTIVE"
           ? "Record the pickup inspection to start this rental"
-          : "Record the return inspection to complete this rental"
+          : "Record the return inspection to complete this rental",
+        {
+          key:
+            nextStatus === "ACTIVE"
+              ? "err.pickupInspectionFirst"
+              : "err.returnInspectionFirst",
+        }
       );
     }
 
@@ -333,7 +364,8 @@ export async function updateReservationStatus(
     });
     if (changed.count !== 1) {
       throw new ConflictError(
-        "Reservation changed while you were working. Refresh and try again."
+        "Reservation changed while you were working. Refresh and try again.",
+        { key: "err.changedUnderYou" }
       );
     }
     return tx.reservation.findUniqueOrThrow({ where: { id } });
@@ -451,6 +483,14 @@ function extensionRefusal(status: ReservationStatus): ExtensionRefusal {
  * and a thrown AppError's message is shown verbatim. English until server
  * errors are translated wholesale.
  */
+/** The same refusals, named for the reader's language. */
+const REFUSAL_KEYS = {
+  NOT_YET_CONFIRMED: "err.notYetConfirmed",
+  BOOKED_IMMEDIATELY_AFTER: "err.bookedImmediatelyAfter",
+  REGISTRATION_ENDS: "err.registrationEnds",
+  NOT_EXTENDABLE: "err.notExtendable",
+} satisfies Record<ExtensionRefusal, TranslationKey>;
+
 const REFUSAL_MESSAGES = {
   NOT_YET_CONFIRMED: "Confirm this request before extending it.",
   BOOKED_IMMEDIATELY_AFTER:
@@ -483,15 +523,20 @@ export async function extendReservation(
     if (!reservation) throw new NotFoundError("Reservation");
 
     if (!EXTENDABLE_STATUSES.includes(reservation.status)) {
-      throw new ValidationError(
-        REFUSAL_MESSAGES[extensionRefusal(reservation.status)]
-      );
+      const refusal = extensionRefusal(reservation.status);
+      throw new ValidationError(REFUSAL_MESSAGES[refusal], {
+        key: REFUSAL_KEYS[refusal],
+      });
     }
 
     const target = withTimeOfDay(reservation.returnDate, newReturnDate);
     if (target.getTime() <= reservation.returnDate.getTime()) {
       throw new ValidationError(
-        `The new return date must be after the current one (${day(reservation.returnDate)}).`
+        `The new return date must be after the current one (${day(reservation.returnDate)}).`,
+        {
+          key: "err.returnMustBeLater",
+          values: { date: day(reservation.returnDate) },
+        }
       );
     }
 
@@ -510,7 +555,11 @@ export async function extendReservation(
     });
     if (clash) {
       throw new ConflictError(
-        `This vehicle is booked again from ${day(clash.pickupDate)}, so it cannot be kept until ${day(target)}.`
+        `This vehicle is booked again from ${day(clash.pickupDate)}, so it cannot be kept until ${day(target)}.`,
+        {
+          key: "err.bookedAgainFrom",
+          values: { from: day(clash.pickupDate), until: day(target) },
+        }
       );
     }
 
@@ -535,7 +584,8 @@ export async function extendReservation(
     });
     if (changed.count !== 1) {
       throw new ConflictError(
-        "Reservation changed while you were working. Refresh and try again."
+        "Reservation changed while you were working. Refresh and try again.",
+        { key: "err.changedUnderYou" }
       );
     }
     return tx.reservation.findUniqueOrThrow({ where: { id } });

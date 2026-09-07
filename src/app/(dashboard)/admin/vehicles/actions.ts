@@ -3,7 +3,8 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
-import { normalizeError, TooManyRequestsError } from "@/lib/errors";
+import { TooManyRequestsError } from "@/lib/errors";
+import { errorMessage } from "@/lib/errors-i18n";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   draftFolder,
@@ -62,7 +63,7 @@ export async function signVehicleUploadAction(
 
     return { signature: signUpload(folder) };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }
 
@@ -79,7 +80,7 @@ export async function createVehicleAction(
   } catch (error) {
     // Nothing has been written yet, so the operator can correct the form and
     // submit again without creating anything.
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 
   let vehicle: Awaited<ReturnType<typeof createVehicle>>;
@@ -88,7 +89,7 @@ export async function createVehicleAction(
   } catch (error) {
     // Still nothing created — a duplicate plate belongs on the form, not on
     // the error boundary.
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 
   /*
@@ -138,7 +139,7 @@ export async function updateVehicleAction(
     await updateVehicle(vehicleId, input);
     await syncVehicleImages(vehicleId, images);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/vehicles");
   updateTag(PUBLIC_VEHICLES_TAG);
@@ -155,7 +156,7 @@ export async function deleteVehicleAction(
   try {
     removal = await deleteVehicle(vehicleId);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/vehicles");
   updateTag(PUBLIC_VEHICLES_TAG);
@@ -171,7 +172,7 @@ export async function addRepairAction(
     const input = parseRepairFields(formData);
     await addRepair(vehicleId, input);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
   revalidatePath("/admin/vehicles");
@@ -186,7 +187,7 @@ export async function deleteRepairAction(
   try {
     await deleteRepair(repairId);
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
   revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
   return undefined;

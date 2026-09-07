@@ -2,12 +2,43 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import type { ApiFailure } from "@/types/api";
 import { reportError } from "@/lib/observability";
+import type { TranslationKey } from "@/lib/i18n/translations";
+
+/**
+ * A value to interpolate into an error message. Wrap it in `phrase()` when it
+ * is itself something the app translates — a status, a category — so it comes
+ * out in the reader's language rather than as PENDING or SEDAN.
+ */
+export type ErrorValue = string | number | { key: TranslationKey };
+
+export const phrase = (key: TranslationKey): ErrorValue => ({ key });
+
+/**
+ * What an error says, in a form that can be said in either language.
+ *
+ * The service layer has no locale — it runs before anything knows who is
+ * asking — so it names the message instead of writing it, and the boundary
+ * that answers the request resolves it. Every message used to be an English
+ * literal rendered verbatim, so an Albanian operator got
+ * "Cannot change a COMPLETED reservation to CONFIRMED" in an otherwise fully
+ * translated interface.
+ *
+ * The English sentence stays on the error as `message`: it is what the logs
+ * and the public JSON API carry, and it is the fallback for the throw sites
+ * that have not been given a key yet.
+ */
+export type ErrorText = {
+  key: TranslationKey;
+  values?: Record<string, ErrorValue>;
+};
 
 export class AppError extends Error {
   constructor(
     message: string,
     public readonly code: string,
-    public readonly status: number
+    public readonly status: number,
+    /** Names the message so it can be read in the operator's language. */
+    public readonly text?: ErrorText
   ) {
     super(message);
     this.name = new.target.name;
@@ -15,8 +46,8 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string) {
-    super(message, "VALIDATION_ERROR", 400);
+  constructor(message: string, text?: ErrorText) {
+    super(message, "VALIDATION_ERROR", 400, text);
   }
 }
 
@@ -27,8 +58,8 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string) {
-    super(message, "CONFLICT", 409);
+  constructor(message: string, text?: ErrorText) {
+    super(message, "CONFLICT", 409, text);
   }
 }
 

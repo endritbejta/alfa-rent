@@ -19,18 +19,11 @@ import { getReservationTiming } from "@/lib/reservation-lifecycle";
 import { parsePageParam } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
-import type { TranslationKey } from "@/lib/i18n/translations";
+import { RESERVATION_STATUS_KEYS as STATUS_KEYS } from "@/lib/status-labels";
 
 export const dynamic = "force-dynamic";
 
 const STATUSES = Object.values(ReservationStatus);
-const STATUS_KEYS: Record<ReservationStatus, TranslationKey> = {
-  PENDING: "vehicle.pending",
-  CONFIRMED: "vehicle.confirmed",
-  ACTIVE: "vehicle.active",
-  COMPLETED: "vehicle.completed",
-  CANCELLED: "vehicle.cancelled",
-};
 
 export default async function ReservationsPage({
   searchParams,

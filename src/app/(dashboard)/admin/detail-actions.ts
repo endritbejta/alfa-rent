@@ -1,7 +1,7 @@
 "use server";
 
 import { requireUser } from "@/lib/auth/guards";
-import { normalizeError } from "@/lib/errors";
+import { errorMessage } from "@/lib/errors-i18n";
 import { getReservationDetail } from "@/services/reservation.service";
 import { getVehicleDetail } from "@/services/fleet.service";
 import { getCustomerById } from "@/services/customer.service";
@@ -54,7 +54,7 @@ export async function getReservationDetailAction(
   try {
     return { data: plainReservation(await getReservationDetail(id)) };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }
 
@@ -110,7 +110,7 @@ export async function getVehicleDetailAction(
   try {
     return { data: plainVehicle(await getVehicleDetail(id)) };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }
 
@@ -139,6 +139,6 @@ export async function getCustomerDetailAction(
       },
     };
   } catch (error) {
-    return { error: normalizeError(error).body.error.message };
+    return { error: await errorMessage(error) };
   }
 }

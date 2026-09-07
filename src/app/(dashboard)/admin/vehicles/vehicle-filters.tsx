@@ -205,6 +205,15 @@ export function VehicleFilters({
 const selectClass =
   "border-input bg-control focus:ring-ring h-9 w-full cursor-pointer rounded-lg border px-3 text-sm outline-none transition-colors focus:ring-2";
 
+/**
+ * A <label> wrapping the control, not a <p> beside it.
+ *
+ * These two selects — brand and category — were the only unlabelled controls
+ * left in the app: the caption was a paragraph, so a screen reader announced
+ * "combo box" with no hint of what it filtered. Wrapping associates the two
+ * without either of them needing an id, and the ids would have had to be
+ * unique across a page that already renders this panel more than once.
+ */
 function Group({
   label,
   children,
@@ -213,11 +222,11 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-[0.1em] uppercase">
+    <label className="block">
+      <span className="text-muted-foreground mb-2 block text-[10px] font-semibold tracking-[0.1em] uppercase">
         {label}
-      </p>
+      </span>
       {children}
-    </div>
+    </label>
   );
 }

@@ -221,6 +221,12 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
         onClick={close}
         className="palette-overlay bg-overlay-modal absolute inset-0 cursor-default backdrop-blur-[2px]"
       />
+      {/*
+        A dialog is not an interactive role, but it owns the arrow-key
+        navigation for the results below it — there is nowhere else for that
+        listener to live.
+      */}
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={panelRef}
         role="dialog"
@@ -237,6 +243,9 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
           <Search className="text-muted-foreground h-4 w-4 shrink-0" />
           <input
             ref={inputRef}
+            // The palette is opened by a keystroke in order to type into it;
+            // landing anywhere else would be the surprise.
+            // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}

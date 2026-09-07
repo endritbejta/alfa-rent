@@ -125,7 +125,7 @@ export default async function VehiclePage({
                 src={cover.url}
                 alt={`${vehicle.brand} ${vehicle.model}`}
                 fill
-                priority
+                preload
                 sizes="(max-width: 1024px) 100vw, 60vw"
                 className="object-cover"
               />

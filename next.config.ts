@@ -42,6 +42,20 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    /*
+     * Cloudinary resizes and re-encodes from the already-normalised asset
+     * through its own URL transforms, so next/image asks it for the width it
+     * wants instead of having Vercel's optimizer fetch and process every
+     * image a second time. `sizes` and the rest of the next/image API are
+     * unaffected — only the URL it emits changes.
+     */
+    loader: "custom",
+    loaderFile: "./src/lib/cloudinary/image-loader.ts",
+    /*
+     * Only consulted by the built-in optimizer, which the loader above now
+     * bypasses. Kept so that removing the loader restores a working default
+     * rather than a broken one.
+     */
     remotePatterns: [
       {
         protocol: "https",

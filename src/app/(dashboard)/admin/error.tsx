@@ -45,7 +45,7 @@ export default function AdminError({
             {t("admin.reference", { id: error.digest })}
           </p>
         )}
-        <div className="mt-6 flex justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
           <Button
             variant="outline"
             size="sm"

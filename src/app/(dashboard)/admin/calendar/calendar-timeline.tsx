@@ -9,6 +9,7 @@ import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import { toasts } from "@/components/dashboard/toaster";
 import { cn } from "@/lib/utils";
 
@@ -614,6 +615,7 @@ function BookingModal({
           >
             {pending ? t("admin.saving") : t("admin.createReservation")}
           </Button>
+          <PendingStatus message={pending ? t("admin.saving") : null} />
         </div>
       </div>
     </div>

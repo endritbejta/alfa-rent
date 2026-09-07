@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import { toasts } from "@/components/dashboard/toaster";
 import { formatEur } from "@/lib/money";
 import { enUS, sq } from "date-fns/locale";
@@ -237,6 +238,7 @@ export function RepairsPanel({
           >
             {pending ? t("admin.saving") : t("admin.saveRepair")}
           </Button>
+          <PendingStatus message={pending ? t("admin.saving") : null} />
         </div>
       )}
 

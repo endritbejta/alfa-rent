@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import { toasts } from "@/components/dashboard/toaster";
 
 /**
@@ -181,6 +182,7 @@ export function VehicleForm({
                 ? t("admin.saveChanges")
                 : t("admin.createVehicle")}
           </Button>
+          <PendingStatus message={pending ? t("admin.saving") : null} />
         </div>
       </div>
 

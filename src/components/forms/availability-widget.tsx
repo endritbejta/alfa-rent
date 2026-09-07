@@ -12,6 +12,7 @@ import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 
 type Quote = { available: boolean; totalPrice: number | null };
@@ -129,6 +130,7 @@ export function AvailabilityWidget({
         bookingCalendar={bookingCalendar}
       />
 
+      <PendingStatus message={loading ? t("availability.checking") : null} />
       {loading && (
         <p className="text-muted-foreground text-sm">
           {t("availability.checking")}

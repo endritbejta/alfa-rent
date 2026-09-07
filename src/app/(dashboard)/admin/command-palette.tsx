@@ -17,6 +17,7 @@ import type { SearchHit } from "@/services/search.service";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
+import { PendingStatus } from "@/components/shared/pending-status";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 type Row =
@@ -248,6 +249,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
           </kbd>
         </div>
 
+        <PendingStatus message={loading ? t("admin.searching") : null} />
         <div className="max-h-[52vh] overflow-y-auto p-2">
           {loading && rows.length === 0 && (
             <p className="text-muted-foreground px-3 py-8 text-center text-sm">

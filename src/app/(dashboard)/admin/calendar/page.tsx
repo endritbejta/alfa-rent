@@ -15,7 +15,7 @@ import {
   getCalendarReservations,
   getReservationDateBounds,
 } from "@/services/reservation.service";
-import { getDashboardData } from "@/services/analytics.service";
+import { getUpcomingSchedule } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Panel } from "@/components/dashboard/panel";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
@@ -50,9 +50,11 @@ export default async function CalendarPage() {
     rangeEnd = endOfMonth(addMonths(rangeStart, MAX_MONTHS));
   }
 
-  const [vehicles, dashboard] = await Promise.all([
+  const [vehicles, schedule] = await Promise.all([
     getCalendarReservations(rangeStart, rangeEnd),
-    getDashboardData(),
+    // The side panels want the week's handovers, not the dashboard's
+    // thirteen-query snapshot.
+    getUpcomingSchedule(),
   ]);
 
   const days = differenceInCalendarDays(rangeEnd, rangeStart) + 1;
@@ -140,13 +142,13 @@ export default async function CalendarPage() {
           title={t("admin.pickupSchedule")}
           subtitle={t("admin.nextSevenDays")}
         >
-          <ScheduleList items={dashboard.upcomingPickups} kind="pickup" />
+          <ScheduleList items={schedule.upcomingPickups} kind="pickup" />
         </Panel>
         <Panel
           title={t("admin.returnSchedule")}
           subtitle={t("admin.nextSevenDays")}
         >
-          <ScheduleList items={dashboard.upcomingReturns} kind="return" />
+          <ScheduleList items={schedule.upcomingReturns} kind="return" />
         </Panel>
       </div>
     </div>

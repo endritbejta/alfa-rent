@@ -45,48 +45,31 @@ function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
   });
 }
 
-export async function getDashboardData() {
-  const now = new Date();
-  const todayStart = businessDayStart(now);
-  const weekStart = businessWeekStart(now);
-  const monthStart = businessMonthStart(now);
-  const horizon = addDays(todayStart, 7);
-  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
+/**
+ * Today's and the next seven days' handovers.
+ *
+ * Its own reader because the calendar needs exactly this and nothing else.
+ * It used to call getDashboardData for it — thirteen queries for two lists —
+ * which made the calendar the heaviest page in the app at nineteen.
+ *
+ * `select`, not `include`: these rows go to a client component, and
+ * Prisma.Decimal cannot cross that boundary.
+ */
+const scheduleSelect = {
+  id: true,
+  pickupDate: true,
+  returnDate: true,
+  vehicle: { select: { brand: true, model: true, plate: true } },
+  customer: { select: { firstName: true, lastName: true } },
+} as const;
 
-  const [
-    fleetTotal,
-    available,
-    rentedNow,
-    maintenance,
-    pending,
-    revenueWeek,
-    revenueMonth,
-    upcomingPickups,
-    upcomingReturns,
-    recentReservations,
-    pendingRequests,
-    revenueRows,
-    overdue,
-  ] = await prisma.$transaction([
-    prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
-    prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
-    prisma.reservation.count({ where: { status: "ACTIVE" } }),
-    prisma.vehicle.count({ where: { status: "SERVICE" } }),
-    prisma.reservation.count({ where: { status: "PENDING" } }),
-    prisma.reservation.aggregate({
-      _sum: { totalPrice: true },
-      where: {
-        status: { in: [...REVENUE_STATUSES] },
-        createdAt: { gte: weekStart },
-      },
-    }),
-    prisma.reservation.aggregate({
-      _sum: { totalPrice: true },
-      where: {
-        status: { in: [...REVENUE_STATUSES] },
-        createdAt: { gte: monthStart },
-      },
-    }),
+const SCHEDULE_HORIZON_DAYS = 7;
+
+export async function getUpcomingSchedule() {
+  const todayStart = businessDayStart(new Date());
+  const horizon = addDays(todayStart, SCHEDULE_HORIZON_DAYS);
+
+  const [upcomingPickups, upcomingReturns] = await Promise.all([
     prisma.reservation.findMany({
       where: {
         status: "CONFIRMED",
@@ -94,15 +77,7 @@ export async function getDashboardData() {
       },
       orderBy: { pickupDate: "asc" },
       take: 5,
-      // `select`, not `include`: these rows are handed to a client
-      // component, and Prisma Decimal cannot cross that boundary.
-      select: {
-        id: true,
-        pickupDate: true,
-        returnDate: true,
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: { select: { firstName: true, lastName: true } },
-      },
+      select: scheduleSelect,
     }),
     prisma.reservation.findMany({
       where: {
@@ -111,46 +86,89 @@ export async function getDashboardData() {
       },
       orderBy: { returnDate: "asc" },
       take: 5,
-      select: {
-        id: true,
-        pickupDate: true,
-        returnDate: true,
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: { select: { firstName: true, lastName: true } },
-      },
+      select: scheduleSelect,
     }),
-    prisma.reservation.findMany({
-      take: 6,
-      orderBy: { createdAt: "desc" },
-      include: {
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: { select: { firstName: true, lastName: true } },
-      },
-    }),
-    // The queue that should be cleared before the day's numbers matter.
-    prisma.reservation.findMany({
-      where: { status: "PENDING" },
-      orderBy: { createdAt: "asc" },
-      take: 10,
-      include: {
-        vehicle: { select: { brand: true, model: true, plate: true } },
-        customer: {
-          select: { firstName: true, lastName: true, email: true },
+  ]);
+
+  return { upcomingPickups, upcomingReturns };
+}
+
+export async function getDashboardData() {
+  const now = new Date();
+  const weekStart = businessWeekStart(now);
+  const monthStart = businessMonthStart(now);
+  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
+
+  const [
+    [
+      fleetTotal,
+      available,
+      rentedNow,
+      maintenance,
+      pending,
+      revenueWeek,
+      revenueMonth,
+      recentReservations,
+      pendingRequests,
+      revenueRows,
+      overdue,
+    ],
+    { upcomingPickups, upcomingReturns },
+  ] = await Promise.all([
+    prisma.$transaction([
+      prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
+      prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
+      prisma.reservation.count({ where: { status: "ACTIVE" } }),
+      prisma.vehicle.count({ where: { status: "SERVICE" } }),
+      prisma.reservation.count({ where: { status: "PENDING" } }),
+      prisma.reservation.aggregate({
+        _sum: { totalPrice: true },
+        where: {
+          status: { in: [...REVENUE_STATUSES] },
+          createdAt: { gte: weekStart },
         },
-      },
-    }),
-    prisma.reservation.findMany({
-      where: { createdAt: { gte: subMonths(now, 6) } },
-      select: { createdAt: true, totalPrice: true, status: true },
-    }),
-    prisma.reservation.count({
-      where: {
-        OR: [
-          { status: "CONFIRMED", pickupDate: { lt: businessToday } },
-          { status: "ACTIVE", returnDate: { lt: businessToday } },
-        ],
-      },
-    }),
+      }),
+      prisma.reservation.aggregate({
+        _sum: { totalPrice: true },
+        where: {
+          status: { in: [...REVENUE_STATUSES] },
+          createdAt: { gte: monthStart },
+        },
+      }),
+      prisma.reservation.findMany({
+        take: 6,
+        orderBy: { createdAt: "desc" },
+        include: {
+          vehicle: { select: { brand: true, model: true, plate: true } },
+          customer: { select: { firstName: true, lastName: true } },
+        },
+      }),
+      // The queue that should be cleared before the day's numbers matter.
+      prisma.reservation.findMany({
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        take: 10,
+        include: {
+          vehicle: { select: { brand: true, model: true, plate: true } },
+          customer: {
+            select: { firstName: true, lastName: true, email: true },
+          },
+        },
+      }),
+      prisma.reservation.findMany({
+        where: { createdAt: { gte: subMonths(now, 6) } },
+        select: { createdAt: true, totalPrice: true, status: true },
+      }),
+      prisma.reservation.count({
+        where: {
+          OR: [
+            { status: "CONFIRMED", pickupDate: { lt: businessToday } },
+            { status: "ACTIVE", returnDate: { lt: businessToday } },
+          ],
+        },
+      }),
+    ]),
+    getUpcomingSchedule(),
   ]);
 
   const revenueSeries = monthlySeries(revenueRows, 6, (r) =>

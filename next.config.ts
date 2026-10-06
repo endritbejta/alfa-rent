@@ -4,12 +4,18 @@ const securityHeaders: { key: string; value: string }[] = [
   {
     key: "Content-Security-Policy",
     value:
-      "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'",
+      "base-uri 'self'; form-action 'self'; frame-ancestors 'self' https://endritsportfolio.netlify.app; object-src 'none'",
   },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
+
+  // Allow the portfolio to embed this site in an iframe.
+  {
+    key: "X-Frame-Options",
+    value: "ALLOW-FROM https://endritsportfolio.netlify.app",
+  },
+
   {
     key: "Permissions-Policy",
     value: "camera=(), geolocation=(), microphone=()",
@@ -41,6 +47,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
   images: {
     /*
      * Cloudinary resizes and re-encodes from the already-normalised asset
@@ -51,6 +58,7 @@ const nextConfig: NextConfig = {
      */
     loader: "custom",
     loaderFile: "./src/lib/cloudinary/image-loader.ts",
+
     /*
      * Only consulted by the built-in optimizer, which the loader above now
      * bypasses. Kept so that removing the loader restores a working default
@@ -64,6 +72,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
   // No bodySizeLimit override: photos upload from the browser straight to
   // Cloudinary, so actions now carry only JSON and the 1 MB default is ample.
   // Raising it was misleading anyway — Vercel caps function request bodies at

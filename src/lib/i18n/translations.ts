@@ -646,6 +646,11 @@ const en = {
     "You have unsaved changes to this vehicle. Leaving now will lose them.",
   "admin.discardChanges": "Discard changes",
   "admin.keepEditing": "Keep editing",
+  "admin.cancelReservationTitle": "Cancel this reservation?",
+  "admin.cancelReservationBody":
+    "This cannot be undone. The car becomes free for these dates and the booking cannot be reinstated.",
+  "admin.cancelReservationConfirm": "Cancel reservation",
+  "admin.keepReservation": "Keep reservation",
   "admin.deleteVehicleTitle": "Delete this vehicle?",
   "admin.deleteVehicleBody":
     "This action cannot be undone. Vehicles with rental history are retired instead, so past reservations stay intact.",
@@ -1344,6 +1349,11 @@ const sq: TranslationDictionary = {
     "Ke ndryshime të paruajtura në këtë veturë. Nëse largohesh, do të humbin.",
   "admin.discardChanges": "Hidhi ndryshimet",
   "admin.keepEditing": "Vazhdo ndryshimin",
+  "admin.cancelReservationTitle": "Ta anulosh këtë rezervim?",
+  "admin.cancelReservationBody":
+    "Ky veprim nuk mund të kthehet. Vetura lirohet për këto data dhe rezervimi nuk mund të rikthehet.",
+  "admin.cancelReservationConfirm": "Anulo rezervimin",
+  "admin.keepReservation": "Mbaje rezervimin",
   "admin.deleteVehicleTitle": "Ta fshish këtë veturë?",
   "admin.deleteVehicleBody":
     "Ky veprim nuk mund të zhbëhet. Veturat me histori qiraje dalin jashtë përdorimit, që rezervimet e kaluara të ruhen.",

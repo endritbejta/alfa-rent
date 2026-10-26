@@ -703,8 +703,6 @@ const en = {
   "admin.priceBreakdown": "{days} × {price} per day",
   "admin.checking": "Checking…",
   "admin.problemInactive": "This vehicle is retired and cannot be booked.",
-  "admin.problemRegistration":
-    "The registration expires on {date}; the rental cannot run past it.",
   "admin.problemOverdue": "Still out on a rental that was due back on {date}.",
   "admin.problemBooked":
     "Already booked {from} – {to}. It can only be saved as a pending request.",
@@ -1414,8 +1412,6 @@ const sq: TranslationDictionary = {
   "admin.checking": "Duke kontrolluar…",
   "admin.problemInactive":
     "Kjo veturë është tërhequr dhe nuk mund të rezervohet.",
-  "admin.problemRegistration":
-    "Regjistrimi skadon më {date}; qiraja nuk mund të shkojë përtej saj.",
   "admin.problemOverdue":
     "Ende jashtë me një qira që duhej të kthehej më {date}.",
   "admin.problemBooked":

@@ -319,7 +319,6 @@ async function resolveManualCustomer(
 /** Why a staff booking would be refused or need a second look. */
 export type BookingProblem =
   | { kind: "inactive" }
-  | { kind: "registration"; date: string }
   | { kind: "overdue"; date: string }
   | { kind: "booked"; from: string; to: string };
 
@@ -346,7 +345,7 @@ export async function previewManualReservation(
   const [vehicle, overdue, clash] = await Promise.all([
     prisma.vehicle.findUnique({
       where: { id: vehicleId },
-      select: { pricePerDay: true, status: true, registrationExpiry: true },
+      select: { pricePerDay: true, status: true },
     }),
     prisma.reservation.findFirst({
       where: { vehicleId, ...overdueRentalWhere(returnDate) },
@@ -367,12 +366,6 @@ export async function previewManualReservation(
 
   const problems: BookingProblem[] = [];
   if (vehicle.status === "INACTIVE") problems.push({ kind: "inactive" });
-  if (!registrationCovers(vehicle.registrationExpiry, returnDate)) {
-    problems.push({
-      kind: "registration",
-      date: rentalCalendarDay(vehicle.registrationExpiry!),
-    });
-  }
   if (overdue) {
     problems.push({
       kind: "overdue",

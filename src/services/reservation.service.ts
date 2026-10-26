@@ -24,6 +24,11 @@ import {
   getCustomerSpend,
 } from "@/services/customer.service";
 import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
+import {
+  isOverdueRental,
+  occupyingReservationWhere,
+  overdueRentalWhere,
+} from "@/lib/reservation-occupancy";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 import type {
@@ -43,6 +48,9 @@ const BLOCKING_STATUSES: ReservationStatus[] = ["CONFIRMED", "ACTIVE"];
 const EXTENDABLE_STATUSES: ReservationStatus[] = ["CONFIRMED", "ACTIVE"];
 
 const day = (d: Date) => format(d, "dd MMM yyyy");
+
+/** Sorts after every real calendar day, so a blocked range never ends. */
+const OPEN_ENDED_DAY = "9999-12-31";
 
 function registrationCovers(
   registrationExpiry: Date | null,
@@ -65,6 +73,34 @@ function assertRegistrationCovers(
         key: "err.registrationExpires",
         values: { date: day(registrationExpiry!) },
       }
+    );
+  }
+}
+
+/**
+ * Refuses a commitment on a car that is still out on an overdue rental.
+ *
+ * The exclusion constraint compares scheduled ranges only, so it would accept
+ * this booking; see occupyingReservationWhere for why the car is not free.
+ */
+async function assertNoOverdueRental(
+  tx: Prisma.TransactionClient,
+  vehicleId: string,
+  returnDate: Date,
+  excludeId?: string
+) {
+  const overdue = await tx.reservation.findFirst({
+    where: {
+      vehicleId,
+      ...(excludeId && { id: { not: excludeId } }),
+      ...overdueRentalWhere(returnDate),
+    },
+    select: { returnDate: true },
+  });
+  if (overdue) {
+    throw new ConflictError(
+      `This vehicle has not been returned from a rental that was due back on ${day(overdue.returnDate)}.`,
+      { key: "err.overdueRental", values: { date: day(overdue.returnDate) } }
     );
   }
 }
@@ -98,9 +134,7 @@ export async function checkAvailability({
   const overlapping = await prisma.reservation.count({
     where: {
       vehicleId,
-      status: { in: BLOCKING_STATUSES },
-      pickupDate: { lt: returnDate },
-      returnDate: { gt: pickupDate },
+      ...occupyingReservationWhere({ pickupDate, returnDate }),
     },
   });
   return { available: overlapping === 0 };
@@ -137,10 +171,11 @@ export async function getVehicleBookingCalendar(
       where: {
         vehicleId,
         status: { in: BLOCKING_STATUSES },
-        returnDate: { gt: new Date() },
+        // An overdue ACTIVE rental is past its return date but still blocks.
+        OR: [{ returnDate: { gt: new Date() } }, { status: "ACTIVE" }],
       },
       orderBy: { pickupDate: "asc" },
-      select: { pickupDate: true, returnDate: true },
+      select: { pickupDate: true, returnDate: true, status: true },
     }),
   ]);
 
@@ -149,7 +184,10 @@ export async function getVehicleBookingCalendar(
   return {
     blockedRanges: reservations.map((reservation) => ({
       from: rentalCalendarDay(reservation.pickupDate),
-      to: rentalCalendarDay(reservation.returnDate),
+      // Open-ended until the return is recorded; compared as a string.
+      to: isOverdueRental(reservation)
+        ? OPEN_ENDED_DAY
+        : rentalCalendarDay(reservation.returnDate),
     })),
     latestReturnDate: vehicle.registrationExpiry
       ? rentalCalendarDay(vehicle.registrationExpiry)
@@ -244,6 +282,9 @@ export async function createManualReservation(
       });
     }
     assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
+    if (input.status === "CONFIRMED") {
+      await assertNoOverdueRental(tx, input.vehicleId, input.returnDate);
+    }
 
     const customer = await tx.customer.create({
       data: {
@@ -355,6 +396,12 @@ export async function updateReservationStatus(
       assertRegistrationCovers(
         reservation.vehicle.registrationExpiry,
         reservation.returnDate
+      );
+      await assertNoOverdueRental(
+        tx,
+        reservation.vehicleId,
+        reservation.returnDate,
+        reservation.id
       );
     }
 
@@ -696,7 +743,8 @@ export async function getCalendarReservations(from: Date, to: Date) {
         where: {
           status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
           pickupDate: { lte: to },
-          returnDate: { gte: from },
+          // An overdue rental is drawn up to today however old its return is.
+          OR: [{ returnDate: { gte: from } }, { status: "ACTIVE" }],
         },
         select: {
           id: true,

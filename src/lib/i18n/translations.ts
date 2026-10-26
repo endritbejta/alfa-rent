@@ -214,6 +214,8 @@ const en = {
     "The new return date must be after the current one ({date}).",
   "err.bookedAgainFrom":
     "This vehicle is booked again from {from}, so it cannot be kept until {until}.",
+  "err.overdueRental":
+    "This vehicle has not been returned from a rental that was due back on {date}. Record the return, or extend that rental to the expected date, before booking it again.",
   "toast.vehicleCreated": "Vehicle added",
   "toast.vehicleSaved": "Changes saved",
   "toast.vehicleDeleted": "Vehicle removed",
@@ -906,6 +908,8 @@ const sq: TranslationDictionary = {
     "Data e re e kthimit duhet të jetë pas asaj aktuale ({date}).",
   "err.bookedAgainFrom":
     "Vetura rezervohet përsëri prej {from}, kështu që nuk mund të mbahet deri më {until}.",
+  "err.overdueRental":
+    "Kjo veturë nuk është kthyer nga një qira që duhej të kthehej më {date}. Regjistro kthimin ose zgjate atë qira deri në datën e pritur para se ta rezervosh përsëri.",
   "toast.vehicleCreated": "Vetura u shtua",
   "toast.vehicleSaved": "Ndryshimet u ruajtën",
   "toast.vehicleDeleted": "Vetura u fshi",

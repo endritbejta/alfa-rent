@@ -35,6 +35,7 @@ import type {
   AvailabilityInput,
   CreateBookingInput,
   ManualReservationInput,
+  ReservationPreviewInput,
 } from "@/lib/validations/reservation";
 
 /** Statuses that occupy the vehicle for a date range. */
@@ -254,18 +255,14 @@ export async function createReservation(input: CreateBookingInput): Promise<{
 }
 
 /**
- * Staff-created reservation with a chosen status. Customer and reservation
- * are written in one transaction so a double-booking rejection (the DB
- * exclusion constraint, for CONFIRMED/ACTIVE) rolls back the walk-in
- * customer instead of orphaning it.
+ * Staff-created reservation with a chosen status, for a customer on file or
+ * one entered on the spot. Customer and reservation are written in one
+ * transaction so a double-booking rejection (the DB exclusion constraint, for
+ * CONFIRMED/ACTIVE) rolls back the new customer instead of orphaning it.
  */
 export async function createManualReservation(
   input: ManualReservationInput
 ): Promise<Reservation> {
-  const parts = input.customerName.trim().split(/\s+/);
-  const firstName = parts[0];
-  const lastName = parts.slice(1).join(" ") || "-";
-
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({
       where: { id: input.vehicleId },
@@ -286,19 +283,12 @@ export async function createManualReservation(
       await assertNoOverdueRental(tx, input.vehicleId, input.returnDate);
     }
 
-    const customer = await tx.customer.create({
-      data: {
-        firstName,
-        lastName,
-        email: `walkin.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@alfarent.local`,
-        phone: "-",
-      },
-    });
+    const customerId = await resolveManualCustomer(tx, input.customer);
 
     return tx.reservation.create({
       data: {
         vehicleId: input.vehicleId,
-        customerId: customer.id,
+        customerId,
         pickupDate: input.pickupDate,
         returnDate: input.returnDate,
         status: input.status,
@@ -311,6 +301,135 @@ export async function createManualReservation(
       },
     });
   });
+}
+
+/**
+ * The customer a staff booking belongs to.
+ *
+ * A new customer who gives an email already on file is refused rather than
+ * silently attached to that record: the name or phone may well differ, and
+ * staff should pick the existing customer knowingly. Without an email the
+ * record gets a unique placeholder, because the column is required and
+ * unique; the phone is what staff will actually use.
+ */
+async function resolveManualCustomer(
+  tx: Prisma.TransactionClient,
+  customer: ManualReservationInput["customer"]
+): Promise<string> {
+  if (customer.kind === "existing") {
+    const found = await tx.customer.findUnique({
+      where: { id: customer.id },
+      select: { id: true },
+    });
+    if (!found) throw new NotFoundError("Customer");
+    return found.id;
+  }
+
+  if (customer.email) {
+    const taken = await tx.customer.findUnique({
+      where: { email: customer.email },
+      select: { id: true },
+    });
+    if (taken) {
+      throw new ConflictError("A customer with this email already exists", {
+        key: "err.customerExistsSelect",
+      });
+    }
+  }
+
+  const created = await tx.customer.create({
+    data: {
+      firstName: customer.firstName,
+      lastName: customer.lastName || "-",
+      phone: customer.phone,
+      email:
+        customer.email ??
+        `walkin.${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@alfarent.local`,
+    },
+    select: { id: true },
+  });
+  return created.id;
+}
+
+/** Why a staff booking would be refused or need a second look. */
+export type BookingProblem =
+  | { kind: "inactive" }
+  | { kind: "registration"; date: string }
+  | { kind: "overdue"; date: string }
+  | { kind: "booked"; from: string; to: string };
+
+export type BookingPreview = {
+  days: number;
+  pricePerDay: number;
+  totalPrice: number;
+  problems: BookingProblem[];
+};
+
+/**
+ * What the booking dialog shows before staff commit: the price that will be
+ * stored, and every reason the booking would be refused as CONFIRMED.
+ *
+ * Advisory, like every availability read here — the create path re-checks
+ * inside its transaction and the exclusion constraint has the final word.
+ * Dates go back as calendar-day strings so the browser shows the same day
+ * the database holds.
+ */
+export async function previewManualReservation(
+  input: ReservationPreviewInput
+): Promise<BookingPreview> {
+  const { vehicleId, pickupDate, returnDate } = input;
+  const [vehicle, overdue, clash] = await Promise.all([
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      select: { pricePerDay: true, status: true, registrationExpiry: true },
+    }),
+    prisma.reservation.findFirst({
+      where: { vehicleId, ...overdueRentalWhere(returnDate) },
+      select: { returnDate: true },
+    }),
+    prisma.reservation.findFirst({
+      where: {
+        vehicleId,
+        status: { in: BLOCKING_STATUSES },
+        pickupDate: { lt: returnDate },
+        returnDate: { gt: pickupDate },
+      },
+      orderBy: { pickupDate: "asc" },
+      select: { pickupDate: true, returnDate: true },
+    }),
+  ]);
+  if (!vehicle) throw new NotFoundError("Vehicle");
+
+  const problems: BookingProblem[] = [];
+  if (vehicle.status === "INACTIVE") problems.push({ kind: "inactive" });
+  if (!registrationCovers(vehicle.registrationExpiry, returnDate)) {
+    problems.push({
+      kind: "registration",
+      date: rentalCalendarDay(vehicle.registrationExpiry!),
+    });
+  }
+  if (overdue) {
+    problems.push({
+      kind: "overdue",
+      date: rentalCalendarDay(overdue.returnDate),
+    });
+  }
+  if (clash) {
+    problems.push({
+      kind: "booked",
+      from: rentalCalendarDay(clash.pickupDate),
+      to: rentalCalendarDay(clash.returnDate),
+    });
+  }
+
+  return {
+    days: rentalDays(pickupDate, returnDate),
+    pricePerDay: Number(vehicle.pricePerDay),
+    totalPrice: Number(
+      calculateTotalPrice(vehicle.pricePerDay, pickupDate, returnDate)
+    ),
+    problems,
+  };
 }
 
 export async function getReservations(filters: {

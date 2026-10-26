@@ -1,23 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { format, parseISO } from "date-fns";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { createManualReservationAction } from "./actions";
+import { NewReservationDialog } from "../new-reservation-dialog";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
-import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/shared/locale-provider";
-import { PendingStatus } from "@/components/shared/pending-status";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { toasts } from "@/components/dashboard/toaster";
 import { cn } from "@/lib/utils";
 
 type BarStatus = "PENDING" | "CONFIRMED" | "ACTIVE";
@@ -419,209 +407,12 @@ export function CalendarTimeline({
       </div>
 
       {modal && (
-        <BookingModal
-          state={modal}
+        <NewReservationDialog
+          seed={modal}
           vehicleOptions={vehicleOptions}
           onClose={() => setModal(null)}
         />
       )}
     </div>
-  );
-}
-
-function BookingModal({
-  state,
-  vehicleOptions,
-  onClose,
-}: {
-  state: ModalState;
-  vehicleOptions: { id: string; name: string }[];
-  onClose: () => void;
-}) {
-  const { t } = useI18n();
-  type NewReservationStatus = "PENDING" | "CONFIRMED";
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    vehicleId: state.vehicleId,
-    customerName: "",
-    from: state.from,
-    to: state.to,
-    status: "CONFIRMED" as NewReservationStatus,
-    notes: "",
-  });
-
-  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
-
-  const submit = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await createManualReservationAction({
-        vehicleId: form.vehicleId,
-        customerName: form.customerName,
-        pickupDate: `${form.from}T10:00:00Z`,
-        returnDate: `${form.to}T10:00:00Z`,
-        status: form.status,
-        notes: form.notes || undefined,
-      });
-      if ("error" in result) {
-        setError(result.error);
-        return;
-      }
-      router.refresh();
-      toasts.success(t("toast.reservationCreated"));
-      onClose();
-    });
-  };
-
-  const field =
-    "border-input bg-control focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2";
-  const STATUS: {
-    value: NewReservationStatus;
-    label: string;
-    dot: string;
-  }[] = [
-    { value: "PENDING", label: t("vehicle.pending"), dot: "bg-status-maint" },
-    {
-      value: "CONFIRMED",
-      label: t("vehicle.confirmed"),
-      dot: "bg-status-reserved",
-    },
-  ];
-
-  /*
-   * Through Dialog, like every other overlay in the admin. Hand-rolled, this
-   * was the only one with no dialog semantics at all: no role, no
-   * aria-modal, no label on its heading, Tab walked straight out into the
-   * calendar behind it, and closing dropped the operator at the top of the
-   * document. Its backdrop was also a full-viewport <button aria-label=
-   * "Close">, which made "Close" the first thing a keyboard user reached
-   * inside the overlay, ahead of every field.
-   *
-   * The component only mounts while it is open, so `open` is constant and
-   * every dismissal — Escape, the backdrop, the close button — arrives as
-   * onOpenChange(false).
-   */
-  return (
-    <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-display text-lg font-bold">
-            {t("admin.addReservation")}
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground text-xs">
-            {t("admin.manualReservationHelp")}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold">
-              {t("admin.vehicle")}
-            </span>
-            <select
-              className={cn(field, "cursor-pointer")}
-              value={form.vehicleId}
-              onChange={(e) => set("vehicleId", e.target.value)}
-            >
-              <option value="">{t("admin.chooseVehicle")}</option>
-              {vehicleOptions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold">
-              {t("admin.customerName")}
-            </span>
-            <input
-              className={field}
-              value={form.customerName}
-              onChange={(e) => set("customerName", e.target.value)}
-              placeholder={t("admin.customerNamePlaceholder")}
-            />
-          </label>
-
-          <div>
-            <span className="mb-1.5 block text-xs font-semibold">
-              {t("admin.dates")}
-            </span>
-            <DateRangePicker
-              tone="light"
-              labels={{ from: t("common.from"), to: t("common.to") }}
-              value={{
-                from: form.from ? parseISO(form.from) : undefined,
-                to: form.to ? parseISO(form.to) : undefined,
-              }}
-              onChange={(range) =>
-                setForm((f) => ({
-                  ...f,
-                  from: range?.from ? format(range.from, "yyyy-MM-dd") : "",
-                  to: range?.to ? format(range.to, "yyyy-MM-dd") : "",
-                }))
-              }
-            />
-          </div>
-
-          <div>
-            <span className="mb-1.5 block text-xs font-semibold">
-              {t("admin.status")}
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              {STATUS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => set("status", s.value)}
-                  className={cn(
-                    "flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-semibold transition-colors",
-                    form.status === s.value
-                      ? "border-foreground bg-secondary"
-                      : "text-muted-foreground hover:bg-surface-hover"
-                  )}
-                >
-                  <span className={cn("h-2 w-2 rounded-full", s.dot)} />
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold">
-              {t("admin.notes")}
-            </span>
-            <input
-              className={field}
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              placeholder={t("admin.phoneReservation")}
-            />
-          </label>
-
-          {error && (
-            <p role="alert" className="text-destructive text-sm">
-              {error}
-            </p>
-          )}
-
-          <Button
-            className="w-full"
-            disabled={
-              pending || !form.vehicleId || form.customerName.length < 2
-            }
-            onClick={submit}
-          >
-            {pending ? t("admin.saving") : t("admin.createReservation")}
-          </Button>
-          <PendingStatus message={pending ? t("admin.saving") : null} />
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

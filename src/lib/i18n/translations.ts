@@ -214,6 +214,8 @@ const en = {
     "The new return date must be after the current one ({date}).",
   "err.bookedAgainFrom":
     "This vehicle is booked again from {from}, so it cannot be kept until {until}.",
+  "err.overdueRental":
+    "This vehicle has not been returned from a rental that was due back on {date}. Record the return, or extend that rental to the expected date, before booking it again.",
   "toast.vehicleCreated": "Vehicle added",
   "toast.vehicleSaved": "Changes saved",
   "toast.vehicleDeleted": "Vehicle removed",
@@ -644,6 +646,11 @@ const en = {
     "You have unsaved changes to this vehicle. Leaving now will lose them.",
   "admin.discardChanges": "Discard changes",
   "admin.keepEditing": "Keep editing",
+  "admin.cancelReservationTitle": "Cancel this reservation?",
+  "admin.cancelReservationBody":
+    "This cannot be undone. The car becomes free for these dates and the booking cannot be reinstated.",
+  "admin.cancelReservationConfirm": "Cancel reservation",
+  "admin.keepReservation": "Keep reservation",
   "admin.deleteVehicleTitle": "Delete this vehicle?",
   "admin.deleteVehicleBody":
     "This action cannot be undone. Vehicles with rental history are retired instead, so past reservations stay intact.",
@@ -906,6 +913,8 @@ const sq: TranslationDictionary = {
     "Data e re e kthimit duhet të jetë pas asaj aktuale ({date}).",
   "err.bookedAgainFrom":
     "Vetura rezervohet përsëri prej {from}, kështu që nuk mund të mbahet deri më {until}.",
+  "err.overdueRental":
+    "Kjo veturë nuk është kthyer nga një qira që duhej të kthehej më {date}. Regjistro kthimin ose zgjate atë qira deri në datën e pritur para se ta rezervosh përsëri.",
   "toast.vehicleCreated": "Vetura u shtua",
   "toast.vehicleSaved": "Ndryshimet u ruajtën",
   "toast.vehicleDeleted": "Vetura u fshi",
@@ -1340,6 +1349,11 @@ const sq: TranslationDictionary = {
     "Ke ndryshime të paruajtura në këtë veturë. Nëse largohesh, do të humbin.",
   "admin.discardChanges": "Hidhi ndryshimet",
   "admin.keepEditing": "Vazhdo ndryshimin",
+  "admin.cancelReservationTitle": "Ta anulosh këtë rezervim?",
+  "admin.cancelReservationBody":
+    "Ky veprim nuk mund të kthehet. Vetura lirohet për këto data dhe rezervimi nuk mund të rikthehet.",
+  "admin.cancelReservationConfirm": "Anulo rezervimin",
+  "admin.keepReservation": "Mbaje rezervimin",
   "admin.deleteVehicleTitle": "Ta fshish këtë veturë?",
   "admin.deleteVehicleBody":
     "Ky veprim nuk mund të zhbëhet. Veturat me histori qiraje dalin jashtë përdorimit, që rezervimet e kaluara të ruhen.",

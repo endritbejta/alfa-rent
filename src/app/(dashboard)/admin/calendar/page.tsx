@@ -21,6 +21,7 @@ import { Panel } from "@/components/dashboard/panel";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
 import { CalendarTimeline } from "./calendar-timeline";
 import { vehicleIdentifier } from "@/lib/vehicle-label";
+import { isOverdueRental } from "@/lib/reservation-occupancy";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -89,8 +90,11 @@ export default async function CalendarPage() {
     name: `${vehicle.brand} ${vehicle.model}`,
     sub: vehicleIdentifier(vehicle),
     reservations: vehicle.reservations.map((r) => {
+      // The car is still out, so the bar runs to today rather than ending at
+      // a return date that has already passed.
+      const end = isOverdueRental(r, today) ? today : r.returnDate;
       const from = max([r.pickupDate, rangeStart]);
-      const to = min([r.returnDate, rangeEnd]);
+      const to = min([end, rangeEnd]);
       return {
         id: r.id,
         customerName: `${r.customer.firstName} ${r.customer.lastName}`,

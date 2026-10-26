@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { deleteImage } from "@/lib/cloudinary";
+import { occupyingReservationWhere } from "@/lib/reservation-occupancy";
 import { reportError } from "@/lib/observability";
 import { toMoney } from "@/lib/money";
 import type {
@@ -149,11 +150,7 @@ function buildVehicleWhere(
       to &&
       to > from && {
         reservations: {
-          none: {
-            status: { in: ["CONFIRMED", "ACTIVE"] },
-            pickupDate: { lt: to },
-            returnDate: { gt: from },
-          },
+          none: occupyingReservationWhere({ pickupDate: from, returnDate: to }),
         },
       }),
   };

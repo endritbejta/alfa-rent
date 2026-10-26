@@ -151,7 +151,13 @@ describe("an overdue rental keeps its car occupied", () => {
     });
     const attempt = createManualReservation({
       vehicleId: ids.overdueCar,
-      customerName: `Walkin ${suffix}`,
+      customer: {
+        kind: "new",
+        firstName: "Walkin",
+        lastName: suffix,
+        phone: "049 000 000",
+        email: undefined,
+      },
       pickupDate: windowStart,
       returnDate: windowEnd,
       status: "CONFIRMED",
@@ -171,7 +177,13 @@ describe("an overdue rental keeps its car occupied", () => {
   it("still accepts a pending request, which commits nothing", async () => {
     const created = await createManualReservation({
       vehicleId: ids.overdueCar,
-      customerName: `Walkin ${suffix}`,
+      customer: {
+        kind: "new",
+        firstName: "Walkin",
+        lastName: suffix,
+        phone: "049 000 000",
+        email: undefined,
+      },
       pickupDate: at(20),
       returnDate: at(22),
       status: "PENDING",

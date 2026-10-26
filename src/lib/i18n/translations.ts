@@ -725,6 +725,24 @@ const en = {
     "{count} reservations moved to the record you kept.",
   "err.customerEmailTaken":
     "Another customer already uses this email. If it is the same person, merge the two records instead.",
+  "err.customerExistsSelect":
+    "A customer with this email already exists. Find them under “Existing customer” instead.",
+  "admin.existingCustomer": "Existing customer",
+  "admin.newCustomer": "New customer",
+  "admin.findCustomer": "Find by name, phone or email",
+  "admin.noCustomerFound": "No customer found. Add them as a new customer.",
+  "admin.changeCustomer": "Change",
+  "admin.lastNameOptional": "Last name (optional)",
+  "admin.emailOptional": "Email (optional)",
+  "admin.priceBreakdown": "{days} × {price} per day",
+  "admin.checking": "Checking…",
+  "admin.problemInactive": "This vehicle is retired and cannot be booked.",
+  "admin.problemRegistration":
+    "The registration expires on {date}; the rental cannot run past it.",
+  "admin.problemOverdue": "Still out on a rental that was due back on {date}.",
+  "admin.problemBooked":
+    "Already booked {from} – {to}. It can only be saved as a pending request.",
+  "admin.newReservation": "New reservation",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1451,6 +1469,26 @@ const sq: TranslationDictionary = {
   "toast.customersMergedWhy": "{count} rezervime kaluan te regjistri që mbeti.",
   "err.customerEmailTaken":
     "Një klient tjetër e përdor tashmë këtë email. Nëse është i njëjti person, bashko të dy regjistrat.",
+  "err.customerExistsSelect":
+    "Një klient me këtë email ekziston tashmë. Gjeje te “Klient ekzistues”.",
+  "admin.existingCustomer": "Klient ekzistues",
+  "admin.newCustomer": "Klient i ri",
+  "admin.findCustomer": "Kërko me emër, telefon ose email",
+  "admin.noCustomerFound": "Nuk u gjet asnjë klient. Shtoje si klient të ri.",
+  "admin.changeCustomer": "Ndrysho",
+  "admin.lastNameOptional": "Mbiemri (opsional)",
+  "admin.emailOptional": "Email (opsional)",
+  "admin.priceBreakdown": "{days} × {price} në ditë",
+  "admin.checking": "Duke kontrolluar…",
+  "admin.problemInactive":
+    "Kjo veturë është tërhequr dhe nuk mund të rezervohet.",
+  "admin.problemRegistration":
+    "Regjistrimi skadon më {date}; qiraja nuk mund të shkojë përtej saj.",
+  "admin.problemOverdue":
+    "Ende jashtë me një qira që duhej të kthehej më {date}.",
+  "admin.problemBooked":
+    "Tashmë e rezervuar {from} – {to}. Mund të ruhet vetëm si kërkesë në pritje.",
+  "admin.newReservation": "Rezervim i ri",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

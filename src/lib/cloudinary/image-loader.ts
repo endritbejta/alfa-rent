@@ -44,3 +44,23 @@ export default function cloudinaryLoader({
 
   return `${src.slice(0, cut)}${transforms}/${src.slice(cut)}`;
 }
+
+/**
+ * A fixed-size JPEG crop of a Cloudinary photo, for places that cannot
+ * negotiate formats or sizes the way a browser does: link previews (Open
+ * Graph) and email. The crop is pinned so a tall phone photo still fills the
+ * frame, and JPEG because several mail clients and preview scrapers cannot
+ * show WebP or AVIF. Returns null for anything that is not a Cloudinary
+ * delivery URL.
+ */
+export function cloudinaryJpegCrop(
+  src: string | null | undefined,
+  width: number,
+  height: number
+): string | null {
+  if (!src?.startsWith(DELIVERY_HOST)) return null;
+  const at = src.indexOf(UPLOAD_SEGMENT);
+  if (at === -1) return null;
+  const cut = at + UPLOAD_SEGMENT.length;
+  return `${src.slice(0, cut)}c_fill,g_auto,w_${width},h_${height},q_auto,f_jpg/${src.slice(cut)}`;
+}

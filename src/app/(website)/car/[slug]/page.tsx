@@ -20,6 +20,9 @@ import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
 import { isBookingRangeAvailable } from "@/lib/booking-calendar";
+import { cloudinaryJpegCrop } from "@/lib/cloudinary/image-loader";
+import { formatAmount } from "@/lib/money";
+import { openGraphLocale } from "@/lib/site-url";
 
 const CATEGORY_KEYS = {
   ECONOMY: "filter.economy",
@@ -56,13 +59,39 @@ export async function generateMetadata({
   const { slug } = await params;
   const vehicle = await loadVehicle(slug);
   const { locale, t } = await getI18n();
-  const description = getVehicleDescription(vehicle, locale);
+  const description = getVehicleDescription(vehicle, locale).slice(0, 155);
+  const title = t("car.metaTitle", {
+    car: `${vehicle.brand} ${vehicle.model} ${vehicle.year}`,
+    price: formatAmount(vehicle.pricePerDay, locale),
+  });
+  const canonical = `/car/${vehicle.slug}`;
+  // Link previews want a 1200x630 JPEG, not the 1920px original.
+  const image = cloudinaryJpegCrop(vehicle.images[0]?.url, 1200, 630);
   return {
-    title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — ${vehicle.pricePerDay} EUR/${t("common.perDay")}`,
-    description: description.slice(0, 155),
-    openGraph: vehicle.images[0]
-      ? { images: [{ url: vehicle.images[0].url }] }
-      : undefined,
+    title,
+    description,
+    alternates: { canonical },
+    // Replaces the layout's openGraph wholesale, so the shared fields repeat.
+    openGraph: {
+      type: "website",
+      siteName: "Alfa Rent a Car",
+      locale: openGraphLocale(locale),
+      url: canonical,
+      title,
+      description,
+      // A car without photos falls back to the site's branded image; this
+      // object replaces the layout's openGraph, so nothing would inherit it.
+      images: [
+        image
+          ? {
+              url: image,
+              width: 1200,
+              height: 630,
+              alt: `${vehicle.brand} ${vehicle.model}`,
+            }
+          : { url: "/opengraph-image", width: 1200, height: 630 },
+      ],
+    },
   };
 }
 

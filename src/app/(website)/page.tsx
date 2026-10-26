@@ -12,6 +12,7 @@ import { VehicleCard } from "@/components/shared/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { HeroSearch } from "@/components/forms/hero-search";
 import { HeroBackground } from "@/components/shared/hero-background";
+import { BusinessJsonLd } from "@/components/shared/business-json-ld";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -20,6 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("home.metaTitle"),
     description: t("home.metaDescription"),
+    alternates: { canonical: "/" },
   };
 }
 
@@ -86,6 +88,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <BusinessJsonLd description={t("home.metaDescription")} />
       {/* Hero — charcoal band, availability-first search */}
       <section className="bg-band text-band-foreground relative isolate overflow-hidden">
         <HeroBackground />

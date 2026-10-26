@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/shared/theme-provider";
 import { LocaleProvider } from "@/components/shared/locale-provider";
 import { NavigationScrollReset } from "@/components/shared/navigation-scroll-reset";
 import { getI18n } from "@/lib/i18n/server";
+import { openGraphLocale, siteIsIndexable, siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 /**
@@ -29,13 +30,28 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
+  const indexable = siteIsIndexable();
   return {
+    // Lets every page use relative canonical and image URLs.
+    metadataBase: siteUrl(),
+    applicationName: "Alfa Rent a Car",
     title: {
       default: "Alfa Rent a Car",
       template: "%s | Alfa Rent a Car",
     },
     description: t("home.metaDescription"),
+    // A page that sets its own openGraph replaces this object rather than
+    // merging into it, so pages that do (the car page) repeat these fields.
+    openGraph: {
+      type: "website",
+      siteName: "Alfa Rent a Car",
+      locale: openGraphLocale(locale),
+    },
+    twitter: { card: "summary_large_image" },
+    // Belt and braces with robots.ts: a preview deployment also says
+    // noindex on every page, in case a crawler reaches one by a direct link.
+    ...(!indexable && { robots: { index: false, follow: false } }),
   };
 }
 

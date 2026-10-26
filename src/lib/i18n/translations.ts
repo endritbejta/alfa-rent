@@ -724,6 +724,7 @@ const en = {
   "email.days": "{count} days",
   "email.footer":
     "The request stays pending until you confirm or cancel it in the admin. Reply to this email to write to the customer.",
+  "car.metaTitle": "{car} for rent — {price} EUR/day",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1451,6 +1452,7 @@ const sq: TranslationDictionary = {
   "email.days": "{count} ditë",
   "email.footer":
     "Kërkesa mbetet në pritje derisa ta konfirmoni ose anuloni në panel. Përgjigjuni këtij emaili për t'i shkruar klientit.",
+  "car.metaTitle": "{car} me qira — {price} EUR/ditë",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

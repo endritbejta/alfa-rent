@@ -1,6 +1,7 @@
 import { format, parseISO } from "date-fns";
 import { sq as sqDateLocale, enUS } from "date-fns/locale";
 import type { Prisma } from "@prisma/client";
+import { cloudinaryJpegCrop } from "@/lib/cloudinary/image-loader";
 import { prisma } from "@/lib/db/prisma";
 import { parseRecipients, sendEmail, type SendResult } from "@/lib/email";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
@@ -54,22 +55,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-const CLOUDINARY_UPLOAD = "https://res.cloudinary.com/";
-const UPLOAD_SEGMENT = "/image/upload/";
-
 /**
- * A fixed 2:1 JPEG for the email header. Mail clients do not negotiate
- * formats the way browsers do (several cannot show WebP or AVIF), so the
- * format is pinned rather than f_auto, and the crop is fixed so a tall phone
- * photo cannot push the booking details below the fold. Twice the 560px
- * column for high-density screens.
+ * The email header photo: 2:1, at twice the 560px column for high-density
+ * screens, so a tall phone photo cannot push the booking below the fold.
  */
 export function emailCarPhotoUrl(src: string | null): string | null {
-  if (!src?.startsWith(CLOUDINARY_UPLOAD)) return null;
-  const at = src.indexOf(UPLOAD_SEGMENT);
-  if (at === -1) return null;
-  const cut = at + UPLOAD_SEGMENT.length;
-  return `${src.slice(0, cut)}c_fill,g_auto,w_1120,h_560,q_auto,f_jpg/${src.slice(cut)}`;
+  return cloudinaryJpegCrop(src, 1120, 560);
 }
 
 /** The app's palette, inlined: mail clients ignore stylesheets. */

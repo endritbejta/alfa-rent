@@ -198,7 +198,12 @@ export function ReservationDetailProvider({
           />
         )}
         {body?.kind === "vehicle" && <VehicleDetailBody detail={body.data} />}
-        {body?.kind === "customer" && <CustomerDetailBody detail={body.data} />}
+        {body?.kind === "customer" && (
+          <CustomerDetailBody
+            detail={body.data}
+            onChanged={() => setReloads((n) => n + 1)}
+          />
+        )}
       </DetailDrawer>
     </DetailDrawerContext.Provider>
   );

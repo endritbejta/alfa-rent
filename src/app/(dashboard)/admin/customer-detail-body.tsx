@@ -1,17 +1,31 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
-import { Mail, Phone, Receipt, IdCard } from "lucide-react";
+import { Mail, Pencil, Phone, Receipt, IdCard } from "lucide-react";
 import type { CustomerDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { SectionTitle, Row } from "./detail-primitives";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
+import { Button } from "@/components/ui/button";
+import { CustomerEditForm } from "./customer-edit-form";
+import { MISSING_PHONE, WALK_IN_EMAIL } from "@/lib/validations/customer";
 
-export function CustomerDetailBody({ detail }: { detail: CustomerDetail }) {
+export function CustomerDetailBody({
+  detail,
+  onChanged,
+}: {
+  detail: CustomerDetail;
+  /** Reloads the drawer in place after an edit. */
+  onChanged: () => void;
+}) {
   const { locale, t } = useI18n();
+  const [editing, setEditing] = useState(false);
+  const contactMissing =
+    detail.phone === MISSING_PHONE || WALK_IN_EMAIL.test(detail.email);
   const dateLocale = locale === "sq" ? sq : enUS;
   const eur = (v: number | string) => formatEur(v, locale);
   const all = detail.reservations;
@@ -29,27 +43,58 @@ export function CustomerDetailBody({ detail }: { detail: CustomerDetail }) {
       </div>
 
       <section>
-        <SectionTitle icon={Mail}>{t("admin.contact")}</SectionTitle>
-        <div className="space-y-2 text-sm">
-          <Row label={t("admin.email")}>
-            <span className="truncate">{detail.email}</span>
-          </Row>
-          <Row label={t("admin.phone")}>
-            <span className="flex items-center gap-1.5">
-              <Phone className="text-muted-foreground h-3 w-3" />
-              {detail.phone}
-            </span>
-          </Row>
-          <Row label={t("admin.customerSince")}>
-            {format(detail.createdAt, "dd MMM yyyy", { locale: dateLocale })}
-          </Row>
+        <div className="flex items-center justify-between gap-2">
+          <SectionTitle icon={Mail}>{t("admin.contact")}</SectionTitle>
+          {!editing && (
+            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              {t("admin.editCustomer")}
+            </Button>
+          )}
         </div>
-        {detail.notes && (
-          <p className="bg-secondary text-muted-foreground mt-2 rounded-lg p-3 text-xs">
-            {detail.notes === "Repeat customer, prefers automatic."
-              ? t("admin.demoRepeatCustomer")
-              : detail.notes}
-          </p>
+        {editing ? (
+          <CustomerEditForm
+            detail={detail}
+            onCancel={() => setEditing(false)}
+            onSaved={() => {
+              setEditing(false);
+              onChanged();
+            }}
+          />
+        ) : (
+          <>
+            {contactMissing && (
+              <p
+                role="note"
+                className="bg-status-maint/10 text-status-maint mb-2 rounded-lg p-3 text-xs"
+              >
+                {t("admin.contactMissing")}
+              </p>
+            )}
+            <div className="space-y-2 text-sm">
+              <Row label={t("admin.email")}>
+                <span className="truncate">{detail.email}</span>
+              </Row>
+              <Row label={t("admin.phone")}>
+                <span className="flex items-center gap-1.5">
+                  <Phone className="text-muted-foreground h-3 w-3" />
+                  {detail.phone}
+                </span>
+              </Row>
+              <Row label={t("admin.customerSince")}>
+                {format(detail.createdAt, "dd MMM yyyy", {
+                  locale: dateLocale,
+                })}
+              </Row>
+            </div>
+            {detail.notes && (
+              <p className="bg-secondary text-muted-foreground mt-2 rounded-lg p-3 text-xs">
+                {detail.notes === "Repeat customer, prefers automatic."
+                  ? t("admin.demoRepeatCustomer")
+                  : detail.notes}
+              </p>
+            )}
+          </>
         )}
       </section>
 

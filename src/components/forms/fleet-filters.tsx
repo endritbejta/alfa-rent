@@ -91,7 +91,7 @@ export function FleetFilters() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("filter.search")}
             aria-label={t("filter.search")}
-            className="pl-9"
+            className="pl-9 sm:pl-9"
           />
         </div>
         <Button type="submit" variant="outline">

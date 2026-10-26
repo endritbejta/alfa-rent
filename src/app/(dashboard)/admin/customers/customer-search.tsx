@@ -49,7 +49,7 @@ export function CustomerSearch({ initial }: { initial: string }) {
         onChange={(e) => onChange(e.target.value)}
         aria-label={t("admin.searchCustomers")}
         placeholder={t("admin.searchCustomers")}
-        className="pr-9 pl-9"
+        className="pr-9 pl-9 sm:pr-9 sm:pl-9"
       />
       {value && (
         <button

@@ -718,7 +718,12 @@ const en = {
   "email.phone": "Phone",
   "email.email": "Email",
   "email.notes": "Notes",
-  "email.openInAdmin": "Open in admin",
+  "email.openInAdmin": "Open the reservation",
+  "email.newRequestBadge": "New request",
+  "email.oneDay": "1 day",
+  "email.days": "{count} days",
+  "email.footer":
+    "The request stays pending until you confirm or cancel it in the admin. Reply to this email to write to the customer.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1440,7 +1445,12 @@ const sq: TranslationDictionary = {
   "email.phone": "Telefoni",
   "email.email": "Email",
   "email.notes": "Shënime",
-  "email.openInAdmin": "Hape në panel",
+  "email.openInAdmin": "Hap rezervimin",
+  "email.newRequestBadge": "Kërkesë e re",
+  "email.oneDay": "1 ditë",
+  "email.days": "{count} ditë",
+  "email.footer":
+    "Kërkesa mbetet në pritje derisa ta konfirmoni ose anuloni në panel. Përgjigjuni këtij emaili për t'i shkruar klientit.",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

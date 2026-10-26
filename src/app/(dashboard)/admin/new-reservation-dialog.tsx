@@ -51,7 +51,7 @@ type NewCustomer = {
 const SEARCH_DEBOUNCE_MS = 250;
 
 /** Problems that make a booking impossible whatever its status. */
-const ALWAYS_REFUSED: BookingProblem["kind"][] = ["inactive", "registration"];
+const ALWAYS_REFUSED: BookingProblem["kind"][] = ["inactive"];
 
 /**
  * Logs a phone or walk-in booking.
@@ -130,8 +130,8 @@ export function NewReservationDialog({
   const quote = current && !("error" in current) ? current : null;
   const problems = quote?.problems ?? [];
   // A pending request may overlap a booking or wait on an overdue car — it
-  // commits nothing — but nothing is saved for a retired car or past the
-  // registration, and a confirmed booking must be free of every problem.
+  // commits nothing — but nothing is saved for a retired car, and a
+  // confirmed booking must be free of every problem.
   const refused = problems.some(
     (p) => status === "CONFIRMED" || ALWAYS_REFUSED.includes(p.kind)
   );
@@ -153,8 +153,6 @@ export function NewReservationDialog({
     switch (problem.kind) {
       case "inactive":
         return t("admin.problemInactive");
-      case "registration":
-        return t("admin.problemRegistration", { date: day(problem.date) });
       case "overdue":
         return t("admin.problemOverdue", { date: day(problem.date) });
       case "booked":

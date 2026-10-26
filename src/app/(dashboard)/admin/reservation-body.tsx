@@ -288,13 +288,6 @@ export function ReservationBody({
           <Row label={t("admin.dayRate")}>
             {eur(detail.vehicle.pricePerDay)}
           </Row>
-          {detail.vehicle.registrationExpiry && (
-            <Row label={t("admin.registration")}>
-              {format(detail.vehicle.registrationExpiry, "dd MMM yyyy", {
-                locale: dateLocale,
-              })}
-            </Row>
-          )}
         </div>
       </section>
 

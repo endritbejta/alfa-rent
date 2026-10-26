@@ -96,11 +96,12 @@ model Vehicle {
   description  String
   status       VehicleStatus   @default(AVAILABLE)
 
-  /// Legal compliance: the registration must be renewed before it expires,
-  /// so the expiry drives fleet-wide warnings.
+  /// RETIRED (October 2026): registration is no longer tracked. Nothing in
+  /// the app reads or writes these three columns; they are kept only so the
+  /// existing data survives. Drop them with a hand-written migration once
+  /// the business confirms the data is no longer needed.
   registrationDate   DateTime?
   registrationExpiry DateTime?
-  /// What the last registration renewal cost — feeds the cost overview.
   registrationCost   Decimal?  @db.Decimal(10, 2)
   /// Routine servicing, tracked separately from repairs: a service is
   /// upkeep, a repair is an unplanned cost.

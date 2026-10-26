@@ -53,31 +53,6 @@ const day = (d: Date) => format(d, "dd MMM yyyy");
 /** Sorts after every real calendar day, so a blocked range never ends. */
 const OPEN_ENDED_DAY = "9999-12-31";
 
-function registrationCovers(
-  registrationExpiry: Date | null,
-  returnDate: Date
-): boolean {
-  return (
-    registrationExpiry === null ||
-    returnDate.getTime() <= registrationExpiry.getTime()
-  );
-}
-
-function assertRegistrationCovers(
-  registrationExpiry: Date | null,
-  returnDate: Date
-) {
-  if (!registrationCovers(registrationExpiry, returnDate)) {
-    throw new ValidationError(
-      `The vehicle's registration expires on ${day(registrationExpiry!)}; the rental cannot run past it.`,
-      {
-        key: "err.registrationExpires",
-        values: { date: day(registrationExpiry!) },
-      }
-    );
-  }
-}
-
 /**
  * Refuses a commitment on a car that is still out on an overdue rental.
  *
@@ -122,13 +97,10 @@ export async function checkAvailability({
 }: AvailabilityInput): Promise<{ available: boolean }> {
   const vehicle = await prisma.vehicle.findUnique({
     where: { id: vehicleId },
-    select: { status: true, registrationExpiry: true },
+    select: { status: true },
   });
   if (!vehicle) throw new NotFoundError("Vehicle");
-  if (
-    !isPublicBookableVehicleStatus(vehicle.status) ||
-    !registrationCovers(vehicle.registrationExpiry, returnDate)
-  ) {
+  if (!isPublicBookableVehicleStatus(vehicle.status)) {
     return { available: false };
   }
 
@@ -166,7 +138,7 @@ export async function getVehicleBookingCalendar(
   const [vehicle, reservations] = await prisma.$transaction([
     prisma.vehicle.findUnique({
       where: { id: vehicleId },
-      select: { registrationExpiry: true },
+      select: { id: true },
     }),
     prisma.reservation.findMany({
       where: {
@@ -190,9 +162,6 @@ export async function getVehicleBookingCalendar(
         ? OPEN_ENDED_DAY
         : rentalCalendarDay(reservation.returnDate),
     })),
-    latestReturnDate: vehicle.registrationExpiry
-      ? rentalCalendarDay(vehicle.registrationExpiry)
-      : null,
   };
 }
 
@@ -223,7 +192,6 @@ export async function createReservation(input: CreateBookingInput): Promise<{
       select: {
         pricePerDay: true,
         status: true,
-        registrationExpiry: true,
       },
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
@@ -232,7 +200,6 @@ export async function createReservation(input: CreateBookingInput): Promise<{
         key: "err.notBookable",
       });
     }
-    assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
 
     return tx.reservation.create({
       data: {
@@ -269,7 +236,6 @@ export async function createManualReservation(
       select: {
         pricePerDay: true,
         status: true,
-        registrationExpiry: true,
       },
     });
     if (!vehicle) throw new NotFoundError("Vehicle");
@@ -278,7 +244,6 @@ export async function createManualReservation(
         key: "err.notBookable",
       });
     }
-    assertRegistrationCovers(vehicle.registrationExpiry, input.returnDate);
     if (input.status === "CONFIRMED") {
       await assertNoOverdueRental(tx, input.vehicleId, input.returnDate);
     }
@@ -480,7 +445,6 @@ export async function updateReservationStatus(
   return prisma.$transaction(async (tx) => {
     const reservation = await tx.reservation.findUnique({
       where: { id },
-      include: { vehicle: { select: { registrationExpiry: true } } },
     });
     if (!reservation) throw new NotFoundError("Reservation");
 
@@ -512,10 +476,6 @@ export async function updateReservationStatus(
     }
 
     if (nextStatus === "CONFIRMED") {
-      assertRegistrationCovers(
-        reservation.vehicle.registrationExpiry,
-        reservation.returnDate
-      );
       await assertNoOverdueRental(
         tx,
         reservation.vehicleId,
@@ -558,10 +518,7 @@ export async function cancelReservation(id: string): Promise<Reservation> {
  * what makes the message translatable: the service has no locale.
  */
 export type ExtensionRefusal =
-  | "NOT_YET_CONFIRMED"
-  | "BOOKED_IMMEDIATELY_AFTER"
-  | "REGISTRATION_ENDS"
-  | "NOT_EXTENDABLE";
+  "NOT_YET_CONFIRMED" | "BOOKED_IMMEDIATELY_AFTER" | "NOT_EXTENDABLE";
 
 export type ExtensionWindow =
   | { allowed: false; reason: ExtensionRefusal }
@@ -569,7 +526,7 @@ export type ExtensionWindow =
       allowed: true;
       /** null means nothing on the calendar limits it. */
       latestReturn: Date | null;
-      limitedBy: "booking" | "registration" | null;
+      limitedBy: "booking" | null;
     };
 
 async function getExtensionWindow(reservation: {
@@ -577,7 +534,6 @@ async function getExtensionWindow(reservation: {
   vehicleId: string;
   status: ReservationStatus;
   returnDate: Date;
-  vehicle: { registrationExpiry: Date | null };
 }): Promise<ExtensionWindow> {
   if (!EXTENDABLE_STATUSES.includes(reservation.status)) {
     return { allowed: false, reason: extensionRefusal(reservation.status) };
@@ -596,42 +552,19 @@ async function getExtensionWindow(reservation: {
     select: { pickupDate: true },
   });
 
-  const ceilings: { at: Date; by: "booking" | "registration" }[] = [];
-  if (next) {
-    ceilings.push({
-      at: latestUnder(reservation.returnDate, next.pickupDate),
-      by: "booking",
-    });
-  }
-  if (reservation.vehicle.registrationExpiry) {
-    ceilings.push({
-      at: latestUnder(
-        reservation.returnDate,
-        reservation.vehicle.registrationExpiry
-      ),
-      by: "registration",
-    });
-  }
-
-  if (ceilings.length === 0) {
+  if (!next) {
     return { allowed: true, latestReturn: null, limitedBy: null };
   }
 
-  const tightest = ceilings.reduce((a, b) => (a.at <= b.at ? a : b));
+  const latestReturn = latestUnder(reservation.returnDate, next.pickupDate);
 
-  // Whatever comes next leaves no room at all — say so now rather than let
+  // The next booking leaves no room at all — say so now rather than let
   // staff pick a date and be refused.
-  if (tightest.at.getTime() <= reservation.returnDate.getTime()) {
-    return {
-      allowed: false,
-      reason:
-        tightest.by === "booking"
-          ? "BOOKED_IMMEDIATELY_AFTER"
-          : "REGISTRATION_ENDS",
-    };
+  if (latestReturn.getTime() <= reservation.returnDate.getTime()) {
+    return { allowed: false, reason: "BOOKED_IMMEDIATELY_AFTER" };
   }
 
-  return { allowed: true, latestReturn: tightest.at, limitedBy: tightest.by };
+  return { allowed: true, latestReturn, limitedBy: "booking" };
 }
 
 function extensionRefusal(status: ReservationStatus): ExtensionRefusal {
@@ -653,7 +586,6 @@ function extensionRefusal(status: ReservationStatus): ExtensionRefusal {
 const REFUSAL_KEYS = {
   NOT_YET_CONFIRMED: "err.notYetConfirmed",
   BOOKED_IMMEDIATELY_AFTER: "err.bookedImmediatelyAfter",
-  REGISTRATION_ENDS: "err.registrationEnds",
   NOT_EXTENDABLE: "err.notExtendable",
 } satisfies Record<ExtensionRefusal, TranslationKey>;
 
@@ -661,8 +593,6 @@ const REFUSAL_MESSAGES = {
   NOT_YET_CONFIRMED: "Confirm this request before extending it.",
   BOOKED_IMMEDIATELY_AFTER:
     "The vehicle is booked again immediately after this rental.",
-  REGISTRATION_ENDS:
-    "The vehicle's registration expires at the end of this rental.",
   NOT_EXTENDABLE: "This reservation cannot be extended.",
 } satisfies Record<ExtensionRefusal, string>;
 
@@ -683,7 +613,7 @@ export async function extendReservation(
     const reservation = await tx.reservation.findUnique({
       where: { id },
       include: {
-        vehicle: { select: { pricePerDay: true, registrationExpiry: true } },
+        vehicle: { select: { pricePerDay: true } },
       },
     });
     if (!reservation) throw new NotFoundError("Reservation");
@@ -705,8 +635,6 @@ export async function extendReservation(
         }
       );
     }
-
-    assertRegistrationCovers(reservation.vehicle.registrationExpiry, target);
 
     const clash = await tx.reservation.findFirst({
       where: {
@@ -779,7 +707,6 @@ export async function getReservationDetail(id: string) {
           seats: true,
           pricePerDay: true,
           status: true,
-          registrationExpiry: true,
           images: { take: 1, orderBy: { sortOrder: "asc" } },
         },
       },

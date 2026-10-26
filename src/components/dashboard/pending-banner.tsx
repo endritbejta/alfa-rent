@@ -2,19 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BellRing, ArrowRight, ShieldAlert, X } from "lucide-react";
-import { vehicleLabel } from "@/lib/vehicle-label";
+import { BellRing, ArrowRight, X } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
-
-type RegistrationAlert = {
-  id: string;
-  brand: string;
-  model: string;
-  plate: string | null;
-  year: number;
-  state: "ok" | "due" | "expired" | "unknown";
-  daysLeft: number | null;
-};
 
 const STORAGE_KEY = "alfa.alerts.dismissed";
 
@@ -26,19 +15,9 @@ const STORAGE_KEY = "alfa.alerts.dismissed";
  * two, and returns the moment a third arrives. Nothing is lost — the work
  * is still on its own page — so no confirmation is warranted.
  */
-export function PendingBanner({
-  pendingCount,
-  registrationAlerts,
-}: {
-  pendingCount: number;
-  registrationAlerts: RegistrationAlert[];
-}) {
+export function PendingBanner({ pendingCount }: { pendingCount: number }) {
   const { t } = useI18n();
-  const expired = registrationAlerts.filter((a) => a.state === "expired");
-  const due = registrationAlerts.filter((a) => a.state === "due");
-
   const pendingSig = `pending:${pendingCount}`;
-  const regSig = `reg:${expired.length}-${due.length}`;
 
   const [dismissed, setDismissed] = useState<string[]>([]);
 
@@ -61,75 +40,26 @@ export function PendingBanner({
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.slice(-8)));
   };
 
-  const showPending = pendingCount > 0 && !dismissed.includes(pendingSig);
-  const showReg = registrationAlerts.length > 0 && !dismissed.includes(regSig);
-  if (!showPending && !showReg) return null;
-
-  // Send staff to the exact slice the alert is about.
-  const regHref = expired.length
-    ? "/admin/vehicles?registration=expired#fleet"
-    : "/admin/vehicles?registration=due#fleet";
+  if (pendingCount === 0 || dismissed.includes(pendingSig)) return null;
 
   return (
     <div className="mb-5 space-y-2">
-      {showPending && (
-        <Alert
-          tone="brand"
-          icon={BellRing}
-          href="/admin/reservations?status=PENDING"
-          cta={t("admin.review")}
-          onDismiss={() => dismiss(pendingSig)}
-        >
-          <span className="text-brand font-bold">
-            {t(
-              pendingCount === 1
-                ? "admin.pendingAlert"
-                : "admin.pendingAlertPlural",
-              { count: pendingCount }
-            )}
-          </span>
-        </Alert>
-      )}
-
-      {showReg && (
-        <Alert
-          tone={expired.length ? "danger" : "warn"}
-          icon={ShieldAlert}
-          href={regHref}
-          cta={expired.length ? t("admin.fixExpired") : t("admin.review")}
-          onDismiss={() => dismiss(regSig)}
-        >
-          {expired.length > 0 && (
-            <>
-              <span className="text-destructive font-bold">
-                {t(
-                  expired.length === 1
-                    ? "admin.expiredAlert"
-                    : "admin.expiredAlertPlural",
-                  { count: expired.length }
-                )}
-              </span>
-              {due.length > 0 && " and "}
-            </>
+      <Alert
+        tone="brand"
+        icon={BellRing}
+        href="/admin/reservations?status=PENDING"
+        cta={t("admin.review")}
+        onDismiss={() => dismiss(pendingSig)}
+      >
+        <span className="text-brand font-bold">
+          {t(
+            pendingCount === 1
+              ? "admin.pendingAlert"
+              : "admin.pendingAlertPlural",
+            { count: pendingCount }
           )}
-          {due.length > 0 && (
-            <span className="text-status-maint font-bold">
-              {t("admin.expiringAlert", { count: due.length })}
-            </span>
-          )}
-          <span className="text-muted-foreground">
-            {" — "}
-            {registrationAlerts
-              .slice(0, 2)
-              .map((a) => vehicleLabel(a))
-              .join(", ")}
-            {registrationAlerts.length > 2 &&
-              ` ${t("admin.alertMore", {
-                count: registrationAlerts.length - 2,
-              })}`}
-          </span>
-        </Alert>
-      )}
+        </span>
+      </Alert>
     </div>
   );
 }
@@ -139,18 +69,6 @@ const TONES = {
     frame: "border-brand/25 bg-brand/[0.07] hover:bg-brand/[0.11]",
     badge: "bg-brand",
     cta: "text-brand",
-  },
-  danger: {
-    frame:
-      "border-destructive/30 bg-destructive/[0.07] hover:bg-destructive/[0.11]",
-    badge: "bg-destructive",
-    cta: "text-destructive",
-  },
-  warn: {
-    frame:
-      "border-status-maint/30 bg-status-maint/[0.07] hover:bg-status-maint/[0.12]",
-    badge: "bg-status-maint",
-    cta: "text-status-maint",
   },
 } as const;
 

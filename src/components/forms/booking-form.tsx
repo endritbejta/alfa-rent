@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addDays } from "date-fns";
 import {
   ArrowLeftRight,
   CalendarDays,
@@ -96,12 +95,6 @@ export function BookingForm({
   const confirmationHeading = useRef<HTMLHeadingElement>(null);
   const now = new Date();
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const latestReturnDate = fromDateValue(
-    bookingCalendar.latestReturnDate ?? undefined
-  );
-  const latestPickupDate = latestReturnDate
-    ? addDays(latestReturnDate, -1)
-    : undefined;
 
   const {
     register,
@@ -330,7 +323,6 @@ export function BookingForm({
                       }
                     }}
                     minDate={minDate}
-                    maxDate={latestPickupDate}
                     unavailableDates={unavailablePickup}
                     placeholder={t("booking.pickupDate")}
                     {...fieldA11y("from")}
@@ -353,7 +345,6 @@ export function BookingForm({
                       setServerError(null);
                     }}
                     minDate={fromDateValue(pickedFrom) ?? minDate}
-                    maxDate={latestReturnDate}
                     unavailableDates={unavailableReturn}
                     placeholder={t("booking.returnDate")}
                     {...fieldA11y("to")}

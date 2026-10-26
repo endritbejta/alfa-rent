@@ -111,8 +111,8 @@ export async function updateReservationStatusAction(
 
 /**
  * Keeping a car longer is a counter-side decision, so EMPLOYEE level like
- * the rest of reservation handling. Availability, the registration ceiling
- * and the status rules are all enforced in the service.
+ * the rest of reservation handling. Availability and the status rules are
+ * enforced in the service.
  */
 export async function extendReservationAction(
   reservationId: string,

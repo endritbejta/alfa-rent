@@ -134,8 +134,6 @@ const en = {
   "availability.continue": "Continue to booking",
   "auth.metaTitle": "Staff Login",
   "toast.region": "Notifications",
-  "err.registrationExpires":
-    "The vehicle's registration expires on {date}; the rental cannot run past it.",
   "err.alreadyBooked": "Vehicle is already booked for the selected dates",
   "err.statusNotSettable":
     "A vehicle becomes rented when its pickup inspection is recorded, not by being set here.",
@@ -164,8 +162,6 @@ const en = {
   "err.pickupOnPickupDate":
     "The pickup inspection is available on the pickup date.",
   "err.vehicleMustBeAvailable": "The vehicle must be available before handover",
-  "err.renewRegistration":
-    "Renew the vehicle registration before starting this rental",
   "err.mileageBelowPickup":
     "Return mileage cannot be below the pickup mileage ({km} km)",
   "err.inspectionPhotoUnverified":
@@ -208,8 +204,6 @@ const en = {
   "err.notExtendable": "This reservation cannot be extended.",
   "err.bookedImmediatelyAfter":
     "The vehicle is booked again immediately after this rental.",
-  "err.registrationEnds":
-    "The vehicle's registration expires at the end of this rental.",
   "err.returnMustBeLater":
     "The new return date must be after the current one ({date}).",
   "err.bookedAgainFrom":
@@ -425,11 +419,6 @@ const en = {
   "admin.brand": "Brand",
   "admin.allBrands": "All brands",
   "admin.allCategories": "All categories",
-  "admin.registration": "Registration",
-  "admin.registered": "Registered",
-  "admin.expiringSoon": "Expiring soon",
-  "admin.expired": "Expired",
-  "admin.notRecorded": "Not recorded",
   "admin.activeFilters": "Active",
   "admin.clearAll": "Clear all",
   "admin.filterAvailability": "Filter by availability",
@@ -437,19 +426,12 @@ const en = {
   "admin.grid": "Grid",
   "admin.list": "List",
   "admin.compact": "Compact",
-  "admin.registrationExpired": "Registration expired",
-  "admin.registrationDue": "Registration due",
   "admin.perDay": "EUR / day",
   "admin.review": "Review",
-  "admin.fixExpired": "Fix expired",
   "admin.pendingAlert":
     "You have {count} pending reservation request requiring attention.",
   "admin.pendingAlertPlural":
     "You have {count} pending reservation requests requiring attention.",
-  "admin.expiredAlert": "{count} vehicle with expired registration",
-  "admin.expiredAlertPlural": "{count} vehicles with expired registration",
-  "admin.expiringAlert": "{count} expiring within 30 days",
-  "admin.alertMore": "+{count} more",
   "admin.dismissNotification": "Dismiss notification",
   "admin.noUpcomingPickups": "No upcoming pickups",
   "admin.noUpcomingReturns": "No upcoming returns",
@@ -584,9 +566,6 @@ const en = {
   "admin.perMonth": "Per month",
   "admin.plate": "Plate",
   "admin.notSet": "Not set",
-  "admin.expires": "Expires",
-  "admin.daysOverdue": "{count}d overdue",
-  "admin.daysLeft": "{count}d left",
   "admin.maintenance": "Maintenance",
   "admin.lastService": "Last service",
   "admin.nextDue": "Next due",
@@ -597,7 +576,6 @@ const en = {
   "admin.chooseReturnDate": "Choose a return date",
   "admin.availableUntil": "Available until {date}",
   "admin.bookedAfter": "booked after that",
-  "admin.registrationExpires": "registration expires",
   "admin.noLaterBooking": "No later booking on this vehicle.",
   "admin.added": "Added",
   "admin.ratePerDay": "At {rate} EUR/day",
@@ -608,8 +586,6 @@ const en = {
   "admin.cannotExtend": "This reservation cannot be extended.",
   "admin.bookedImmediately":
     "The vehicle is booked again immediately after this rental.",
-  "admin.registrationEnds":
-    "The vehicle's registration expires at the end of this rental.",
   "admin.newVehicle": "New vehicle",
   "admin.fleetDetails": "Fleet details",
   "admin.unsavedChanges": "Unsaved changes",
@@ -626,16 +602,6 @@ const en = {
   "admin.registrationPlate": "Registration plate",
   "admin.transmission": "Transmission",
   "admin.fuel": "Fuel",
-  "admin.cancelRenewal": "Cancel renewal",
-  "admin.renewRegistration": "Renew registration",
-  "admin.registeredOn": "Registered on",
-  "admin.currentExpiry": "Current expiry",
-  "admin.newExpiryDate": "New expiry date",
-  "admin.chooseNewExpiry": "Choose the new end date",
-  "admin.chooseExpiryError":
-    "Choose the new registration expiry date before saving.",
-  "admin.renewalHelp":
-    "Choose the renewed registration end date, then save changes.",
   "admin.service": "Service",
   "admin.serviceSubtitle": "Routine upkeep — repairs are logged alongside",
   "admin.serviceNotes": "Service notes",
@@ -885,8 +851,6 @@ const sq: TranslationDictionary = {
   "availability.continue": "Vazhdo te rezervimi",
   "auth.metaTitle": "Hyrja e Stafit",
   "toast.region": "Njoftimet",
-  "err.registrationExpires":
-    "Regjistrimi i veturës skadon më {date}; qiraja nuk mund të vazhdojë përtej.",
   "err.alreadyBooked": "Vetura është e rezervuar për datat e zgjedhura",
   "err.statusNotSettable":
     "Vetura kalon në qira kur regjistrohet inspektimi i marrjes, jo duke u caktuar këtu.",
@@ -913,8 +877,6 @@ const sq: TranslationDictionary = {
     "Kjo periudhë e qirasë ka përfunduar. Përditëso datat ose anulo rezervimin.",
   "err.pickupOnPickupDate": "Inspektimi i marrjes bëhet në datën e marrjes.",
   "err.vehicleMustBeAvailable": "Vetura duhet të jetë e lirë para dorëzimit",
-  "err.renewRegistration":
-    "Rinovo regjistrimin e veturës para se ta nisësh këtë qira",
   "err.mileageBelowPickup":
     "Kilometrazhi i kthimit nuk mund të jetë nën atë të marrjes ({km} km)",
   "err.inspectionPhotoUnverified":
@@ -948,8 +910,6 @@ const sq: TranslationDictionary = {
   "err.notExtendable": "Ky rezervim nuk mund të zgjatet.",
   "err.bookedImmediatelyAfter":
     "Vetura rezervohet përsëri menjëherë pas kësaj qiraje.",
-  "err.registrationEnds":
-    "Regjistrimi i veturës skadon në fund të kësaj qiraje.",
   "err.returnMustBeLater":
     "Data e re e kthimit duhet të jetë pas asaj aktuale ({date}).",
   "err.bookedAgainFrom":
@@ -1167,11 +1127,6 @@ const sq: TranslationDictionary = {
   "admin.brand": "Marka",
   "admin.allBrands": "Të gjitha markat",
   "admin.allCategories": "Të gjitha kategoritë",
-  "admin.registration": "Regjistrimi",
-  "admin.registered": "E regjistruar",
-  "admin.expiringSoon": "Skadon së shpejti",
-  "admin.expired": "E skaduar",
-  "admin.notRecorded": "Pa të dhëna",
   "admin.activeFilters": "Aktive",
   "admin.clearAll": "Pastro të gjitha",
   "admin.filterAvailability": "Filtro sipas disponueshmërisë",
@@ -1179,19 +1134,12 @@ const sq: TranslationDictionary = {
   "admin.grid": "Rrjetë",
   "admin.list": "Listë",
   "admin.compact": "Kompakte",
-  "admin.registrationExpired": "Regjistrimi ka skaduar",
-  "admin.registrationDue": "Regjistrimi skadon së shpejti",
   "admin.perDay": "EUR / ditë",
   "admin.review": "Shqyrto",
-  "admin.fixExpired": "Rregullo të skaduarat",
   "admin.pendingAlert":
     "Ke {count} kërkesë rezervimi në pritje që kërkon vëmendje.",
   "admin.pendingAlertPlural":
     "Ke {count} kërkesa rezervimi në pritje që kërkojnë vëmendje.",
-  "admin.expiredAlert": "{count} veturë me regjistrim të skaduar",
-  "admin.expiredAlertPlural": "{count} vetura me regjistrim të skaduar",
-  "admin.expiringAlert": "{count} skadojnë brenda 30 ditësh",
-  "admin.alertMore": "+{count} të tjera",
   "admin.dismissNotification": "Mbyll njoftimin",
   "admin.noUpcomingPickups": "Nuk ka marrje të ardhshme",
   "admin.noUpcomingReturns": "Nuk ka kthime të ardhshme",
@@ -1327,9 +1275,6 @@ const sq: TranslationDictionary = {
   "admin.perMonth": "Në muaj",
   "admin.plate": "Targat",
   "admin.notSet": "Nuk është caktuar",
-  "admin.expires": "Skadon",
-  "admin.daysOverdue": "{count} ditë me vonesë",
-  "admin.daysLeft": "{count} ditë të mbetura",
   "admin.maintenance": "Mirëmbajtja",
   "admin.lastService": "Servisi i fundit",
   "admin.nextDue": "Afati i ardhshëm",
@@ -1340,7 +1285,6 @@ const sq: TranslationDictionary = {
   "admin.chooseReturnDate": "Zgjidh datën e kthimit",
   "admin.availableUntil": "E disponueshme deri më {date}",
   "admin.bookedAfter": "e rezervuar pas kësaj date",
-  "admin.registrationExpires": "regjistrimi skadon",
   "admin.noLaterBooking": "Nuk ka rezervim të mëvonshëm për këtë veturë.",
   "admin.added": "Shtuar",
   "admin.ratePerDay": "Me {rate} EUR/ditë",
@@ -1351,8 +1295,6 @@ const sq: TranslationDictionary = {
   "admin.cannotExtend": "Ky rezervim nuk mund të zgjatet.",
   "admin.bookedImmediately":
     "Vetura është rezervuar përsëri menjëherë pas kësaj qiraje.",
-  "admin.registrationEnds":
-    "Regjistrimi i veturës skadon në fund të kësaj qiraje.",
   "admin.newVehicle": "Veturë e re",
   "admin.fleetDetails": "Të dhënat e flotës",
   "admin.unsavedChanges": "Ndryshime të paruajtura",
@@ -1369,16 +1311,6 @@ const sq: TranslationDictionary = {
   "admin.registrationPlate": "Targat e regjistrimit",
   "admin.transmission": "Transmisioni",
   "admin.fuel": "Karburanti",
-  "admin.cancelRenewal": "Anulo rinovimin",
-  "admin.renewRegistration": "Rinovo regjistrimin",
-  "admin.registeredOn": "Regjistruar më",
-  "admin.currentExpiry": "Skadimi aktual",
-  "admin.newExpiryDate": "Data e re e skadimit",
-  "admin.chooseNewExpiry": "Zgjidh datën e re të skadimit",
-  "admin.chooseExpiryError":
-    "Zgjidh datën e re të skadimit të regjistrimit para ruajtjes.",
-  "admin.renewalHelp":
-    "Zgjidh datën e re të skadimit të regjistrimit, pastaj ruaji ndryshimet.",
   "admin.service": "Servisi",
   "admin.serviceSubtitle":
     "Mirëmbajtja rutinore — riparimet regjistrohen veçmas",

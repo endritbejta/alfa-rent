@@ -4,13 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
-import {
-  Coins,
-  ShieldCheck,
-  Wrench,
-  CalendarRange,
-  Images,
-} from "lucide-react";
+import { Coins, IdCard, Wrench, CalendarRange, Images } from "lucide-react";
 import type { VehicleDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -18,19 +12,12 @@ import { SectionTitle, Row } from "./detail-primitives";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 
-const REG_TONE = {
-  expired: "text-destructive",
-  due: "text-status-maint",
-  ok: "text-status-available",
-  unknown: "text-muted-foreground",
-} as const;
-
 export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
   // Whole euros: these are running totals on compact metric tiles.
   const eur = (n: number) => formatEur(n, locale, { precision: 0 });
-  const { vehicle, registration, costs } = detail;
+  const { vehicle, costs } = detail;
   const [cover, ...rest] = vehicle.images;
   const active = vehicle.reservations.find((r) => r.status === "ACTIVE");
 
@@ -100,7 +87,6 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
           />
         </div>
         <div className="space-y-2 text-sm">
-          <Row label={t("admin.registration")}>{eur(costs.registration)}</Row>
           <Row label={t("admin.servicing")}>{eur(costs.service)}</Row>
           <Row label={t("admin.repairs", { count: costs.repairCount })}>
             {eur(costs.repairs)}
@@ -110,41 +96,13 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
         </div>
       </section>
 
-      {/* Legal */}
+      {/* Identification */}
       <section>
-        <SectionTitle icon={ShieldCheck}>
-          {t("admin.registration")}
-        </SectionTitle>
+        <SectionTitle icon={IdCard}>{t("admin.details")}</SectionTitle>
         <div className="space-y-2 text-sm">
           <Row label={t("admin.plate")}>
             <span className="font-mono">
               {vehicle.plate ?? t("admin.notSet")}
-            </span>
-          </Row>
-          <Row label={t("admin.registered")}>
-            {vehicle.registrationDate
-              ? format(vehicle.registrationDate, "dd MMM yyyy", {
-                  locale: dateLocale,
-                })
-              : t("admin.notSet")}
-          </Row>
-          <Row label={t("admin.expires")}>
-            <span className={REG_TONE[registration.state]}>
-              {vehicle.registrationExpiry
-                ? format(vehicle.registrationExpiry, "dd MMM yyyy", {
-                    locale: dateLocale,
-                  })
-                : t("admin.notSet")}
-              {registration.daysLeft !== null &&
-                (registration.state === "expired"
-                  ? ` (${t("admin.daysOverdue", {
-                      count: Math.abs(registration.daysLeft),
-                    })})`
-                  : registration.state === "due"
-                    ? ` (${t("admin.daysLeft", {
-                        count: registration.daysLeft,
-                      })})`
-                    : "")}
             </span>
           </Row>
         </div>

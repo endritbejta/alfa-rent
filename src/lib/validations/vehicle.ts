@@ -24,14 +24,6 @@ export const vehicleFilterSchema = paginationSchema.extend({
  * Admin-only fleet filters. Kept separate from the public schema so a
  * visitor cannot craft a URL that surfaces retired or off-road vehicles.
  */
-export const registrationFilters = [
-  "valid",
-  "due",
-  "expired",
-  "missing",
-] as const;
-export type RegistrationFilter = (typeof registrationFilters)[number];
-
 /**
  * Every field falls back on its own via `.catch`, so one unreadable param
  * drops just that filter instead of failing the parse and quietly handing
@@ -40,7 +32,6 @@ export type RegistrationFilter = (typeof registrationFilters)[number];
 export const adminVehicleFilterSchema = vehicleFilterSchema.extend({
   brand: z.string().trim().min(1).max(50).optional().catch(undefined),
   status: z.enum(VehicleStatus).optional().catch(undefined),
-  registration: z.enum(registrationFilters).optional().catch(undefined),
   category: z.enum(VehicleCategory).optional().catch(undefined),
   transmission: z.enum(Transmission).optional().catch(undefined),
   page: z.coerce.number().int().min(1).catch(1),
@@ -82,8 +73,6 @@ export const createVehicleSchema = z.object({
   pricePerDay: z.number().positive().max(10000),
   description: z.string().trim().min(10).max(2000),
   status: z.enum(VehicleStatus).default("AVAILABLE"),
-  registrationDate: z.coerce.date().nullish(),
-  registrationExpiry: z.coerce.date().nullish(),
   lastServiceDate: z.coerce.date().nullish(),
   nextServiceDate: z.coerce.date().nullish(),
   serviceNotes: z.string().trim().max(1000).nullish(),
@@ -122,8 +111,6 @@ export function parseVehicleFields(formData: FormData) {
     pricePerDay: Number(formData.get("pricePerDay")),
     description: formData.get("description"),
     status: formData.get("status") ?? undefined,
-    registrationDate: cleared("registrationDate"),
-    registrationExpiry: cleared("registrationExpiry"),
     lastServiceDate: cleared("lastServiceDate"),
     nextServiceDate: cleared("nextServiceDate"),
     serviceNotes: cleared("serviceNotes"),

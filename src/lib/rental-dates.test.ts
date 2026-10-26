@@ -45,7 +45,7 @@ describe("latestUnder", () => {
   });
 
   it("steps back a day when the rental's time would overshoot the ceiling", () => {
-    // Registration expires at midnight on the 1st; a 10:00 return on the 1st
+    // The ceiling falls at midnight on the 1st; a 10:00 return on the 1st
     // would run ten hours past it, so the 31st is the last usable day.
     const result = latestUnder(
       at("2026-07-19T10:00:00Z"),

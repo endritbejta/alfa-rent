@@ -64,13 +64,14 @@ export type VehicleDetail = Omit<RawVehicleDetail, "vehicle"> & {
   vehicle: Omit<
     RawVehicleDetail["vehicle"],
     | "pricePerDay"
+    | "registrationDate"
+    | "registrationExpiry"
     | "registrationCost"
     | "serviceCost"
     | "repairs"
     | "reservations"
   > & {
     pricePerDay: number;
-    registrationCost: number | null;
     serviceCost: number | null;
     repairs: (Omit<RawVehicleDetail["vehicle"]["repairs"][number], "cost"> & {
       cost: number;
@@ -83,15 +84,18 @@ export type VehicleDetail = Omit<RawVehicleDetail, "vehicle"> & {
 };
 
 function plainVehicle(d: RawVehicleDetail): VehicleDetail {
+  // Registration is no longer tracked; the columns are kept only so existing
+  // data survives, and must not reach the client (registrationCost is a
+  // Decimal, which cannot cross the server/client boundary).
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const { registrationDate, registrationExpiry, registrationCost, ...vehicle } =
+    d.vehicle;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   return {
     ...d,
     vehicle: {
-      ...d.vehicle,
+      ...vehicle,
       pricePerDay: Number(d.vehicle.pricePerDay),
-      registrationCost:
-        d.vehicle.registrationCost === null
-          ? null
-          : Number(d.vehicle.registrationCost),
       serviceCost:
         d.vehicle.serviceCost === null ? null : Number(d.vehicle.serviceCost),
       repairs: d.vehicle.repairs.map((r) => ({ ...r, cost: Number(r.cost) })),

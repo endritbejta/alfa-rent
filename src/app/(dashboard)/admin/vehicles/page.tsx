@@ -17,7 +17,6 @@ import { VehicleGrid } from "./vehicle-grid";
 import { VehicleFilters } from "./vehicle-filters";
 import { FleetStatusFilter } from "./fleet-status-filter";
 import { Pagination } from "@/components/dashboard/pagination";
-import { registrationState } from "@/services/fleet.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DeleteVehicleButton } from "./delete-vehicle-button";
 import { Button } from "@/components/ui/button";
@@ -159,8 +158,6 @@ export default async function VehiclesPage({
         includeInactive: true,
         brand: "brand" in filters ? filters.brand : undefined,
         status: "status" in filters ? filters.status : undefined,
-        registration:
-          "registration" in filters ? filters.registration : undefined,
       }),
       getFleetInsights(),
       getVehicleBrands(),
@@ -219,25 +216,20 @@ export default async function VehiclesPage({
           <ViewSwitcher active={view} basePath="/admin/vehicles" />
           {view === "grid" ? (
             <VehicleGrid
-              items={items.map((v) => {
-                const reg = registrationState(v.registrationExpiry);
-                return {
-                  id: v.id,
-                  brand: v.brand,
-                  model: v.model,
-                  plate: v.plate,
-                  year: v.year,
-                  category: v.category,
-                  transmission: v.transmission,
-                  fuelType: v.fuelType,
-                  seats: v.seats,
-                  pricePerDay: toMoney(v.pricePerDay),
-                  status: v.status,
-                  image: v.images[0]?.url ?? null,
-                  registrationDue: reg.state === "due",
-                  registrationExpired: reg.state === "expired",
-                };
-              })}
+              items={items.map((v) => ({
+                id: v.id,
+                brand: v.brand,
+                model: v.model,
+                plate: v.plate,
+                year: v.year,
+                category: v.category,
+                transmission: v.transmission,
+                fuelType: v.fuelType,
+                seats: v.seats,
+                pricePerDay: toMoney(v.pricePerDay),
+                status: v.status,
+                image: v.images[0]?.url ?? null,
+              }))}
             />
           ) : (
             <VehicleTable

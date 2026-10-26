@@ -20,8 +20,6 @@ type Item = {
   pricePerDay: number;
   status: "AVAILABLE" | "RENTED" | "SERVICE" | "INACTIVE";
   image: string | null;
-  registrationDue: boolean;
-  registrationExpired: boolean;
 };
 
 /**
@@ -57,19 +55,6 @@ export function VehicleGrid({ items }: { items: Item[] }) {
             <span className="absolute top-3 right-3">
               <StatusBadge status={v.status} variant="overlay" />
             </span>
-            {(v.registrationExpired || v.registrationDue) && (
-              <span
-                className={
-                  v.registrationExpired
-                    ? "bg-destructive absolute top-3 left-3 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-                    : "bg-status-maint absolute top-3 left-3 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-                }
-              >
-                {v.registrationExpired
-                  ? t("admin.registrationExpired")
-                  : t("admin.registrationDue")}
-              </span>
-            )}
           </div>
           <div className="p-4">
             <div className="flex items-baseline justify-between gap-2">

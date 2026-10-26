@@ -2,7 +2,6 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addDays, format, startOfDay } from "date-fns";
 import {
   VehicleCategory,
   VehicleStatus,
@@ -18,7 +17,6 @@ import {
   Fuel as FuelIcon,
   Hash,
   Layers,
-  ShieldCheck,
   Trash2,
   Users,
   Wrench,
@@ -26,11 +24,7 @@ import {
 import type { ActionResult, RemovalResult } from "./actions";
 import { signVehicleUploadAction } from "./actions";
 import { MediaGrid } from "@/components/forms/media-grid";
-import {
-  DateField,
-  toDateValue,
-  toLocalDay,
-} from "@/components/forms/date-range-picker";
+import { DateField } from "@/components/forms/date-range-picker";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,8 +54,6 @@ export type VehicleFormValues = {
   pricePerDay: number;
   description: string;
   status: VehicleStatus;
-  registrationDate: Date | null;
-  registrationExpiry: Date | null;
   lastServiceDate: Date | null;
   nextServiceDate: Date | null;
   serviceNotes: string | null;
@@ -86,21 +78,12 @@ export function VehicleForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
-  const [renewingRegistration, setRenewingRegistration] = useState(false);
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
 
   const submit = (formData: FormData) => {
     setError(null);
-    if (
-      vehicle &&
-      renewingRegistration &&
-      !formData.get("registrationExpiry")
-    ) {
-      setError(t("admin.chooseExpiryError"));
-      return;
-    }
     startTransition(async () => {
       const result = await action(formData);
       if (result?.error) {
@@ -112,17 +95,6 @@ export function VehicleForm({
   };
 
   const leave = () => router.push("/admin/vehicles");
-  const currentRegistrationExpiry = vehicle?.registrationExpiry
-    ? toLocalDay(vehicle.registrationExpiry)
-    : undefined;
-  const renewalMinDate = currentRegistrationExpiry
-    ? new Date(
-        Math.max(
-          addDays(currentRegistrationExpiry, 1).getTime(),
-          startOfDay(new Date()).getTime()
-        )
-      )
-    : startOfDay(new Date());
 
   return (
     <form
@@ -400,100 +372,6 @@ export function VehicleForm({
           </Card>
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,21rem),1fr))] gap-5">
-            <Card
-              title={t("admin.registration")}
-              icon={ShieldCheck}
-              action={
-                vehicle ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    aria-expanded={renewingRegistration}
-                    aria-controls="registration-renewal"
-                    onClick={() => setRenewingRegistration((value) => !value)}
-                  >
-                    {renewingRegistration
-                      ? t("admin.cancelRenewal")
-                      : t("admin.renewRegistration")}
-                  </Button>
-                ) : undefined
-              }
-            >
-              <div className="grid gap-4">
-                <Field
-                  label={t("admin.registeredOn")}
-                  htmlFor="registrationDate"
-                  icon={CalendarDays}
-                >
-                  <DateField
-                    id="registrationDate"
-                    name="registrationDate"
-                    defaultValue={vehicle?.registrationDate}
-                    onChange={() => setDirty(true)}
-                  />
-                </Field>
-                {vehicle ? (
-                  <Field label={t("admin.currentExpiry")} icon={CalendarDays}>
-                    <div className="border-input bg-secondary/50 flex h-9 items-center rounded-lg border px-3 text-sm">
-                      {currentRegistrationExpiry
-                        ? format(currentRegistrationExpiry, "dd MMM yyyy")
-                        : t("admin.notRecorded")}
-                    </div>
-                  </Field>
-                ) : (
-                  <Field
-                    label={t("admin.expires")}
-                    htmlFor="registrationExpiry"
-                    icon={CalendarDays}
-                  >
-                    <DateField
-                      id="registrationExpiry"
-                      name="registrationExpiry"
-                      onChange={() => setDirty(true)}
-                    />
-                  </Field>
-                )}
-              </div>
-
-              {vehicle && !renewingRegistration && (
-                <input
-                  type="hidden"
-                  name="registrationExpiry"
-                  value={
-                    currentRegistrationExpiry
-                      ? toDateValue(currentRegistrationExpiry)
-                      : ""
-                  }
-                />
-              )}
-
-              {vehicle && renewingRegistration && (
-                <div
-                  id="registration-renewal"
-                  className="border-brand/25 bg-brand/[0.06] mt-4 rounded-lg border p-4"
-                >
-                  <Field
-                    label={t("admin.newExpiryDate")}
-                    htmlFor="registrationExpiry"
-                    icon={CalendarDays}
-                  >
-                    <DateField
-                      id="registrationExpiry"
-                      name="registrationExpiry"
-                      minDate={renewalMinDate}
-                      placeholder={t("admin.chooseNewExpiry")}
-                      clearable={false}
-                      onChange={() => setDirty(true)}
-                    />
-                  </Field>
-                  <p className="text-muted-foreground mt-2 text-xs">
-                    {t("admin.renewalHelp")}
-                  </p>
-                </div>
-              )}
-            </Card>
-
             <Card
               title={t("admin.service")}
               icon={Wrench}

@@ -5,7 +5,6 @@ import { VehicleCategory } from "@prisma/client";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
 import type { TranslationKey } from "@/lib/i18n/translations";
-import { cn } from "@/lib/utils";
 
 /**
  * Fleet filters. The URL is the source of truth — a filtered view is
@@ -17,37 +16,16 @@ import { cn } from "@/lib/utils";
  * where the counts live. Two controls for one parameter meant the operator
  * could see it set in one place and clear it in another.
  */
-const GROUPS = [
-  {
-    param: "registration",
-    label: "admin.registration",
-    options: [
-      { key: "valid", label: "admin.registered", dot: "bg-status-available" },
-      { key: "due", label: "admin.expiringSoon", dot: "bg-status-maint" },
-      { key: "expired", label: "admin.expired", dot: "bg-destructive" },
-      { key: "missing", label: "admin.notRecorded", dot: "bg-status-inactive" },
-    ],
-  },
-] as const;
-
 const FILTER_LABELS: Record<string, TranslationKey> = {
   brand: "admin.brand",
   category: "admin.category",
-  registration: "admin.registration",
-};
-
-const VALUE_LABELS: Record<string, TranslationKey> = {
-  valid: "admin.registered",
-  due: "admin.expiringSoon",
-  expired: "admin.expired",
-  missing: "admin.notRecorded",
 };
 
 /**
  * No "status": the segmented control above shows what it is set to and can
  * clear it, so a chip here would be the same state a second time.
  */
-const KEYS = ["brand", "category", "registration"] as const;
+const KEYS = ["brand", "category"] as const;
 
 export function VehicleFilters({
   brands,
@@ -134,39 +112,6 @@ export function VehicleFilters({
             ))}
           </select>
         </Group>
-
-        {GROUPS.map((group) => (
-          <Group key={group.param} label={t(group.label)}>
-            <div className="flex flex-wrap gap-1.5">
-              {group.options.map((option) => {
-                const isActive = params.get(group.param) === option.key;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => set(group.param, option.key)}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-[background-color,border-color,color] duration-[var(--motion-hover)]",
-                      isActive
-                        ? "border-foreground bg-foreground text-background font-semibold"
-                        : "bg-card text-muted-foreground hover:border-foreground/30 hover:text-foreground"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        option.dot,
-                        isActive && "ring-background/40 ring-2"
-                      )}
-                    />
-                    {t(option.label)}
-                  </button>
-                );
-              })}
-            </div>
-          </Group>
-        ))}
       </div>
 
       {active.length > 0 && (
@@ -184,8 +129,7 @@ export function VehicleFilters({
               <span className="text-muted-foreground group-hover:text-destructive/70">
                 {t(FILTER_LABELS[key])}:
               </span>
-              {(VALUE_LABELS[value] && t(VALUE_LABELS[value])) ??
-                value.charAt(0) + value.slice(1).toLowerCase()}
+              {value.charAt(0) + value.slice(1).toLowerCase()}
               <X className="h-3 w-3" />
             </button>
           ))}

@@ -11,7 +11,6 @@ const calendar: VehicleBookingCalendar = {
     { from: "2026-08-10", to: "2026-08-13" },
     { from: "2026-08-20", to: "2026-08-22" },
   ],
-  latestReturnDate: "2026-09-01",
 };
 
 describe("booking calendar", () => {
@@ -45,15 +44,6 @@ describe("booking calendar", () => {
   it("allows a new pickup on the previous reservation's return day", () => {
     expect(isBookingRangeAvailable("2026-08-13", "2026-08-15", calendar)).toBe(
       true
-    );
-  });
-
-  it("enforces the inclusive registration return limit", () => {
-    expect(isBookingRangeAvailable("2026-08-28", "2026-09-01", calendar)).toBe(
-      true
-    );
-    expect(isBookingRangeAvailable("2026-08-28", "2026-09-02", calendar)).toBe(
-      false
     );
   });
 });

@@ -473,7 +473,7 @@ function CustomerPicker({
           onChange={(e) => search(e.target.value)}
           aria-label={t("admin.findCustomer")}
           placeholder={t("admin.findCustomer")}
-          className="pl-9"
+          className="pl-9 sm:pl-9"
         />
       </div>
       {shown?.error && (

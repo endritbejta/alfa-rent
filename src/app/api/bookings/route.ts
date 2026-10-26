@@ -1,9 +1,10 @@
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { ok, withErrorHandling } from "@/lib/api";
 import { TooManyRequestsError } from "@/lib/errors";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { createBookingSchema } from "@/lib/validations/reservation";
 import { createReservation } from "@/services/reservation.service";
+import { notifyStaffOfBookingRequest } from "@/services/notification.service";
 
 /**
  * Generous enough that a family comparing dates never notices, tight enough
@@ -29,6 +30,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
   const input = createBookingSchema.parse(await request.json());
   const { reservation, paymentAccessToken } = await createReservation(input);
+  // After the response: the customer's confirmation never waits on, or fails
+  // because of, the mail provider. sendEmail reports its own failures.
+  after(() => notifyStaffOfBookingRequest(reservation.id));
   return ok(
     {
       id: reservation.id,

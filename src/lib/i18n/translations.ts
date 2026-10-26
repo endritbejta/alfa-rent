@@ -707,6 +707,18 @@ const en = {
   "admin.problemBooked":
     "Already booked {from} – {to}. It can only be saved as a pending request.",
   "admin.newReservation": "New reservation",
+  "email.newBookingSubject": "New booking request: {vehicle} for {name}",
+  "email.newBookingIntro":
+    "A customer has requested a car on the website. It is pending until you confirm it.",
+  "email.vehicle": "Vehicle",
+  "email.pickup": "Pickup",
+  "email.return": "Return",
+  "email.total": "Total",
+  "email.customer": "Customer",
+  "email.phone": "Phone",
+  "email.email": "Email",
+  "email.notes": "Notes",
+  "email.openInAdmin": "Open in admin",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1417,6 +1429,18 @@ const sq: TranslationDictionary = {
   "admin.problemBooked":
     "Tashmë e rezervuar {from} – {to}. Mund të ruhet vetëm si kërkesë në pritje.",
   "admin.newReservation": "Rezervim i ri",
+  "email.newBookingSubject": "Kërkesë e re për rezervim: {vehicle} për {name}",
+  "email.newBookingIntro":
+    "Një klient ka kërkuar një veturë në faqe. Mbetet në pritje derisa ta konfirmoni.",
+  "email.vehicle": "Vetura",
+  "email.pickup": "Marrja",
+  "email.return": "Kthimi",
+  "email.total": "Totali",
+  "email.customer": "Klienti",
+  "email.phone": "Telefoni",
+  "email.email": "Email",
+  "email.notes": "Shënime",
+  "email.openInAdmin": "Hape në panel",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

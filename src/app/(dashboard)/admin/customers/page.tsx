@@ -1,6 +1,9 @@
 import { requireUser } from "@/lib/auth/guards";
 import { redirect } from "next/navigation";
-import { getCustomers } from "@/services/customer.service";
+import {
+  findDuplicateCustomers,
+  getCustomers,
+} from "@/services/customer.service";
 import { getCustomerInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatStrip } from "@/components/dashboard/stat-strip";
@@ -8,6 +11,9 @@ import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
 import { BarList } from "@/components/dashboard/bar-list";
 import { CustomerList } from "./customer-list";
+import { CustomerSearch } from "./customer-search";
+import { DuplicateGroups } from "./duplicate-groups";
+import { customerSearchSchema } from "@/lib/validations/customer";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { parsePageParam } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
@@ -19,18 +25,26 @@ export const dynamic = "force-dynamic";
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
-  await requireUser();
+  const user = await requireUser();
+  const isAdmin = user.role === "ADMIN";
   const { locale, t } = await getI18n();
-  const { page: rawPage } = await searchParams;
+  const { page: rawPage, q: rawQuery } = await searchParams;
   const page = parsePageParam(rawPage);
-  const [customers, insights] = await Promise.all([
-    getCustomers({ page, perPage: 25 }),
+  const q = customerSearchSchema.parse(rawQuery);
+  const [customers, insights, duplicates] = await Promise.all([
+    getCustomers({ page, perPage: 25, q }),
     getCustomerInsights(),
+    // Merging is ADMIN-only, so nobody else is shown a list they cannot act on.
+    isAdmin ? findDuplicateCustomers() : Promise.resolve([]),
   ]);
   const { items, total, perPage, totalPages } = customers;
-  if (total > 0 && page > totalPages) redirect("/admin/customers");
+  if (total > 0 && page > totalPages) {
+    redirect(
+      q ? `/admin/customers?q=${encodeURIComponent(q)}` : "/admin/customers"
+    );
+  }
 
   return (
     <PageBody>
@@ -77,11 +91,29 @@ export default async function CustomersPage({
         </Panel>
       </div>
 
+      {duplicates.length > 0 && (
+        <Panel
+          title={t("admin.duplicates")}
+          subtitle={t("admin.duplicatesSubtitle")}
+        >
+          <DuplicateGroups groups={duplicates} />
+        </Panel>
+      )}
+
       <Panel
         title={t("admin.allCustomers")}
         subtitle={t("admin.clickCustomer")}
       >
-        <CustomerList items={items} />
+        <div className="mb-4 max-w-md">
+          <CustomerSearch initial={q ?? ""} />
+        </div>
+        {q && items.length === 0 ? (
+          <p className="text-muted-foreground py-6 text-center text-sm">
+            {t("admin.noCustomersMatch", { query: q })}
+          </p>
+        ) : (
+          <CustomerList items={items} />
+        )}
       </Panel>
       <Pagination
         page={page}

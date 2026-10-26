@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/lib/vehicle-label";
+import { customerIdsByPhone } from "@/services/customer.service";
 
 export type SearchHit = {
   kind: "vehicle" | "reservation" | "customer";
@@ -14,9 +15,10 @@ const PER_KIND = 4;
 /**
  * One query across the three things staff actually look for by name.
  *
- * Deliberately narrow: brand/model/plate, customer name/email, and
+ * Deliberately narrow: brand/model/plate, customer name/email/phone, and
  * reservations by the customer on them — the fields someone can actually
- * recall while holding a phone to their ear. Searching notes or descriptions
+ * recall while holding a phone to their ear. A phone matches on its digits,
+ * so "049 947 292" finds "+383 49 947 292". Searching notes or descriptions
  * would return more and answer less.
  *
  * The three queries run in parallel rather than in a transaction; nothing
@@ -29,6 +31,8 @@ export async function searchAdmin(query: string): Promise<SearchHit[]> {
   if (q.length < 2) return [];
 
   const like = { contains: q, mode: "insensitive" as const };
+  const phoneIds = await customerIdsByPhone(q);
+  const byPhone = phoneIds.length > 0 ? [{ id: { in: phoneIds } }] : [];
 
   const [vehicles, customers, reservations] = await Promise.all([
     prisma.vehicle.findMany({
@@ -41,7 +45,12 @@ export async function searchAdmin(query: string): Promise<SearchHit[]> {
     }),
     prisma.customer.findMany({
       where: {
-        OR: [{ firstName: like }, { lastName: like }, { email: like }],
+        OR: [
+          { firstName: like },
+          { lastName: like },
+          { email: like },
+          ...byPhone,
+        ],
       },
       select: { id: true, firstName: true, lastName: true, email: true },
       orderBy: { createdAt: "desc" },
@@ -53,6 +62,7 @@ export async function searchAdmin(query: string): Promise<SearchHit[]> {
           { customer: { firstName: like } },
           { customer: { lastName: like } },
           { vehicle: { plate: like } },
+          ...(phoneIds.length > 0 ? [{ customerId: { in: phoneIds } }] : []),
         ],
       },
       select: {

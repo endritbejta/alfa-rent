@@ -702,6 +702,29 @@ const en = {
   "theme.toLight": "Switch to light mode",
   "theme.toDark": "Switch to dark mode",
   "theme.toggle": "Toggle color theme",
+  "admin.searchCustomers": "Search by name, email or phone",
+  "admin.clearSearch": "Clear search",
+  "admin.noCustomersMatch": "No customer matches “{query}”.",
+  "admin.editCustomer": "Edit details",
+  "admin.contactMissing":
+    "This record has no real phone or email — it came from the old walk-in form. Add them so the customer can be reached.",
+  "toast.customerSaved": "Customer saved",
+  "admin.duplicates": "Possible duplicates",
+  "admin.duplicatesSubtitle":
+    "Same phone number or same name. Merge them so each customer has one history.",
+  "admin.samePhone": "Same phone",
+  "admin.sameName": "Same name",
+  "admin.merge": "Merge",
+  "admin.mergeTitle": "Merge these customers?",
+  "admin.mergeBody":
+    "Choose the record to keep. Every reservation moves to it and the other records are deleted. This cannot be undone.",
+  "admin.mergeKeep": "Record to keep",
+  "admin.reservationCount": "{count} reservations",
+  "toast.customersMerged": "Customers merged",
+  "toast.customersMergedWhy":
+    "{count} reservations moved to the record you kept.",
+  "err.customerEmailTaken":
+    "Another customer already uses this email. If it is the same person, merge the two records instead.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1406,6 +1429,28 @@ const sq: TranslationDictionary = {
   "theme.toLight": "Kalo në pamjen e çelët",
   "theme.toDark": "Kalo në pamjen e errët",
   "theme.toggle": "Ndrysho pamjen e ngjyrave",
+  "admin.searchCustomers": "Kërko me emër, email ose telefon",
+  "admin.clearSearch": "Pastro kërkimin",
+  "admin.noCustomersMatch": "Asnjë klient nuk përputhet me “{query}”.",
+  "admin.editCustomer": "Ndrysho të dhënat",
+  "admin.contactMissing":
+    "Ky regjistër nuk ka telefon ose email të vërtetë — vjen nga formulari i vjetër për klientë pa rezervim. Shtoji që klienti të mund të kontaktohet.",
+  "toast.customerSaved": "Klienti u ruajt",
+  "admin.duplicates": "Dublikata të mundshme",
+  "admin.duplicatesSubtitle":
+    "Numër telefoni ose emër i njëjtë. Bashkoji që çdo klient të ketë një histori.",
+  "admin.samePhone": "Telefon i njëjtë",
+  "admin.sameName": "Emër i njëjtë",
+  "admin.merge": "Bashko",
+  "admin.mergeTitle": "T’i bashkosh këta klientë?",
+  "admin.mergeBody":
+    "Zgjidh regjistrin që mbetet. Çdo rezervim kalon te ai dhe regjistrat e tjerë fshihen. Ky veprim nuk mund të kthehet.",
+  "admin.mergeKeep": "Regjistri që mbetet",
+  "admin.reservationCount": "{count} rezervime",
+  "toast.customersMerged": "Klientët u bashkuan",
+  "toast.customersMergedWhy": "{count} rezervime kaluan te regjistri që mbeti.",
+  "err.customerEmailTaken":
+    "Një klient tjetër e përdor tashmë këtë email. Nëse është i njëjti person, bashko të dy regjistrat.",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

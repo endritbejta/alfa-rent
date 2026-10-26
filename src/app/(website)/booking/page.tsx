@@ -23,6 +23,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("booking.metaTitle"),
     description: t("booking.intro"),
+    // One URL per car and date range, all the same form: worth following
+    // to the car pages, not worth listing. See robots.ts for why this is a
+    // tag and not a robots.txt rule.
+    robots: { index: false, follow: true },
   };
 }
 

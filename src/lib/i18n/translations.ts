@@ -707,6 +707,7 @@ const en = {
   "admin.problemBooked":
     "Already booked {from} – {to}. It can only be saved as a pending request.",
   "admin.newReservation": "New reservation",
+  "car.metaTitle": "{car} for rent — {price} EUR/day",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1417,6 +1418,7 @@ const sq: TranslationDictionary = {
   "admin.problemBooked":
     "Tashmë e rezervuar {from} – {to}. Mund të ruhet vetëm si kërkesë në pritje.",
   "admin.newReservation": "Rezervim i ri",
+  "car.metaTitle": "{car} me qira — {price} EUR/ditë",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

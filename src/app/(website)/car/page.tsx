@@ -14,6 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("fleet.metaTitle"),
     description: t("home.metaDescription"),
+    // Filter and date combinations are all the same fleet page.
+    alternates: { canonical: "/car" },
   };
 }
 

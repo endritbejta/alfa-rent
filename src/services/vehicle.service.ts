@@ -443,3 +443,18 @@ export const getVehicleBrands = unstable_cache(
   ["vehicle-brands"],
   { tags: [PUBLIC_VEHICLES_TAG], revalidate: PUBLIC_VEHICLES_MAX_AGE }
 );
+
+/**
+ * Every car page a search engine may list: the same public statuses as the
+ * storefront, so a retired or off-road car never appears in the sitemap.
+ * Only the slug and its last change leave the database.
+ */
+export async function getPublicVehicleSitemap(): Promise<
+  { slug: string; updatedAt: Date }[]
+> {
+  return prisma.vehicle.findMany({
+    where: { status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] } },
+    orderBy: { updatedAt: "desc" },
+    select: { slug: true, updatedAt: true },
+  });
+}

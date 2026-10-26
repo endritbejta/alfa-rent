@@ -318,12 +318,6 @@ export function DateRangePicker({
     minDate && earliestReturn && isAfter(minDate, earliestReturn)
       ? minDate
       : earliestReturn;
-  const latestReturnDate = fromDateValue(
-    bookingCalendar?.latestReturnDate ?? undefined
-  );
-  const latestPickupDate = latestReturnDate
-    ? addDays(latestReturnDate, -1)
-    : undefined;
   const unavailablePickup: Matcher = (date) =>
     bookingCalendar
       ? isBookingDayBlocked(toDateValue(date), bookingCalendar.blockedRanges)
@@ -352,7 +346,6 @@ export function DateRangePicker({
           value={value?.from}
           tone={tone}
           minDate={minDate}
-          maxDate={latestPickupDate}
           unavailableDates={unavailablePickup}
           onSelect={(from) =>
             onChange({
@@ -376,7 +369,6 @@ export function DateRangePicker({
           value={value?.to}
           tone={tone}
           minDate={returnMinDate}
-          maxDate={latestReturnDate}
           unavailableDates={unavailableReturn}
           triggerDisabled={!value?.from}
           onSelect={(to) => onChange({ from: value?.from, to })}

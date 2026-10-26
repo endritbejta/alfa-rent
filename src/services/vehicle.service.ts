@@ -11,7 +11,6 @@ import type {
   CreateVehicleInput,
   UpdateVehicleInput,
   VehicleFilterInput,
-  RegistrationFilter,
 } from "@/lib/validations/vehicle";
 import type { VehicleStatus } from "@prisma/client";
 import type { Paginated } from "@/types/api";
@@ -90,32 +89,11 @@ function slugify(
     .replace(/(^-|-$)/g, "");
 }
 
-/** Turn a registration filter into a date predicate. */
-function registrationWhere(
-  registration: RegistrationFilter | undefined,
-  warningDays = 30
-): Prisma.VehicleWhereInput {
-  if (!registration) return {};
-  const now = new Date();
-  const horizon = new Date(now.getTime() + warningDays * 24 * 60 * 60 * 1000);
-  switch (registration) {
-    case "expired":
-      return { registrationExpiry: { lt: now } };
-    case "due":
-      return { registrationExpiry: { gte: now, lte: horizon } };
-    case "valid":
-      return { registrationExpiry: { gt: horizon } };
-    case "missing":
-      return { registrationExpiry: null };
-  }
-}
-
 type VehicleReadOpts = {
   includeInactive?: boolean;
   brand?: string;
   /** Admin-only: the public listing must never filter by these. */
   status?: VehicleStatus;
-  registration?: RegistrationFilter;
 };
 
 /** Shared by the admin and public reads so their filtering cannot drift. */
@@ -131,7 +109,6 @@ function buildVehicleWhere(
         ? {}
         : { status: { not: "INACTIVE" as const } }),
     ...(opts.brand && { brand: { equals: opts.brand, mode: "insensitive" } }),
-    ...registrationWhere(opts.registration),
     ...(q && {
       OR: [
         { brand: { contains: q, mode: "insensitive" } },
@@ -162,12 +139,6 @@ function buildPublicVehicleWhere(
   return {
     ...buildVehicleWhere(filters, { includeInactive: true }),
     status: { in: [...PUBLIC_BOOKABLE_VEHICLE_STATUSES] },
-    ...(filters.to && {
-      OR: [
-        { registrationExpiry: null },
-        { registrationExpiry: { gte: filters.to } },
-      ],
-    }),
   };
 }
 

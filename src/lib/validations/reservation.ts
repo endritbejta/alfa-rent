@@ -66,7 +66,7 @@ export const updateReservationStatusSchema = z.object({
 
 /**
  * Extending only ever moves the return date later; the service enforces
- * that, along with availability and the registration ceiling. No past-date
+ * that, along with availability. No past-date
  * rule here — an ACTIVE rental's pickup is by definition already behind us.
  */
 export const extendReservationSchema = z.object({

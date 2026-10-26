@@ -7,8 +7,6 @@ export type BlockedBookingRange = {
 
 export type VehicleBookingCalendar = {
   blockedRanges: BlockedBookingRange[];
-  /** Latest allowed return day, inclusive. Null means no registration limit. */
-  latestReturnDate: string | null;
 };
 
 export function isBookingDayBlocked(
@@ -32,6 +30,5 @@ export function isBookingRangeAvailable(
   calendar: VehicleBookingCalendar
 ): boolean {
   if (!from || !to || to <= from) return false;
-  if (calendar.latestReturnDate && to > calendar.latestReturnDate) return false;
   return !bookingRangeOverlaps(from, to, calendar.blockedRanges);
 }

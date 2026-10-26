@@ -38,7 +38,7 @@ export async function recordRentalInspection(
       where: { id: reservationId },
       include: {
         vehicle: {
-          select: { status: true, registrationExpiry: true },
+          select: { status: true },
         },
         inspections: {
           select: { type: true, mileage: true },
@@ -100,15 +100,6 @@ export async function recordRentalInspection(
         throw new ConflictError(
           "Vehicle must be available before the handover",
           { key: "err.vehicleMustBeAvailable" }
-        );
-      }
-      if (
-        reservation.vehicle.registrationExpiry &&
-        reservation.returnDate > reservation.vehicle.registrationExpiry
-      ) {
-        throw new ConflictError(
-          "Renew the vehicle registration before starting this rental",
-          { key: "err.renewRegistration" }
         );
       }
     } else {

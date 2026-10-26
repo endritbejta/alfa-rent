@@ -37,7 +37,6 @@ const addDays = (d: Date, n: number) =>
 const REFUSAL_KEYS = {
   NOT_YET_CONFIRMED: "admin.confirmBeforeExtend",
   BOOKED_IMMEDIATELY_AFTER: "admin.bookedImmediately",
-  REGISTRATION_ENDS: "admin.registrationEnds",
   NOT_EXTENDABLE: "admin.cannotExtend",
 } satisfies Record<ExtensionRefusal, TranslationKey>;
 
@@ -158,10 +157,7 @@ export function ExtendReservation({
                   locale: dateLocale,
                 }),
               })}{" "}
-              —{" "}
-              {extension.limitedBy === "booking"
-                ? t("admin.bookedAfter")
-                : t("admin.registrationExpires")}
+              — {t("admin.bookedAfter")}
             </>
           ) : (
             t("admin.noLaterBooking")

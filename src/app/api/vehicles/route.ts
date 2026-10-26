@@ -5,8 +5,7 @@ import { getPublicVehicles } from "@/services/vehicle.service";
 
 /**
  * Anonymous listing. Deliberately uses the public read, whose payload is an
- * explicit allowlist — the admin read carries plates, registration dates and
- * running costs that must never leave the building.
+ * explicit allowlist — the admin read carries plates and running costs that must never leave the building.
  */
 export const GET = withErrorHandling(async (request: NextRequest) => {
   const filters = vehicleFilterSchema.parse(

@@ -63,6 +63,7 @@ function submissionWithClearedOptionals() {
     status: "AVAILABLE",
     // Emptied by the operator:
     plate: "",
+    // No longer on the form; posted here to prove a stray value is ignored.
     registrationDate: "",
     registrationExpiry: "",
     lastServiceDate: "",
@@ -91,11 +92,19 @@ describe("clearing an optional vehicle field", () => {
 
     const after = await prisma.vehicle.findUniqueOrThrow({ where: { id } });
     expect(after.plate).toBeNull();
-    expect(after.registrationDate).toBeNull();
-    expect(after.registrationExpiry).toBeNull();
     expect(after.lastServiceDate).toBeNull();
     expect(after.nextServiceDate).toBeNull();
     expect(after.serviceNotes).toBeNull();
+  });
+
+  /**
+   * Registration is no longer tracked, but its data is kept. Saving a vehicle
+   * must leave those columns exactly as they were.
+   */
+  it("leaves the retired registration columns untouched", async () => {
+    const after = await prisma.vehicle.findUniqueOrThrow({ where: { id } });
+    expect(after.registrationDate).toEqual(populated.registrationDate);
+    expect(after.registrationExpiry).toEqual(populated.registrationExpiry);
   });
 
   it("leaves the fields that were not cleared alone", async () => {

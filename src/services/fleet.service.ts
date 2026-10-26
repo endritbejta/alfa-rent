@@ -1,24 +1,8 @@
 import { Prisma, type Repair } from "@prisma/client";
-import { differenceInCalendarDays, startOfMonth, startOfYear } from "date-fns";
+import { startOfMonth, startOfYear } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { NotFoundError } from "@/lib/errors";
 import type { RepairInput } from "@/lib/validations/repair";
-
-/** Days before expiry at which a registration starts warning. */
-export const REGISTRATION_WARNING_DAYS = 30;
-
-export type RegistrationState = "ok" | "due" | "expired" | "unknown";
-
-export function registrationState(
-  expiry: Date | null | undefined,
-  today = new Date()
-): { state: RegistrationState; daysLeft: number | null } {
-  if (!expiry) return { state: "unknown", daysLeft: null };
-  const daysLeft = differenceInCalendarDays(expiry, today);
-  if (daysLeft < 0) return { state: "expired", daysLeft };
-  if (daysLeft <= REGISTRATION_WARNING_DAYS) return { state: "due", daysLeft };
-  return { state: "ok", daysLeft };
-}
 
 export async function addRepair(
   vehicleId: string,
@@ -60,8 +44,6 @@ export async function getVehicleFleetProfile(vehicleId: string) {
       model: true,
       plate: true,
       year: true,
-      registrationDate: true,
-      registrationExpiry: true,
       lastServiceDate: true,
       nextServiceDate: true,
       serviceNotes: true,
@@ -83,7 +65,6 @@ export async function getVehicleFleetProfile(vehicleId: string) {
   return {
     vehicle,
     repairs: vehicle.repairs,
-    registration: registrationState(vehicle.registrationExpiry, now),
     stats: {
       totalCost: lifetime,
       count: vehicle.repairs.length,
@@ -99,10 +80,10 @@ export async function getVehicleFleetProfile(vehicleId: string) {
 }
 
 /**
- * Full drawer payload for a vehicle: identity, gallery, legal status,
- * upkeep, and the financial profile that answers "is this car still worth
- * keeping?". Registration and service costs are separate lines from
- * repairs so upkeep never masquerades as breakage.
+ * Full drawer payload for a vehicle: identity, gallery, upkeep, and the
+ * financial profile that answers "is this car still worth keeping?". Service
+ * cost is a separate line from repairs so upkeep never masquerades as
+ * breakage.
  */
 export async function getVehicleDetail(vehicleId: string) {
   const now = new Date();
@@ -136,9 +117,8 @@ export async function getVehicleDetail(vehicleId: string) {
 
   const repairsTotal = sum(vehicle.repairs);
   const repairsYear = sum(vehicle.repairs.filter((r) => r.date >= yearStart));
-  const registrationCost = Number(vehicle.registrationCost ?? 0);
   const serviceCost = Number(vehicle.serviceCost ?? 0);
-  const totalCost = repairsTotal + registrationCost + serviceCost;
+  const totalCost = repairsTotal + serviceCost;
 
   // Months on the books, floored at 1 so a new arrival isn't divided by zero.
   const monthsOwned = Math.max(
@@ -154,9 +134,7 @@ export async function getVehicleDetail(vehicleId: string) {
 
   return {
     vehicle,
-    registration: registrationState(vehicle.registrationExpiry, now),
     costs: {
-      registration: registrationCost,
       service: serviceCost,
       repairs: repairsTotal,
       repairsThisYear: repairsYear,
@@ -168,31 +146,4 @@ export async function getVehicleDetail(vehicleId: string) {
       net: earned - totalCost,
     },
   };
-}
-
-/** Vehicles whose registration has expired or expires within the window. */
-export async function getRegistrationAlerts(days = REGISTRATION_WARNING_DAYS) {
-  const now = new Date();
-  const horizon = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-
-  const vehicles = await prisma.vehicle.findMany({
-    where: {
-      status: { not: "INACTIVE" },
-      registrationExpiry: { not: null, lte: horizon },
-    },
-    orderBy: { registrationExpiry: "asc" },
-    select: {
-      id: true,
-      brand: true,
-      model: true,
-      plate: true,
-      year: true,
-      registrationExpiry: true,
-    },
-  });
-
-  return vehicles.map((v) => ({
-    ...v,
-    ...registrationState(v.registrationExpiry, now),
-  }));
 }

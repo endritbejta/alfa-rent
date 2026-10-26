@@ -74,7 +74,8 @@ beforeAll(async () => {
         id: ids.expiring,
         slug: ids.expiring,
         ...vehicleBase,
-        // Expires on the return day, so the rental already runs to the limit.
+        // Registration is no longer enforced. This expiry, on the return day,
+        // used to refuse every extension; the stored date must now be ignored.
         registrationExpiry: new Date("2027-12-05T00:00:00.000Z"),
       },
     ],
@@ -153,7 +154,12 @@ describe("why an extension is refused", () => {
     expect(await refusalFor(ids.blocked)).toBe("BOOKED_IMMEDIATELY_AFTER");
   });
 
-  it("names the registration running out", async () => {
-    expect(await refusalFor(ids.registration)).toBe("REGISTRATION_ENDS");
+  it("ignores a stored registration expiry", async () => {
+    const { extension } = await getReservationDetail(ids.registration);
+    expect(extension).toEqual({
+      allowed: true,
+      latestReturn: null,
+      limitedBy: null,
+    });
   });
 });

@@ -70,8 +70,6 @@ export default async function EditVehiclePage({
           pricePerDay: Number(vehicle.pricePerDay),
           description: vehicle.description,
           status: vehicle.status,
-          registrationDate: vehicle.registrationDate,
-          registrationExpiry: vehicle.registrationExpiry,
           lastServiceDate: vehicle.lastServiceDate,
           nextServiceDate: vehicle.nextServiceDate,
           serviceNotes: vehicle.serviceNotes,

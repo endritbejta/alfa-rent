@@ -19,8 +19,6 @@ const complete: Record<string, string> = {
   pricePerDay: "60",
   description: "A comfortable executive saloon for longer journeys.",
   status: "AVAILABLE",
-  registrationDate: "2023-04-01",
-  registrationExpiry: "2027-04-01",
   lastServiceDate: "2026-05-01",
   nextServiceDate: "2027-05-01",
   serviceNotes: "Oil and filter done at 40k.",
@@ -37,7 +35,6 @@ const form = (overrides: Record<string, string> = {}) => {
 /** Fields an operator can empty in the edit form. */
 const CLEARABLE = [
   "plate",
-  "registrationDate",
   "lastServiceDate",
   "nextServiceDate",
   "serviceNotes",
@@ -73,6 +70,19 @@ describe("parseVehicleFields", () => {
     // Present and null — not absent. An absent key is what Prisma ignores.
     expect(field in input).toBe(true);
     expect(input[field as keyof typeof input]).toBeNull();
+  });
+
+  /**
+   * Registration is no longer tracked, but its columns keep their old data.
+   * If the form ever read these fields again, an absent value would be
+   * written as null on every save and quietly erase that data.
+   */
+  it("never reads the retired registration fields", () => {
+    const parsed = parseVehicleFields(
+      form({ registrationDate: "2023-04-01", registrationExpiry: "" })
+    );
+    expect("registrationDate" in parsed).toBe(false);
+    expect("registrationExpiry" in parsed).toBe(false);
   });
 
   it("leaves status undefined when absent, because it is not clearable", () => {

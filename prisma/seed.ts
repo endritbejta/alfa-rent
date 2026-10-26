@@ -654,12 +654,6 @@ async function main() {
           description: spec.blurb,
           status: "AVAILABLE",
           createdAt: at10(now, -int(30, 400)),
-          // Registration: mostly valid, a few due soon, one or two expired.
-          registrationDate: at10(now, -int(200, 700)),
-          registrationExpiry: at10(
-            now,
-            pick([-12, 9, 21, 45, 120, 200, 260, 300])
-          ),
           lastServiceDate: at10(now, -int(20, 220)),
           nextServiceDate: at10(now, int(20, 200)),
           serviceNotes:

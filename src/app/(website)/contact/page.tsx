@@ -172,7 +172,7 @@ function ContactIcon({
       className={
         inverted
           ? "flex h-10 w-10 items-center justify-center rounded-none bg-white/12"
-          : "bg-accent text-accent-foreground flex h-10 w-10 shrink-0 items-center justify-center rounded-none"
+          : "text-foreground border-foreground/25 flex h-10 w-10 shrink-0 items-center justify-center rounded-none border"
       }
     >
       <Icon className="h-5 w-5" />

@@ -8,11 +8,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // The three reusable tiers: default = primary (filled brand),
+        // secondary = outlined, link = inline text with an underline.
         default: "bg-primary text-primary-foreground hover:bg-brand-hover",
         outline:
           "border-border bg-transparent hover:border-muted-foreground/60 hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-selected aria-expanded:text-foreground",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-muted aria-expanded:bg-muted aria-expanded:text-secondary-foreground",
+          "border-border bg-transparent text-foreground hover:border-muted-foreground/60 hover:bg-surface-hover aria-expanded:bg-surface-selected",
         ghost:
           "hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-selected aria-expanded:text-foreground",
         // The quiet tier (design doc C+, §1): ink-alpha tint, so it reads as
@@ -27,14 +29,13 @@ const buttonVariants = cva(
         // Confirmation actions across the app share this one green.
         success:
           "bg-success text-success-foreground hover:bg-success-hover shadow-sm focus-visible:ring-[color-mix(in_oklch,var(--success),transparent_60%)] active:scale-[0.98]",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "h-auto gap-1.5 rounded-none border-0 px-0 text-foreground underline decoration-1 underline-offset-4 hover:text-brand sm:h-auto",
       },
       size: {
-        default:
-          "h-11 gap-2 px-4 sm:h-9 has-data-[icon=inline-end]:pr-3.5 has-data-[icon=inline-start]:pl-3.5",
+        default: "h-12 gap-2.5 px-7 sm:h-12",
         xs: "h-6 gap-1 rounded-none px-2 text-xs in-data-[slot=button-group]:rounded-none has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-8 gap-1.5 rounded-none px-3.5 text-[0.8rem] in-data-[slot=button-group]:rounded-none has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-11 gap-2 px-5 has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
+        lg: "h-14 gap-2.5 px-9 text-base",
         icon: "size-11 sm:size-8",
         "icon-xs":
           "size-6 rounded-none in-data-[slot=button-group]:rounded-none [&_svg:not([class*='size-'])]:size-3",

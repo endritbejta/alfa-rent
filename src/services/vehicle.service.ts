@@ -142,6 +142,20 @@ function buildPublicVehicleWhere(
   };
 }
 
+/**
+ * The fleet's sort options as an ordering, shared by the admin and public
+ * lists. The public list used to hard-code "newest", so the storefront's
+ * sort control changed the URL and nothing else. The id tie-break keeps cars
+ * at the same price in a stable order, so paging never repeats or skips one.
+ */
+function vehicleOrderBy(
+  sort: VehicleFilterInput["sort"]
+): Prisma.VehicleOrderByWithRelationInput[] {
+  if (sort === "price-asc") return [{ pricePerDay: "asc" }, { id: "asc" }];
+  if (sort === "price-desc") return [{ pricePerDay: "desc" }, { id: "asc" }];
+  return [{ createdAt: "desc" }, { id: "asc" }];
+}
+
 export async function getVehicles(
   filters: VehicleFilterInput,
   opts: VehicleReadOpts = {}
@@ -153,12 +167,7 @@ export async function getVehicles(
     prisma.vehicle.findMany({
       where,
       ...vehicleWithImages,
-      orderBy:
-        filters.sort === "price-asc"
-          ? { pricePerDay: "asc" }
-          : filters.sort === "price-desc"
-            ? { pricePerDay: "desc" }
-            : { createdAt: "desc" },
+      orderBy: vehicleOrderBy(filters.sort),
       skip: (page - 1) * perPage,
       take: perPage,
     }),
@@ -390,7 +399,7 @@ export const getPublicVehicles = unstable_cache(
       prisma.vehicle.findMany({
         where,
         ...publicVehicleArgs,
-        orderBy: { createdAt: "desc" },
+        orderBy: vehicleOrderBy(filters.sort),
         skip: (page - 1) * perPage,
         take: perPage,
       }),

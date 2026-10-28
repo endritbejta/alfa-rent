@@ -7,6 +7,7 @@ import { getPublicVehicles } from "@/services/vehicle.service";
 import { vehicleFilterSchema } from "@/lib/validations/vehicle";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { FleetFilters } from "@/components/forms/fleet-filters";
+import { FleetSort } from "@/components/forms/fleet-sort";
 import { Pagination } from "@/components/dashboard/pagination";
 import { Button } from "@/components/ui/button";
 import { getI18n } from "@/lib/i18n/server";
@@ -90,12 +91,15 @@ export default async function FleetPage({
       <section className="mx-auto max-w-6xl px-5 py-10">
         <FleetFilters />
 
-        <p className="text-muted-foreground mt-8 mb-4 text-sm">
-          {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
-            count: total,
-          })}
-          {dateRange ? t("fleet.availableSuffix") : ""}
-        </p>
+        <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-muted-foreground text-sm">
+            {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
+              count: total,
+            })}
+            {dateRange ? t("fleet.availableSuffix") : ""}
+          </p>
+          {total > 1 && <FleetSort />}
+        </div>
 
         {items.length === 0 ? (
           <div className="rounded-xl border border-dashed px-6 py-16 text-center">

@@ -119,9 +119,9 @@ export function FleetFilters() {
 
   const controls = (
     <div className="space-y-5">
-      {/* Search and sort share the first row on desktop: both act on the
-          whole result set, while the chips below narrow it. */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end">
+      {/* Sort lives with the results (FleetSort, beside the count), so the
+          search gets the panel's full width. */}
+      <div>
         <form onSubmit={submitSearch} className="flex min-w-0 flex-1 gap-2">
           <div className="relative min-w-0 flex-1">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
@@ -137,25 +137,6 @@ export function FleetFilters() {
             {t("common.search")}
           </Button>
         </form>
-        <label className="block space-y-2 md:w-56 md:shrink-0">
-          <span className="text-muted-foreground text-xs font-semibold tracking-[0.12em] uppercase">
-            {t("filter.sort")}
-          </span>
-          <select
-            value={params.get("sort") ?? "newest"}
-            onChange={(event) =>
-              set(
-                "sort",
-                event.target.value === "newest" ? null : event.target.value
-              )
-            }
-            className="border-input bg-control focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full cursor-pointer rounded-lg border pr-9 pl-3 text-sm outline-none focus-visible:ring-3 sm:h-8"
-          >
-            <option value="newest">{t("filter.sortNewest")}</option>
-            <option value="price-asc">{t("filter.sortPriceLow")}</option>
-            <option value="price-desc">{t("filter.sortPriceHigh")}</option>
-          </select>
-        </label>
       </div>
 
       <FilterGroup label={t("filter.category")}>

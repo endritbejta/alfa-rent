@@ -62,14 +62,14 @@ export default async function ContactPage() {
               />
             )}
             {!hasDirectContact && (
-              <p className="text-muted-foreground bg-muted rounded-sm p-5 text-sm leading-relaxed sm:col-span-2">
+              <p className="text-muted-foreground bg-muted rounded-none p-5 text-sm leading-relaxed sm:col-span-2">
                 {t("contact.verifiedOnly")}
               </p>
             )}
             {!hasDirectContact && process.env.NODE_ENV === "development" && (
               // Visible only in development: tells whoever runs the site what
               // to set, without ever showing customers a configuration note.
-              <p className="rounded-sm border border-dashed border-amber-500/60 p-4 font-mono text-xs leading-relaxed text-amber-700 sm:col-span-2 dark:text-amber-400">
+              <p className="rounded-none border border-dashed border-amber-500/60 p-4 font-mono text-xs leading-relaxed text-amber-700 sm:col-span-2 dark:text-amber-400">
                 Dev only: set NEXT_PUBLIC_CONTACT_PHONE and/or
                 NEXT_PUBLIC_CONTACT_EMAIL to show direct contact options.
               </p>
@@ -146,7 +146,7 @@ function ContactAction({
   return (
     <a
       href={href}
-      className="bg-foreground text-background group rounded-sm p-5"
+      className="bg-foreground text-background group rounded-none p-5"
     >
       <ContactIcon icon={icon} inverted />
       <p className="mt-6 text-xs font-semibold tracking-[0.12em] uppercase opacity-65">

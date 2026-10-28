@@ -75,7 +75,7 @@ export function SiteHeader() {
           <ThemeToggle />
           <button
             type="button"
-            className="text-band-foreground hover:bg-band-border/60 -mr-2 flex h-11 w-11 items-center justify-center rounded-sm transition-colors"
+            className="text-band-foreground hover:bg-band-border/60 -mr-2 flex h-11 w-11 items-center justify-center rounded-none transition-colors"
             aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
             aria-expanded={open}
             aria-controls="mobile-nav"

@@ -78,7 +78,7 @@ export function PendingQueue({
           </div>
         </div>
 
-        <div className="inline-flex rounded-sm border p-0.5">
+        <div className="inline-flex rounded-none border p-0.5">
           {(
             [
               ["single", Rows3, t("admin.oneColumn")],

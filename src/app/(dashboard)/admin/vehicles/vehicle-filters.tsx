@@ -121,7 +121,7 @@ export function VehicleFilters({
               key={key}
               type="button"
               onClick={() => set(key, null)}
-              className="bg-card hover:border-destructive/40 hover:text-destructive group flex cursor-pointer items-center gap-1.5 rounded-sm border px-3 py-1 text-xs font-medium transition-colors"
+              className="bg-card hover:border-destructive/40 hover:text-destructive group flex cursor-pointer items-center gap-1.5 rounded-none border px-3 py-1 text-xs font-medium transition-colors"
             >
               <span className="text-muted-foreground group-hover:text-destructive/70">
                 {t(FILTER_LABELS[key])}:

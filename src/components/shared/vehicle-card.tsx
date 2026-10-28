@@ -60,12 +60,12 @@ export async function VehicleCard({
   ];
 
   return (
-    <article className="fleet-card group grid gap-5 py-8 first:pt-0 md:grid-cols-12 md:items-center md:gap-10 md:py-10">
+    <article className="fleet-card group flex flex-col gap-5 md:group-data-[view=one]/fleet:grid md:group-data-[view=one]/fleet:grid-cols-12 md:group-data-[view=one]/fleet:items-center md:group-data-[view=one]/fleet:gap-10 md:group-data-[view=one]/fleet:py-10">
       <Link
         href={detailHref}
         tabIndex={-1}
         aria-hidden="true"
-        className="bg-media relative block aspect-[16/10] overflow-hidden rounded-md md:col-span-7"
+        className="bg-media relative block aspect-[16/10] overflow-hidden md:group-data-[view=one]/fleet:col-span-7"
       >
         {cover ? (
           <Image
@@ -73,7 +73,7 @@ export async function VehicleCard({
             alt=""
             fill
             preload={preload}
-            sizes="(max-width: 768px) 100vw, 58vw"
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="vehicle-cover object-cover transition-transform duration-500 ease-[var(--ease-standard)] motion-reduce:transition-none"
           />
         ) : (
@@ -83,14 +83,14 @@ export async function VehicleCard({
         )}
       </Link>
 
-      <div className="md:col-span-5">
+      <div className="md:group-data-[view=one]/fleet:col-span-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-muted-foreground text-[11px] font-medium tracking-[0.2em] uppercase">
             {t(CATEGORY_KEYS[vehicle.category])}
           </p>
           <StatusBadge status={vehicle.status} />
         </div>
-        <h3 className="mt-3 text-3xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-4xl">
+        <h3 className="mt-3 text-2xl leading-[1.1] font-semibold tracking-tight text-balance sm:text-3xl">
           <Link href={detailHref} className="link-rule">
             {vehicle.brand} {vehicle.model}
           </Link>

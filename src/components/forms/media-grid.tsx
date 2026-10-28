@@ -362,7 +362,7 @@ export function MediaGrid({
             type="button"
             onClick={open}
             className={cn(
-              "flex w-full cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed px-6 py-12 text-center transition-colors",
+              "flex w-full cursor-pointer flex-col items-center justify-center rounded-none border border-dashed px-6 py-12 text-center transition-colors",
               dragging
                 ? "border-brand bg-brand/[0.06]"
                 : "border-input hover:border-brand/40 hover:bg-surface-hover"

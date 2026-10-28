@@ -86,7 +86,7 @@ export function DatePicker({
         id={id}
         aria-invalid={ariaInvalid}
         aria-describedby={ariaDescribedBy}
-        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand aria-invalid:border-destructive aria-invalid:ring-destructive/20 flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none aria-invalid:ring-3 sm:h-9"
+        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand aria-invalid:border-destructive aria-invalid:ring-destructive/20 flex h-11 w-full cursor-pointer items-center gap-2 rounded-none border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none aria-invalid:ring-3 sm:h-9"
       >
         <CalendarDays className="text-brand h-3.5 w-3.5 shrink-0" />
         <span className={cn(!value && "text-muted-foreground")}>
@@ -95,7 +95,7 @@ export function DatePicker({
             : (placeholder ?? t("date.choose"))}
         </span>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto rounded-xl p-2">
+      <PopoverContent align="start" className="w-auto rounded-none p-2">
         <Calendar
           mode="single"
           // Open where the choice actually is, not on today — an extension
@@ -112,7 +112,7 @@ export function DatePicker({
               "bg-destructive/[0.08] text-destructive line-through decoration-1 opacity-70",
           }}
           locale={dateLocale}
-          className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
+          className="rounded-none bg-transparent p-2 [--cell-radius:0px]"
         />
       </PopoverContent>
     </Popover>
@@ -261,7 +261,7 @@ function RangeDateField({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className={cn("w-auto rounded-2xl p-2 shadow-lg", dark && "dark")}
+        className={cn("w-auto rounded-none p-2 shadow-lg", dark && "dark")}
       >
         <Calendar
           mode="single"
@@ -285,7 +285,7 @@ function RangeDateField({
               "bg-destructive/[0.08] text-destructive line-through decoration-1 opacity-70",
           }}
           locale={dateLocale}
-          className="rounded-2xl bg-transparent p-2 [--cell-radius:12px]"
+          className="rounded-none bg-transparent p-2 [--cell-radius:0px]"
         />
       </PopoverContent>
     </Popover>
@@ -335,7 +335,7 @@ export function DateRangePicker({
     <div className="min-w-0 flex-1">
       <div
         className={cn(
-          "grid grid-cols-2 divide-x overflow-hidden rounded-xl",
+          "grid grid-cols-2 divide-x overflow-hidden rounded-none",
           dark
             ? "divide-white/10 bg-white/[0.06] ring-1 ring-white/10"
             : "border-input divide-input bg-control border"

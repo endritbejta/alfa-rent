@@ -216,7 +216,7 @@ export function BookingForm({
             total: formatPrice(confirmation.totalPrice, locale),
           })}
         </p>
-        <p className="bg-muted mx-auto mt-5 w-fit rounded-sm px-4 py-2 font-mono text-xs">
+        <p className="bg-muted mx-auto mt-5 w-fit rounded-none px-4 py-2 font-mono text-xs">
           {t("booking.reference", { id: confirmation.id })}
         </p>
         <p className="text-muted-foreground mx-auto mt-4 max-w-md text-xs leading-relaxed">

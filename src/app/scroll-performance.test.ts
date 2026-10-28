@@ -14,19 +14,17 @@ const fleetPage = readFileSync(
 );
 
 describe("mobile scroll performance", () => {
-  it("does not rasterize oversized blurred ambient layers", () => {
+  it("paints a flat canvas with no oversized ambient layers", () => {
     expect(styles).not.toContain("filter: blur(90px)");
-    expect(styles).toContain("(hover: none) and (pointer: coarse)");
-    expect(styles).toMatch(
-      /\.ambient-background::before,\s*\.ambient-background::after\s*\{[\s\S]*?content: none/
-    );
+    expect(styles).not.toContain(".ambient-background::before");
+    expect(styles).not.toContain("will-change: transform");
   });
 
   it("skips rendering distant fleet cards", () => {
     expect(styles).toMatch(
       /\.fleet-card\s*\{[\s\S]*?content-visibility:\s*auto/
     );
-    expect(styles).toContain("contain-intrinsic-size: auto 320px");
+    expect(styles).toContain("contain-intrinsic-size: auto 480px");
     expect(vehicleCard).toContain("fleet-card group");
   });
 

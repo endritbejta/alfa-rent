@@ -161,7 +161,7 @@
   /* A control boundary must remain identifiable against both white sheets
      and the warm canvas. This solid warm neutral clears 3:1 on white. */
   --input: #918b89;
-  --control: #ffffff;
+  --control: transparent;
   --ring: #dc2028;
   --surface-hover: rgba(22, 20, 20, 0.06);
   --surface-selected: rgba(22, 20, 20, 0.1);
@@ -672,92 +672,13 @@
   background: var(--ambient-canvas);
 }
 
-.ambient-background::before,
-.ambient-background::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 160vw;
-  height: 160vh;
-  /*
-   * Radial gradients already provide soft edges. Filtering two 200vw ×
-   * 200vh layers forced mobile browsers to continuously rasterize enormous
-   * blurred textures while scrolling.
-   */
-  transform: translate(-50%, -50%);
-  will-change: transform;
-}
-
-.ambient-background::before {
-  background:
-    radial-gradient(
-      closest-side at 28% 30%,
-      rgb(var(--ambient-blob) / var(--ambient-alpha)),
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 76% 24%,
-      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.85)),
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 58% 78%,
-      rgb(var(--ambient-blob) / var(--ambient-alpha)),
-      transparent
-    );
-}
-
-.ambient-background::after {
-  background:
-    radial-gradient(
-      closest-side at 16% 72%,
-      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.9)),
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 88% 58%,
-      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.8)),
-      transparent
-    );
-}
-
-/*
- * Mobile fleet pages can be taller than ten viewports. Keep their backdrop
- * static and cheap: no oversized animated layers competing with image decode
- * and card paint during a touch scroll.
- */
-@media (max-width: 767px), (hover: none) and (pointer: coarse) {
-  .ambient-background {
-    background:
-      radial-gradient(
-        circle at 18% 14%,
-        rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.42)),
-        transparent 48%
-      ),
-      radial-gradient(
-        circle at 82% 76%,
-        rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.32)),
-        transparent 52%
-      ),
-      var(--ambient-canvas);
-  }
-
-  .ambient-background::before,
-  .ambient-background::after {
-    content: none;
-    animation: none;
-    will-change: auto;
-  }
-}
-
 /*
  * The browser can skip layout and paint for fleet cards that are several
  * screens away, while reserving a stable estimate to avoid scroll jumps.
  */
 .fleet-card {
   content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  contain-intrinsic-size: auto 480px;
 }
 
 @media (hover: hover) and (pointer: fine) {

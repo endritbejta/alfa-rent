@@ -16,7 +16,7 @@ export function PageHeader({
         <h1 className="font-display flex items-center gap-2.5 text-3xl font-semibold tracking-tight">
           {title}
           {count !== undefined && (
-            <span className="bg-brand rounded-sm px-2 py-0.5 text-sm font-semibold text-white tabular-nums">
+            <span className="bg-brand rounded-none px-2 py-0.5 text-sm font-semibold text-white tabular-nums">
               {count}
             </span>
           )}

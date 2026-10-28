@@ -146,8 +146,8 @@ export function AvailabilityWidget({
         <div
           className={
             quote.available
-              ? "bg-status-available/10 rounded-sm px-4 py-3"
-              : "bg-destructive/8 rounded-sm px-4 py-3"
+              ? "bg-status-available/10 rounded-none px-4 py-3"
+              : "bg-destructive/8 rounded-none px-4 py-3"
           }
         >
           {quote.available ? (
@@ -176,7 +176,7 @@ export function AvailabilityWidget({
       )}
 
       <Button
-        className="w-full"
+        className="h-14 w-full text-base sm:h-14"
         disabled={!quote?.available}
         onClick={() =>
           router.push(`/booking?vehicle=${slug}&from=${from}&to=${to}`)

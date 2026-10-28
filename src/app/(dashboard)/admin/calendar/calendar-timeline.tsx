@@ -182,7 +182,7 @@ export function CalendarTimeline({
               </button>
             ))}
           </div>
-          <div className="bg-card flex items-center gap-1 rounded-sm border p-0.5">
+          <div className="bg-card flex items-center gap-1 rounded-none border p-0.5">
             <button
               type="button"
               aria-label={t("admin.previousMonth")}

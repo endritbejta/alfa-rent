@@ -45,6 +45,8 @@ export function StatusBadge({
   variant?: "surface" | "overlay";
 }) {
   const { t } = useI18n();
+  // "Available" is the default state; only exceptions are worth flagging.
+  if (status === "AVAILABLE") return null;
   return (
     <span
       className={cn(

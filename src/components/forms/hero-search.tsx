@@ -63,7 +63,7 @@ export function HeroSearch() {
 
       {/* Built like the date fields beside it (label inside the box), so the
           three controls share one height and one baseline. */}
-      <label className="relative block cursor-pointer rounded-sm bg-white/[0.06] px-4 py-2.5 ring-1 ring-white/15 transition-colors focus-within:ring-2 focus-within:ring-[var(--brand)] hover:bg-white/[0.08] md:w-56">
+      <label className="relative block cursor-pointer rounded-none bg-white/[0.06] px-4 py-2.5 ring-1 ring-white/15 transition-colors focus-within:ring-2 focus-within:ring-[var(--brand)] hover:bg-white/[0.08] md:w-56">
         <span className="text-band-muted block text-[11px] font-semibold tracking-wide uppercase">
           {t("filter.category")}
         </span>
@@ -87,7 +87,7 @@ export function HeroSearch() {
 
       <button
         type="submit"
-        className="bg-brand hover:bg-brand-hover flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-sm px-7 text-sm font-semibold text-white transition-[background-color,transform] duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-colors md:h-auto md:w-auto"
+        className="bg-brand hover:bg-brand-hover flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-none px-7 text-sm font-semibold text-white transition-[background-color,transform] duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-colors md:h-auto md:w-auto"
       >
         <Search className="h-4 w-4" />
         {t("common.search")}

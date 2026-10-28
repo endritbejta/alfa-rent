@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/shared/locale-provider";
+import { formatPrice } from "@/lib/money";
 
 type Props = {
   pricePerDay: number;
@@ -17,6 +19,7 @@ export function MobileBookingBar({
   bookLabel,
   targetId = "booking",
 }: Props) {
+  const { locale } = useI18n();
   const [bookingInView, setBookingInView] = useState(false);
 
   useEffect(() => {
@@ -61,7 +64,7 @@ export function MobileBookingBar({
     >
       <div className="mx-auto flex max-w-md items-center justify-between gap-4">
         <p className="font-display text-xl font-bold">
-          {pricePerDay}
+          {formatPrice(pricePerDay, locale)}
           <span className="text-muted-foreground ml-1 font-sans text-xs font-medium">
             EUR / {perDayLabel}
           </span>

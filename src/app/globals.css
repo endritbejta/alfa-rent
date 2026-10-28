@@ -361,6 +361,17 @@
     @apply bg-background font-sans;
   }
   /*
+   * One visible keyboard focus for every plain link, button and select.
+   * The browser default was tinted to 50% ring by the rule above and all but
+   * vanished on the charcoal bands. Pointer clicks never show it
+   * (:focus-visible), and components with their own ring set outline-none
+   * from the utilities layer, which wins over this base rule.
+   */
+  :where(a, button, select, summary, [role="button"]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /*
    * Optical tracking: the bigger the type, the tighter it wants to be. One
    * blanket -0.015em left headlines loose and small headings cramped —
    * tracking that does not respond to size is the tell of a scale that was

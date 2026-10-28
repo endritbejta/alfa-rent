@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import {
+  ArrowLeft,
   Users,
   Fuel,
   Settings2,
@@ -20,8 +21,9 @@ import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
 import { isBookingRangeAvailable } from "@/lib/booking-calendar";
+import { VehicleGallery } from "./vehicle-gallery";
 import { cloudinaryJpegCrop } from "@/lib/cloudinary/image-loader";
-import { formatAmount } from "@/lib/money";
+import { formatAmount, formatPrice } from "@/lib/money";
 import { openGraphLocale } from "@/lib/site-url";
 
 const CATEGORY_KEYS = {
@@ -113,7 +115,11 @@ export default async function VehiclePage({
     bookingCalendar
   );
   const description = getVehicleDescription(vehicle, locale);
-  const [cover, ...rest] = vehicle.images;
+  // Back to the fleet with the customer's dates and category still applied.
+  const back = new URLSearchParams();
+  if (from) back.set("from", from);
+  if (to) back.set("to", to);
+  const fleetHref = back.size ? `/car?${back}` : "/car";
 
   const specs = [
     {
@@ -144,50 +150,24 @@ export default async function VehiclePage({
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-5 pt-12 pb-28 lg:py-12">
+    <div className="mx-auto max-w-6xl px-5 pt-6 pb-28 lg:pt-8 lg:pb-12">
+      <Link
+        href={fleetHref}
+        className="text-muted-foreground hover:text-foreground group mb-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:-translate-x-0.5 motion-reduce:transition-none" />
+        {t("detail.back")}
+      </Link>
       <div className="grid gap-10 lg:grid-cols-[1.5fr_1fr]">
         <div>
-          {/* Gallery */}
-          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800">
-            {cover ? (
-              <Image
-                src={cover.url}
-                alt={`${vehicle.brand} ${vehicle.model}`}
-                fill
-                preload
-                sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover"
-              />
-            ) : (
-              <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-sm tracking-[0.16em] uppercase">
-                {vehicle.brand} {vehicle.model}
-              </span>
-            )}
-            <span className="absolute top-4 left-4">
-              <StatusBadge status={vehicle.status} variant="overlay" />
-            </span>
-          </div>
-          {rest.length > 0 && (
-            <div className="mt-3 grid grid-cols-4 gap-3">
-              {rest.slice(0, 4).map((image) => (
-                <div
-                  key={image.id}
-                  className="bg-media relative aspect-[16/10] overflow-hidden rounded-lg"
-                >
-                  <Image
-                    src={image.url}
-                    alt={`${vehicle.brand} ${vehicle.model}`}
-                    fill
-                    sizes="15vw"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <VehicleGallery
+            images={vehicle.images}
+            name={`${vehicle.brand} ${vehicle.model}`}
+            badge={<StatusBadge status={vehicle.status} variant="overlay" />}
+          />
 
           <span className="eyebrow text-muted-foreground mt-10">
-            {t(CATEGORY_KEYS[vehicle.category])}
+            {t(CATEGORY_KEYS[vehicle.category])} · {vehicle.year}
           </span>
           <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">
             {vehicle.brand} {vehicle.model}
@@ -221,7 +201,7 @@ export default async function VehiclePage({
         >
           <div className="bg-card rounded-2xl border p-6 shadow-sm">
             <p className="font-display text-3xl font-bold">
-              {vehicle.pricePerDay}
+              {formatPrice(vehicle.pricePerDay, locale)}
               <span className="text-muted-foreground font-sans text-sm font-medium">
                 {" "}
                 EUR / {t("common.perDay")}

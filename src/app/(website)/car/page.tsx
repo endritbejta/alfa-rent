@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
@@ -7,6 +8,7 @@ import { vehicleFilterSchema } from "@/lib/validations/vehicle";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { FleetFilters } from "@/components/forms/fleet-filters";
 import { Pagination } from "@/components/dashboard/pagination";
+import { Button } from "@/components/ui/button";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,6 +57,12 @@ export default async function FleetPage({
   if (params.to) forward.set("to", params.to);
   if (params.category) forward.set("category", params.category);
   const query = forward.toString();
+  // Leaving an empty result keeps the dates, since those are a decision the
+  // customer already made; only the narrowing filters go.
+  const keepDates = new URLSearchParams();
+  if (params.from) keepDates.set("from", params.from);
+  if (params.to) keepDates.set("to", params.to);
+  const clearHref = keepDates.size ? `/car?${keepDates}` : "/car";
 
   return (
     <>
@@ -94,9 +102,17 @@ export default async function FleetPage({
             <p className="font-display text-lg font-bold">
               {t("fleet.emptyTitle")}
             </p>
-            <p className="text-muted-foreground mt-2 text-sm">
+            <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
               {t("fleet.emptyText")}
             </p>
+            <Button
+              variant="outline"
+              className="mt-6"
+              nativeButton={false}
+              render={<Link href={clearHref} />}
+            >
+              {t("filter.clear")}
+            </Button>
           </div>
         ) : (
           <>

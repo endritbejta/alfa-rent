@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import {
+  ArrowRight,
   ShieldCheck,
   Clock,
   BadgeEuro,
@@ -92,7 +93,7 @@ export default async function HomePage() {
       {/* Hero — charcoal band, availability-first search */}
       <section className="bg-band text-band-foreground relative isolate overflow-hidden">
         <HeroBackground />
-        <div className="relative z-10 mx-auto max-w-6xl px-5 pt-20 pb-16 lg:pt-28">
+        <div className="relative z-10 mx-auto max-w-6xl px-5 pt-14 pb-36 lg:pt-20">
           <span className="eyebrow text-band-muted">{t("home.eyebrow")}</span>
           <h1 className="font-display mt-5 max-w-3xl text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
             {t("home.titleLine1")}
@@ -106,7 +107,7 @@ export default async function HomePage() {
 
           <HeroSearch />
 
-          <div className="border-band-border mt-12 flex flex-wrap gap-x-10 gap-y-4 border-t pt-8">
+          <div className="border-band-border mt-10 flex flex-wrap gap-x-10 gap-y-3 border-t pt-6">
             {PROOF.map(({ icon: Icon, label }) => (
               <span
                 key={label}
@@ -120,28 +121,40 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured fleet */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+      {/* Featured fleet — the cards straddle the hero's lower edge so real
+          vehicles appear in the first screen without a full-bleed photo,
+          which several fleet originals are too small to carry. */}
+      <section
+        aria-labelledby="featured-heading"
+        className="relative z-10 mx-auto -mt-28 max-w-6xl px-5 pb-20"
+      >
+        <div className="text-band-foreground mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <span className="eyebrow text-muted-foreground">
+            <span className="eyebrow text-band-muted">
               {t("home.featured")}
             </span>
-            <h2 className="font-display mt-3 text-3xl font-bold tracking-tight">
+            <h2
+              id="featured-heading"
+              className="font-display mt-2 text-2xl font-bold tracking-tight"
+            >
               {t("home.latest")}
             </h2>
           </div>
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/car" />}
+          <Link
+            href="/car"
+            className="text-band-muted hover:text-band-foreground group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold transition-colors"
           >
             {t("common.viewAllVehicles")}
-          </Button>
+            <ArrowRight className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:translate-x-0.5 motion-reduce:transition-none" />
+          </Link>
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((vehicle) => (
-            <VehicleCard key={vehicle.id} vehicle={vehicle} />
+          {featured.map((vehicle, index) => (
+            <VehicleCard
+              key={vehicle.id}
+              vehicle={vehicle}
+              preload={index === 0}
+            />
           ))}
         </div>
       </section>
@@ -214,7 +227,7 @@ export default async function HomePage() {
             size="lg"
             className="bg-card text-foreground hover:bg-secondary px-8"
             nativeButton={false}
-            render={<Link href="/booking" />}
+            render={<Link href="/car" />}
           >
             {t("common.bookVehicle")}
           </Button>

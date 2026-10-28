@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { format, parseISO } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import Image from "next/image";
 import Link from "next/link";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -23,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
+import { formatPrice } from "@/lib/money";
 import { PendingStatus } from "@/components/shared/pending-status";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import {
@@ -85,7 +88,11 @@ export function BookingForm({
   bookingCalendar: VehicleBookingCalendar;
   changeVehicleHref: string;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const summaryDay = (value: string) =>
+    format(parseISO(value), "dd MMM yyyy", {
+      locale: locale === "sq" ? sq : enUS,
+    });
   const [serverError, setServerError] = useState<string | null>(
     initialFrom && initialTo && !initialRangeAvailable
       ? t("availability.booked")
@@ -207,7 +214,9 @@ export function BookingForm({
           {t("booking.received")}
         </h2>
         <p className="text-muted-foreground mx-auto mt-3 max-w-md text-sm leading-relaxed">
-          {t("booking.confirmation", { total: confirmation.totalPrice })}
+          {t("booking.confirmation", {
+            total: formatPrice(confirmation.totalPrice, locale),
+          })}
         </p>
         <p className="bg-muted mx-auto mt-5 w-fit rounded-full px-4 py-2 font-mono text-xs">
           {t("booking.reference", { id: confirmation.id })}
@@ -266,17 +275,18 @@ export function BookingForm({
                     alt=""
                     fill
                     sizes="80px"
+                    loading="eager"
                     className="object-cover"
                   />
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">
+                <span className="line-clamp-2 text-sm font-semibold">
                   {vehicle.label}
                 </span>
                 <span className="text-muted-foreground mt-0.5 block text-xs">
-                  {vehicle.category} · {vehicle.transmission} · {vehicle.seats}{" "}
-                  {t("detail.seats").toLocaleLowerCase()}
+                  {vehicle.category} · {vehicle.transmission} ·{" "}
+                  {t("vehicle.seats", { count: vehicle.seats })}
                 </span>
               </span>
               <Button
@@ -454,7 +464,7 @@ export function BookingForm({
           <p className="mt-4 font-semibold">{vehicle.label}</p>
           <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
             <Users className="h-3.5 w-3.5" />
-            {vehicle.seats} {t("detail.seats").toLocaleLowerCase()}
+            {t("vehicle.seats", { count: vehicle.seats })}
             <span aria-hidden="true">·</span>
             {vehicle.transmission}
           </p>
@@ -462,17 +472,25 @@ export function BookingForm({
             {(pickedFrom || pickedTo) && (
               <p className="text-muted-foreground flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" />
-                {pickedFrom || "—"} → {pickedTo || "—"}
+                {pickedFrom ? summaryDay(pickedFrom) : "—"} →{" "}
+                {pickedTo ? summaryDay(pickedTo) : "—"}
+                {rentalDays && (
+                  <span className="text-foreground ml-auto font-medium">
+                    {rentalDays === 1
+                      ? t("common.oneDay")
+                      : t("common.days", { count: rentalDays })}
+                  </span>
+                )}
               </p>
             )}
             <div className="flex items-end justify-between gap-3">
               <span className="text-muted-foreground">
                 {estimatedTotal
-                  ? `${rentalDays} × ${vehicle.pricePerDay} EUR`
+                  ? `${rentalDays} × ${formatPrice(vehicle.pricePerDay, locale)} EUR`
                   : t("booking.estimated")}
               </span>
               <strong className="font-display text-xl">
-                {estimatedTotal ?? vehicle.pricePerDay} EUR
+                {formatPrice(estimatedTotal ?? vehicle.pricePerDay, locale)} EUR
               </strong>
             </div>
           </div>

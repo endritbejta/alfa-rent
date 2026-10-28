@@ -63,3 +63,18 @@ function numberFormat(locale: Locale, precision: 0 | 2): Intl.NumberFormat {
   formatters.set(key, created);
   return created;
 }
+
+/**
+ * A storefront price: whole euros stay whole ("92"), anything with cents
+ * keeps both digits ("65,50"). Rounding a 65.50 rate to "66" would quote a
+ * price the booking then contradicts, and "92,00" on every card is noise.
+ */
+export function formatPrice(
+  value: Prisma.Decimal | number | string,
+  locale: Locale
+): string {
+  const amount = toMoney(value);
+  return formatAmount(amount, locale, {
+    precision: Number.isInteger(amount) ? 0 : 2,
+  });
+}

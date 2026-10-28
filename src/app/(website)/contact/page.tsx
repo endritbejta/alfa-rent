@@ -17,6 +17,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ContactPage() {
   const { t } = await getI18n();
   const hasDirectContact = Boolean(publicContact.phone || publicContact.email);
+  // Without a configured map link, a maps search for the configured address
+  // is still accurate; it is derived from real data, not invented.
+  const mapHref =
+    publicContact.mapUrl ??
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(publicContact.address)}`;
 
   return (
     <>
@@ -59,6 +64,14 @@ export default async function ContactPage() {
                 {t("contact.verifiedOnly")}
               </p>
             )}
+            {!hasDirectContact && process.env.NODE_ENV === "development" && (
+              // Visible only in development: tells whoever runs the site what
+              // to set, without ever showing customers a configuration note.
+              <p className="rounded-2xl border border-dashed border-amber-500/60 p-4 font-mono text-xs leading-relaxed text-amber-700 sm:col-span-2 dark:text-amber-400">
+                Dev only: set NEXT_PUBLIC_CONTACT_PHONE and/or
+                NEXT_PUBLIC_CONTACT_EMAIL to show direct contact options.
+              </p>
+            )}
           </div>
 
           <div className="border-divider mt-7 border-t pt-7">
@@ -80,33 +93,24 @@ export default async function ContactPage() {
         </div>
 
         <div className="space-y-4">
-          {publicContact.mapUrl ? (
-            <a
-              href={publicContact.mapUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-card hover:bg-surface-hover group flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm transition-colors"
-            >
-              <ContactIcon icon={MapPin} />
-              <div>
-                <p className="font-display font-bold">{t("contact.address")}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {publicContact.address}
-                </p>
-                <ArrowUpRight className="text-muted-foreground mt-4 h-4 w-4" />
-              </div>
-            </a>
-          ) : (
-            <div className="bg-card flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm">
-              <ContactIcon icon={MapPin} />
-              <div>
-                <p className="font-display font-bold">{t("contact.address")}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {publicContact.address}
-                </p>
-              </div>
+          <a
+            href={mapHref}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-card hover:bg-surface-hover group flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm transition-colors"
+          >
+            <ContactIcon icon={MapPin} />
+            <div>
+              <p className="font-display font-bold">{t("contact.address")}</p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {publicContact.address}
+              </p>
+              <span className="text-foreground mt-4 inline-flex items-center gap-1 text-sm font-medium">
+                {t("contact.openMap")}
+                <ArrowUpRight className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none" />
+              </span>
             </div>
-          )}
+          </a>
 
           <div className="bg-card flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm">
             <ContactIcon icon={Clock} />

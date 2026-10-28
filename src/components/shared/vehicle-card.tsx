@@ -110,7 +110,7 @@ export async function VehicleCard({
           </p>
           <Link
             href={primaryHref}
-            className="group/cta inline-flex min-h-11 items-center gap-2 text-sm font-medium"
+            className="group/cta inline-flex min-h-11 items-center gap-2 pr-1.5 text-sm font-medium"
           >
             <span className="link-rule">
               {t(bookingReady ? "common.bookNow" : "vehicle.details")}

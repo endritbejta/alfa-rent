@@ -78,7 +78,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
                 e.stopPropagation();
                 openReservation(r.id);
               }}
-              className="focus-visible:ring-ring/40 cursor-pointer rounded text-left font-medium hover:underline focus-visible:ring-2 focus-visible:outline-none"
+              className="focus-visible:ring-ring/40 cursor-pointer rounded-none text-left font-medium hover:underline focus-visible:ring-2 focus-visible:outline-none"
             >
               {r.customer.firstName} {r.customer.lastName}
             </button>
@@ -159,7 +159,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                     e.stopPropagation();
                     openReservation(r.id);
                   }}
-                  className="focus-visible:ring-ring/40 max-w-full cursor-pointer truncate rounded text-left text-sm font-semibold hover:underline focus-visible:ring-2 focus-visible:outline-none"
+                  className="focus-visible:ring-ring/40 max-w-full cursor-pointer truncate rounded-none text-left text-sm font-semibold hover:underline focus-visible:ring-2 focus-visible:outline-none"
                 >
                   {r.customer.firstName} {r.customer.lastName}
                 </button>

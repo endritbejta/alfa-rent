@@ -253,7 +253,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
             aria-label={t("admin.search")}
             className="placeholder:text-muted-foreground h-12 flex-1 bg-transparent text-sm outline-none"
           />
-          <kbd className="text-muted-foreground border-border rounded border px-1.5 py-0.5 text-[10px] font-medium">
+          <kbd className="text-muted-foreground border-border rounded-none border px-1.5 py-0.5 text-[10px] font-medium">
             ESC
           </kbd>
         </div>

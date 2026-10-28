@@ -73,10 +73,10 @@ async function VehicleTable({
                       alt={`${vehicle.brand} ${vehicle.model}`}
                       width={96}
                       height={60}
-                      className="h-12 w-20 rounded object-cover"
+                      className="h-12 w-20 rounded-none object-cover"
                     />
                   ) : (
-                    <div className="bg-skeleton text-muted-foreground flex h-12 w-20 items-center justify-center rounded text-[10px]">
+                    <div className="bg-skeleton text-muted-foreground flex h-12 w-20 items-center justify-center rounded-none text-[10px]">
                       {t("admin.noImage")}
                     </div>
                   )}

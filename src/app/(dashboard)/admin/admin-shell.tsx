@@ -216,7 +216,7 @@ export function AdminShell({
               collapsed ? "w-[88px]" : "w-[264px]"
             )}
           >
-            <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-[20px] shadow-lg">
+            <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-none shadow-lg">
               <SidebarChrome
                 user={user}
                 signOutAction={signOutAction}

@@ -60,7 +60,7 @@ export function CustomerSearch({ initial }: { initial: string }) {
             apply("");
           }}
           aria-label={t("admin.clearSearch")}
-          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded p-1"
+          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-none p-1"
         >
           <X className="h-4 w-4" />
         </button>

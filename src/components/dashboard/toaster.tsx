@@ -101,7 +101,7 @@ function ToastList() {
         </Toast.Content>
         <Toast.Close
           aria-label={t("common.close")}
-          className="text-muted-foreground hover:text-foreground -m-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded transition-colors"
+          className="text-muted-foreground hover:text-foreground -m-1 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-none transition-colors"
         >
           <X className="h-3.5 w-3.5" />
         </Toast.Close>

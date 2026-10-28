@@ -126,7 +126,9 @@ export default async function CalendarPage() {
       <div className="text-muted-foreground flex flex-wrap gap-4 text-xs">
         {LEGEND.map(({ status, className }) => (
           <span key={status} className="flex items-center gap-1.5">
-            <span className={`inline-block h-3 w-3 rounded ${className}`} />
+            <span
+              className={`inline-block h-3 w-3 rounded-none ${className}`}
+            />
             {t(status)}
           </span>
         ))}

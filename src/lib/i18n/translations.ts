@@ -95,9 +95,6 @@ const en = {
   "booking.firstName": "First name",
   "booking.lastName": "Last name",
   "booking.phone": "Phone",
-  "booking.notes": "Notes (optional)",
-  "booking.notesPlaceholder":
-    "Child seat, additional driver, anything we should know",
   "booking.send": "Send booking request",
   "booking.sending": "Sending request…",
   "booking.noPayment":
@@ -835,9 +832,6 @@ const sq: TranslationDictionary = {
   "booking.firstName": "Emri",
   "booking.lastName": "Mbiemri",
   "booking.phone": "Telefoni",
-  "booking.notes": "Shënime (opsionale)",
-  "booking.notesPlaceholder":
-    "Ulëse për fëmijë, shofer shtesë apo diçka tjetër që duhet ta dimë",
   "booking.send": "Dërgo kërkesën",
   "booking.sending": "Duke e dërguar…",
   "booking.noPayment":

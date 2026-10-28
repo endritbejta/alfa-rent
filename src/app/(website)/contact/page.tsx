@@ -26,18 +26,20 @@ export default async function ContactPage() {
   return (
     <>
       <section className="bg-band text-band-foreground">
-        <div className="mx-auto max-w-6xl px-5 pt-14 pb-10">
+        <div className="mx-auto max-w-6xl px-5 pt-8 pb-6 sm:pt-12 sm:pb-9">
           <span className="eyebrow text-band-muted">
             {t("contact.eyebrow")}
           </span>
-          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight">
+          <h1 className="font-display mt-3 text-2xl font-bold tracking-tight sm:mt-4 sm:text-3xl lg:text-4xl">
             {t("contact.title")}
           </h1>
-          <p className="text-band-muted mt-3 max-w-lg">{t("contact.intro")}</p>
+          <p className="text-band-muted mt-2 max-w-lg text-sm sm:mt-3 sm:text-base">
+            {t("contact.intro")}
+          </p>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-5 py-14 lg:grid-cols-[1.35fr_.65fr]">
+      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-6 sm:gap-6 sm:py-14 lg:grid-cols-[1.35fr_.65fr]">
         <div className="bg-card rounded-3xl p-6 shadow-sm sm:p-8">
           <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
             {t("footer.contact")}

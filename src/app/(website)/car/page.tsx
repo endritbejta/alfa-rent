@@ -68,12 +68,12 @@ export default async function FleetPage({
   return (
     <>
       <section className="bg-band text-band-foreground">
-        <div className="mx-auto max-w-6xl px-5 pt-14 pb-10">
+        <div className="mx-auto max-w-6xl px-5 pt-8 pb-6 sm:pt-12 sm:pb-9">
           <span className="eyebrow text-band-muted">{t("fleet.eyebrow")}</span>
-          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight">
+          <h1 className="font-display mt-3 text-2xl font-bold tracking-tight sm:mt-4 sm:text-3xl lg:text-4xl">
             {t("fleet.title")}
           </h1>
-          <p className="text-band-muted mt-3 max-w-lg">
+          <p className="text-band-muted mt-2 max-w-lg text-sm sm:mt-3 sm:text-base">
             {dateRange
               ? t("fleet.availableDescription", {
                   from: format(dateRange.from, "dd MMM", {
@@ -88,7 +88,7 @@ export default async function FleetPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-10">
+      <section className="mx-auto max-w-6xl px-5 py-6 sm:py-10">
         <FleetFilters />
 
         <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3">

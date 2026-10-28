@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeftRight,
   CalendarDays,
+  CarFront,
   CheckCircle2,
   Users,
 } from "lucide-react";
@@ -22,10 +23,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatPrice } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { PendingStatus } from "@/components/shared/pending-status";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import {
@@ -44,7 +45,6 @@ const createFormSchema = (t: (key: TranslationKey) => string) =>
       lastName: z.string().trim().min(1, t("booking.required")).max(50),
       email: z.email(t("booking.validEmail")),
       phone: z.string().trim().min(6, t("booking.validPhone")).max(25),
-      notes: z.string().trim().max(1000).optional(),
     })
     .refine((data) => !data.from || !data.to || data.to > data.from, {
       message: t("booking.rangeError"),
@@ -119,7 +119,6 @@ export function BookingForm({
       lastName: "",
       email: "",
       phone: "",
-      notes: "",
     },
   });
 
@@ -186,7 +185,6 @@ export function BookingForm({
             email: data.email,
             phone: data.phone,
           },
-          notes: data.notes || undefined,
         }),
       });
       const json: ApiResponse<Confirmation> = await response.json();
@@ -254,22 +252,22 @@ export function BookingForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]"
+      className="grid min-w-0 items-start gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8"
       noValidate
     >
-      <div className="min-w-0 space-y-6">
-        <section className="bg-card min-w-0 rounded-2xl p-5 shadow-sm sm:p-7">
+      <div className="min-w-0 space-y-4 sm:space-y-6">
+        <section className="bg-card min-w-0 rounded-2xl p-4 shadow-sm sm:p-7">
           <SectionHeading
             number="01"
             title={t("booking.tripSection")}
             description={t("booking.tripSectionText")}
           />
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-4 space-y-3 sm:mt-6">
             <input type="hidden" {...register("vehicleId")} />
-            <div className="border-border flex items-center gap-3 rounded-xl border p-3">
-              <span className="bg-media relative h-14 w-20 shrink-0 overflow-hidden rounded-lg">
-                {vehicle.imageUrl && (
+            <div className="border-border flex items-center gap-3 rounded-xl border p-2.5 sm:p-3">
+              <span className="bg-media text-media-foreground relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg sm:h-14 sm:w-20">
+                {vehicle.imageUrl ? (
                   <Image
                     src={vehicle.imageUrl}
                     alt=""
@@ -278,6 +276,8 @@ export function BookingForm({
                     loading="eager"
                     className="object-cover"
                   />
+                ) : (
+                  <CarFront aria-hidden className="h-5 w-5" />
                 )}
               </span>
               <span className="min-w-0 flex-1">
@@ -304,7 +304,7 @@ export function BookingForm({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="from">{t("booking.pickupDate")}</Label>
               <Controller
@@ -372,14 +372,14 @@ export function BookingForm({
           )}
         </section>
 
-        <section className="bg-card rounded-2xl p-5 shadow-sm sm:p-7">
+        <section className="bg-card rounded-2xl p-4 shadow-sm sm:p-7">
           <SectionHeading
             number="02"
             title={t("booking.detailsSection")}
             description={t("booking.detailsSectionText")}
           />
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4">
             <FormField
               label={t("booking.firstName")}
               name="firstName"
@@ -406,6 +406,7 @@ export function BookingForm({
             </FormField>
             <FormField
               label={t("booking.email")}
+              className="col-span-2 sm:col-span-1"
               name="email"
               error={fieldError("email")}
             >
@@ -419,6 +420,7 @@ export function BookingForm({
             </FormField>
             <FormField
               label={t("booking.phone")}
+              className="col-span-2 sm:col-span-1"
               name="phone"
               error={fieldError("phone")}
             >
@@ -432,26 +434,16 @@ export function BookingForm({
               />
             </FormField>
           </div>
-
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="notes">{t("booking.notes")}</Label>
-            <Textarea
-              id="notes"
-              rows={3}
-              placeholder={t("booking.notesPlaceholder")}
-              {...register("notes")}
-              {...fieldA11y("notes")}
-            />
-            {fieldError("notes")}
-          </div>
         </section>
       </div>
 
-      <aside className="bg-card top-24 rounded-2xl p-5 shadow-sm lg:sticky">
+      <aside className="bg-card top-24 rounded-2xl p-4 shadow-sm sm:p-5 lg:sticky">
         <h2 className="font-display font-bold">{t("booking.summary")}</h2>
         <div className="mt-4">
-          <div className="bg-media relative aspect-[16/9] overflow-hidden rounded-xl">
-            {vehicle.imageUrl && (
+          {/* Desktop only: on phones the car is already pictured in step 1,
+              right above this summary. */}
+          <div className="bg-media text-media-foreground relative mb-4 hidden aspect-[16/9] items-center justify-center overflow-hidden rounded-xl lg:flex">
+            {vehicle.imageUrl ? (
               <Image
                 src={vehicle.imageUrl}
                 alt={vehicle.label}
@@ -459,9 +451,11 @@ export function BookingForm({
                 sizes="320px"
                 className="object-cover"
               />
+            ) : (
+              <CarFront aria-hidden className="h-8 w-8" />
             )}
           </div>
-          <p className="mt-4 font-semibold">{vehicle.label}</p>
+          <p className="font-semibold">{vehicle.label}</p>
           <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
             <Users className="h-3.5 w-3.5" />
             {t("vehicle.seats", { count: vehicle.seats })}
@@ -529,12 +523,14 @@ function SectionHeading({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="bg-foreground text-background flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+      <span className="bg-foreground text-background flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold sm:h-8 sm:w-8 sm:text-xs">
         {number}
       </span>
       <div>
-        <h2 className="font-display text-lg font-bold">{title}</h2>
-        <p className="text-muted-foreground mt-0.5 text-sm">{description}</p>
+        <h2 className="font-display text-base font-bold sm:text-lg">{title}</h2>
+        <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">
+          {description}
+        </p>
       </div>
     </div>
   );
@@ -545,14 +541,16 @@ function FormField({
   name,
   error,
   children,
+  className,
 }: {
   label: string;
   name: string;
   error: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="space-y-2">
+    <div className={cn("min-w-0 space-y-2", className)}>
       <Label htmlFor={name}>{label}</Label>
       {children}
       {error}

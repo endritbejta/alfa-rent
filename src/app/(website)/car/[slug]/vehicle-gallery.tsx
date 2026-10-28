@@ -20,7 +20,7 @@ export function VehicleGallery({
 }: {
   images: GalleryImage[];
   name: string;
-  badge: React.ReactNode;
+  badge?: React.ReactNode;
 }) {
   const { t } = useI18n();
   const [index, setIndex] = useState(0);
@@ -28,7 +28,7 @@ export function VehicleGallery({
 
   return (
     <div>
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800 sm:rounded-2xl">
         {current ? (
           <Image
             key={current.id}
@@ -49,7 +49,7 @@ export function VehicleGallery({
             {name}
           </span>
         )}
-        <span className="absolute top-4 left-4">{badge}</span>
+        {badge && <span className="absolute top-4 left-4">{badge}</span>}
       </div>
 
       {images.length > 1 && (

@@ -21,7 +21,9 @@ const CATEGORY_KEYS: Record<VehicleCategory, TranslationKey> = {
 
 /**
  * Availability-first hero search with smart defaults: a 3-day window from
- * today and Economy pre-selected, so "Search" works on first click. State
+ * today and every category, so "Search" works on first click and shows the
+ * whole available fleet. Economy used to be pre-selected, which hid most
+ * cars from a first search; narrowing is one click away on either page. State
  * is carried to the fleet page as URL params — the shareable source of
  * truth the rest of the flow reads from.
  */
@@ -33,7 +35,7 @@ export function HeroSearch() {
     from: today,
     to: addDays(today, 3),
   });
-  const [category, setCategory] = useState<VehicleCategory | "">("ECONOMY");
+  const [category, setCategory] = useState<VehicleCategory | "">("");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -94,7 +94,7 @@ function Alert({
       className={`group flex items-center gap-3 rounded-none border px-4 py-3 transition-colors ${style.frame}`}
     >
       <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white ${style.badge}`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-none text-white ${style.badge}`}
       >
         <Icon className="h-4 w-4" />
       </span>

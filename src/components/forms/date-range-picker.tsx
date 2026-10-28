@@ -87,7 +87,7 @@ export function DatePicker({
         id={id}
         aria-invalid={ariaInvalid}
         aria-describedby={ariaDescribedBy}
-        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand aria-invalid:border-destructive aria-invalid:ring-destructive/20 flex h-11 w-full cursor-pointer items-center gap-2 rounded-none border px-3 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none aria-invalid:ring-3 sm:h-9"
+        className="border-input bg-control hover:bg-surface-hover focus-visible:ring-brand aria-invalid:border-destructive aria-invalid:ring-destructive/20 flex h-12 w-full cursor-pointer items-center gap-2 rounded-none border px-4 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none aria-invalid:ring-3 sm:h-12"
       >
         <CalendarDays className="text-brand h-3.5 w-3.5 shrink-0" />
         <span className={cn(!value && "text-muted-foreground")}>

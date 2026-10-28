@@ -62,13 +62,13 @@ export function PendingQueue({
     <section className={cn("border-brand/40 border-t-2 pt-4", compact && "")}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="bg-brand flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white">
+          <span className="bg-brand flex h-9 w-9 shrink-0 items-center justify-center rounded-none text-white">
             <BellRing className="h-4.5 w-4.5" />
           </span>
           <div>
             <h2 className="font-display flex items-center gap-2 text-lg font-bold tracking-tight">
               {t("admin.pendingRequests")}
-              <span className="bg-brand rounded-full px-2 py-0.5 text-xs font-bold text-white tabular-nums">
+              <span className="bg-brand rounded-none px-2 py-0.5 text-xs font-bold text-white tabular-nums">
                 {requests.length}
               </span>
             </h2>
@@ -92,7 +92,7 @@ export function PendingQueue({
               aria-pressed={layout === key}
               onClick={() => choose(key)}
               className={cn(
-                "cursor-pointer rounded-full p-1.5 transition-colors",
+                "cursor-pointer rounded-none p-1.5 transition-colors",
                 layout === key
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:text-foreground"

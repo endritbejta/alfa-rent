@@ -41,7 +41,7 @@ export function CustomerList({ items }: { items: Item[] }) {
             <button
               type="button"
               onClick={() => openCustomer(c.id)}
-              className="hover:bg-surface-hover w-full cursor-pointer rounded-lg px-2 py-3 text-left transition-colors"
+              className="hover:bg-surface-hover w-full cursor-pointer rounded-none px-2 py-3 text-left transition-colors"
             >
               <p className="text-sm font-semibold">
                 {c.firstName} {c.lastName}

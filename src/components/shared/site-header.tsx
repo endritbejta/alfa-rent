@@ -101,7 +101,7 @@ export function SiteHeader() {
                   onClick={() => setOpen(false)}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-11 items-center rounded-lg px-3 text-sm transition-colors",
+                    "flex min-h-11 items-center rounded-none px-3 text-sm transition-colors",
                     active
                       ? "bg-band-border/60 text-band-foreground font-semibold"
                       : "text-band-muted hover:text-band-foreground"

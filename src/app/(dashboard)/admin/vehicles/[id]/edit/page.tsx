@@ -48,7 +48,7 @@ export default async function EditVehiclePage({
       {photosFailed && (
         <div
           role="alert"
-          className="border-destructive/30 bg-destructive/[0.06] text-destructive mb-5 flex items-start gap-2 rounded-lg border p-4 text-sm"
+          className="border-destructive/30 bg-destructive/[0.06] text-destructive mb-5 flex items-start gap-2 rounded-none border p-4 text-sm"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{t("admin.photosNotAttached")}</span>

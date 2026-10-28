@@ -41,7 +41,7 @@ export function ReservationBody({
 
   return (
     <div className="space-y-6">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-900">
+      <div className="relative aspect-[16/9] overflow-hidden rounded-none bg-gradient-to-br from-neutral-800 to-neutral-900">
         {cover ? (
           <Image
             src={cover.url}
@@ -111,7 +111,7 @@ export function ReservationBody({
             </Row>
           )}
           {detail.notes && (
-            <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">
+            <p className="bg-secondary text-muted-foreground rounded-none p-3 text-xs">
               {detail.notes}
             </p>
           )}
@@ -217,7 +217,7 @@ export function ReservationBody({
                     {inspection.photos.map((photo) => (
                       <div
                         key={photo.id}
-                        className="bg-media relative aspect-square overflow-hidden rounded-lg"
+                        className="bg-media relative aspect-square overflow-hidden rounded-none"
                       >
                         <Image
                           src={photo.url}
@@ -269,7 +269,7 @@ export function ReservationBody({
             <span className="font-semibold">{eur(detail.customer.spend)}</span>
           </Row>
           {detail.customer.notes && (
-            <p className="bg-secondary text-muted-foreground rounded-lg p-3 text-xs">
+            <p className="bg-secondary text-muted-foreground rounded-none p-3 text-xs">
               {detail.customer.notes === "Repeat customer, prefers automatic."
                 ? t("admin.demoRepeatCustomer")
                 : detail.customer.notes}

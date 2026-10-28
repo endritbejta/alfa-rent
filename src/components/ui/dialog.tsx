@@ -55,7 +55,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "glass-l6 text-popover-foreground fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl p-4 text-sm transition-[opacity,scale] duration-[var(--motion-modal)] ease-[var(--ease-standard)] outline-none data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-ending-style:duration-[var(--motion-modal-exit)] data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100 sm:max-w-sm",
+          "bg-popover text-popover-foreground fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none border p-4 text-sm shadow-lg transition-[opacity,scale] duration-[var(--motion-modal)] ease-[var(--ease-standard)] outline-none data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-ending-style:duration-[var(--motion-modal-exit)] data-starting-style:scale-[0.98] data-starting-style:opacity-0 motion-reduce:data-ending-style:scale-100 motion-reduce:data-starting-style:scale-100 sm:max-w-sm",
           className
         )}
         {...props}
@@ -103,7 +103,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "bg-muted/50 -mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t p-4 sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-none border-t p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

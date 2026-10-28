@@ -31,7 +31,7 @@ export default function AdminError({
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
       <div className="w-full max-w-md border-y py-10 text-center">
-        <span className="bg-destructive/10 text-destructive mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full">
+        <span className="bg-destructive/10 text-destructive mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-none">
           <AlertTriangle className="h-6 w-6" />
         </span>
         <h1 className="font-display text-lg font-bold">

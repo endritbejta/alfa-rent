@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         >
           {t("admin.pendingRequests")}
           {kpis.pending > 0 && (
-            <span className="bg-brand ml-1 rounded-full px-1.5 text-xs font-bold text-white">
+            <span className="bg-brand ml-1 rounded-none px-1.5 text-xs font-bold text-white">
               {kpis.pending}
             </span>
           )}

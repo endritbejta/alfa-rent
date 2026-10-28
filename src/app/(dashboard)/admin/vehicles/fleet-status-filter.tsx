@@ -110,7 +110,7 @@ function Segment({
           : "text-muted-foreground hover:text-foreground"
       )}
     >
-      {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />}
+      {dot && <span className={cn("h-1.5 w-1.5 rounded-none", dot)} />}
       {label}
       <span className="text-muted-foreground tabular-nums">{count}</span>
     </button>

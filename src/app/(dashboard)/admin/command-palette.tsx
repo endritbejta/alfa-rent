@@ -236,7 +236,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
         // Sits high rather than centred: the results grow downward and the
         // input shouldn't move while you type. L6 — this was the reference
         // glass surface; now it consumes the ladder instead of hand-rolling it.
-        className="glass-l6 absolute inset-x-4 top-[12vh] mx-auto max-w-[38rem] overflow-hidden rounded-2xl shadow-lg outline-none"
+        className="glass-l6 absolute inset-x-4 top-[12vh] mx-auto max-w-[38rem] overflow-hidden rounded-none shadow-lg outline-none"
         onKeyDown={onKeyDown}
       >
         <div className="flex items-center gap-3 border-b px-4">
@@ -304,7 +304,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
                   onClick={() => run(row)}
                   onMouseEnter={() => setActive(i)}
                   className={cn(
-                    "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
+                    "flex w-full cursor-pointer items-center gap-3 rounded-none px-3 py-2 text-left transition-colors",
                     i === active
                       ? "bg-surface-selected"
                       : "hover:bg-surface-hover"
@@ -324,7 +324,7 @@ export function CommandPalette({ pendingCount }: { pendingCount: number }) {
                   {!isHit &&
                     row.href === "/admin/reservations" &&
                     pendingCount > 0 && (
-                      <span className="bg-brand rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      <span className="bg-brand rounded-none px-1.5 py-0.5 text-[10px] font-bold text-white">
                         {pendingCount}
                       </span>
                     )}

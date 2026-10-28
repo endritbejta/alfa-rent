@@ -25,7 +25,10 @@ import {
   extendReservation,
   updateReservationStatus,
 } from "@/services/reservation.service";
-import { recordRentalInspection } from "@/services/inspection.service";
+import {
+  getPickupMileage,
+  recordRentalInspection,
+} from "@/services/inspection.service";
 
 export type ActionResult = { error: string } | undefined;
 
@@ -53,6 +56,14 @@ export async function signInspectionUploadAction(
   } catch (error) {
     return { error: await errorMessage(error) };
   }
+}
+
+/** Shown beside the return odometer field so staff see the starting figure. */
+export async function getPickupMileageAction(
+  reservationId: string
+): Promise<number | null> {
+  await requireRole("EMPLOYEE");
+  return getPickupMileage(reservationId);
 }
 
 export async function recordRentalInspectionAction(

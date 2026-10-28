@@ -159,7 +159,7 @@ export function CalendarTimeline({
         </Button>
 
         <div className="flex items-center gap-2">
-          <div className="bg-secondary inline-flex rounded-full border p-0.5">
+          <div className="bg-secondary inline-flex rounded-none border p-0.5">
             {(
               [
                 ["compact", t("admin.month")],
@@ -172,7 +172,7 @@ export function CalendarTimeline({
                 aria-pressed={zoom === key}
                 onClick={() => setZoom(key)}
                 className={cn(
-                  "cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "cursor-pointer rounded-none px-3 py-1.5 text-xs font-semibold transition-colors",
                   zoom === key
                     ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -187,7 +187,7 @@ export function CalendarTimeline({
               type="button"
               aria-label={t("admin.previousMonth")}
               onClick={() => jumpMonth(-1)}
-              className="hover:bg-surface-hover cursor-pointer rounded-full p-1.5 transition-colors"
+              className="hover:bg-surface-hover cursor-pointer rounded-none p-1.5 transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -198,7 +198,7 @@ export function CalendarTimeline({
               type="button"
               aria-label={t("admin.nextMonth")}
               onClick={() => jumpMonth(1)}
-              className="hover:bg-surface-hover cursor-pointer rounded-full p-1.5 transition-colors"
+              className="hover:bg-surface-hover cursor-pointer rounded-none p-1.5 transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -386,7 +386,7 @@ export function CalendarTimeline({
                           openReservation(r.id);
                         }}
                         className={cn(
-                          "absolute top-2 z-10 h-7 cursor-pointer truncate rounded-md px-2 text-center text-xs leading-7 transition-shadow",
+                          "absolute top-2 z-10 h-7 cursor-pointer truncate rounded-none px-2 text-center text-xs leading-7 transition-shadow",
                           BAR_STYLES[r.status],
                           active && "ring-foreground/70 shadow-md ring-2"
                         )}

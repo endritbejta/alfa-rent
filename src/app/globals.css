@@ -188,7 +188,7 @@
    * Buttons are deliberately pills and are unaffected; that is identity, not
    * a default.
    */
-  --radius: 0.375rem;
+  --radius: 0;
 
   /*
    * Motion tokens (design doc C+, §5). Durations agree app-wide; exits run

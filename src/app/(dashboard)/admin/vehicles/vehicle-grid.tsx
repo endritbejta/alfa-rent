@@ -36,7 +36,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
           href={`/admin/vehicles/${v.id}/edit`}
           className="group block cursor-pointer overflow-hidden text-left"
         >
-          <div className="bg-media relative aspect-[16/10] overflow-hidden rounded-md">
+          <div className="bg-media relative aspect-[16/10] overflow-hidden rounded-none">
             {v.image ? (
               <Image
                 src={v.image}
@@ -90,7 +90,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
               ].map(({ icon: Icon, label }) => (
                 <span
                   key={label}
-                  className="border-brand/15 bg-brand/[0.06] text-foreground/80 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]"
+                  className="border-brand/15 bg-brand/[0.06] text-foreground/80 flex items-center gap-1 rounded-none border px-2 py-0.5 text-[11px]"
                 >
                   <Icon className="text-brand h-3 w-3" />
                   {label}

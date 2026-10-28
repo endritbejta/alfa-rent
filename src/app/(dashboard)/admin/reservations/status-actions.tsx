@@ -63,7 +63,12 @@ export function StatusActions({
           <Button
             key={action.to}
             size="sm"
-            variant={action.destructive ? "destructive" : "success"}
+            variant={action.destructive ? "ghost" : "success"}
+            className={
+              action.destructive
+                ? "text-destructive hover:text-destructive"
+                : undefined
+            }
             disabled={pending}
             onClick={() =>
               action.to === "CANCELLED"

@@ -246,7 +246,7 @@ export function FleetFilters() {
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="max-h-[88dvh] overflow-y-auto rounded-t-md"
+            className="max-h-[88dvh] overflow-y-auto rounded-t-none"
           >
             <SheetHeader className="border-b px-5 py-5">
               <SheetTitle>{t("filter.title")}</SheetTitle>

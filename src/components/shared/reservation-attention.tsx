@@ -27,10 +27,8 @@ export function ReservationAttention({
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2 py-1 text-[11px] font-semibold whitespace-nowrap",
-        overdue
-          ? "bg-destructive/10 text-destructive"
-          : "bg-status-maint/14 text-status-maint"
+        "inline-flex text-xs font-medium whitespace-nowrap",
+        overdue ? "text-destructive" : "text-status-maint"
       )}
     >
       {t(LABELS[attention])}

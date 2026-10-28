@@ -18,6 +18,7 @@ import {
 import {
   DatePicker,
   fromDateValue,
+  OccupiedDates,
   toDateValue,
 } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
@@ -364,12 +365,10 @@ export function BookingForm({
               {fieldError("to")}
             </div>
           </div>
-          {bookingCalendar.blockedRanges.length > 0 && (
-            <p className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
-              <span className="bg-destructive/70 h-2 w-2 rounded-full" />
-              {t("availability.unavailableDates")}
-            </p>
-          )}
+          <OccupiedDates
+            ranges={bookingCalendar.blockedRanges}
+            className="mt-3"
+          />
         </section>
 
         <section className="border-t pt-6 sm:pt-8">

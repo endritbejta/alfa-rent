@@ -25,18 +25,6 @@ const SURFACE_HUES: Record<Status, string> = {
   CANCELLED: "text-destructive bg-destructive/10",
 };
 
-const DOT_HUES: Record<Status, string> = {
-  AVAILABLE: "bg-status-available",
-  RENTED: "bg-status-rented",
-  SERVICE: "bg-status-maint",
-  INACTIVE: "bg-status-inactive",
-  PENDING: "bg-status-maint",
-  CONFIRMED: "bg-status-reserved",
-  ACTIVE: "bg-status-rented",
-  COMPLETED: "bg-status-inactive",
-  CANCELLED: "bg-destructive",
-};
-
 export function StatusBadge({
   status,
   variant = "surface",
@@ -50,18 +38,12 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 text-xs font-medium",
+        "inline-flex items-center text-xs font-medium",
         variant === "overlay"
           ? "text-white"
           : SURFACE_HUES[status].split(" ")[0]
       )}
     >
-      <span
-        className={cn(
-          "h-2 w-2 rounded-full",
-          variant === "overlay" ? DOT_HUES[status] : "bg-current"
-        )}
-      />
       {t(STATUS_KEYS[status])}
     </span>
   );

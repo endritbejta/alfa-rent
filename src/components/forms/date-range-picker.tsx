@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addDays, format, isAfter } from "date-fns";
+import { addDays, format, isAfter, parseISO, startOfToday } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { CalendarDays, X } from "lucide-react";
 import type { DateRange, Matcher } from "react-day-picker";
@@ -16,6 +16,7 @@ import { useI18n } from "@/components/shared/locale-provider";
 import {
   isBookingDayBlocked,
   isBookingRangeAvailable,
+  type BlockedBookingRange,
   type VehicleBookingCalendar,
 } from "@/lib/booking-calendar";
 
@@ -374,17 +375,48 @@ export function DateRangePicker({
           onSelect={(to) => onChange({ from: value?.from, to })}
         />
       </div>
-      {bookingCalendar && bookingCalendar.blockedRanges.length > 0 && (
-        <p
-          className={cn(
-            "mt-2 flex items-center gap-2 text-xs",
-            dark ? "text-band-muted" : "text-muted-foreground"
-          )}
-        >
-          <span className="bg-destructive/70 h-2 w-2 rounded-full" />
-          {t("availability.unavailableDates")}
-        </p>
-      )}
+      <OccupiedDates
+        ranges={bookingCalendar?.blockedRanges ?? []}
+        dark={dark}
+      />
     </div>
+  );
+}
+
+/**
+ * Says which dates a vehicle is already taken, as plain ranges. Only ranges
+ * still ahead are listed; the first three, then a count of the rest.
+ */
+export function OccupiedDates({
+  ranges,
+  dark = false,
+  className,
+}: {
+  ranges: BlockedBookingRange[];
+  dark?: boolean;
+  className?: string;
+}) {
+  const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
+  const today = format(startOfToday(), "yyyy-MM-dd");
+  const upcoming = ranges.filter((range) => range.to >= today);
+  if (upcoming.length === 0) return null;
+  const day = (iso: string) =>
+    format(parseISO(iso), "dd MMM", { locale: dateLocale });
+  const list =
+    upcoming
+      .slice(0, 3)
+      .map((range) => `${day(range.from)} – ${day(range.to)}`)
+      .join(", ") + (upcoming.length > 3 ? ` +${upcoming.length - 3}` : "");
+  return (
+    <p
+      className={cn(
+        "mt-2 text-xs",
+        dark ? "text-band-muted" : "text-muted-foreground",
+        className
+      )}
+    >
+      {t("availability.occupiedDates", { ranges: list })}
+    </p>
   );
 }

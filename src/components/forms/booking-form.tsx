@@ -22,6 +22,7 @@ import {
   toDateValue,
 } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/shared/copy-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ApiResponse } from "@/types/api";
@@ -201,10 +202,12 @@ export function BookingForm({
 
   if (confirmation) {
     return (
-      <div className="mx-auto max-w-2xl border-y py-12 text-center motion-safe:animate-[modal-in_var(--motion-panel)_var(--ease-standard)]">
-        <span className="bg-status-available/10 text-status-available mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-          <CheckCircle2 className="h-8 w-8" />
-        </span>
+      <div className="mx-auto max-w-2xl py-12 text-center motion-safe:animate-[modal-in_var(--motion-panel)_var(--ease-standard)]">
+        <CheckCircle2
+          aria-hidden
+          className="text-status-available mx-auto h-14 w-14"
+          strokeWidth={1.5}
+        />
         <h2
           ref={confirmationHeading}
           tabIndex={-1}
@@ -217,9 +220,10 @@ export function BookingForm({
             total: formatPrice(confirmation.totalPrice, locale),
           })}
         </p>
-        <p className="bg-muted mx-auto mt-5 w-fit rounded-none px-4 py-2 font-mono text-xs">
-          {t("booking.reference", { id: confirmation.id })}
-        </p>
+        <div className="bg-muted mx-auto mt-5 flex w-fit items-center gap-2 py-1 pr-1 pl-4 font-mono text-xs">
+          <span>{t("booking.reference", { id: confirmation.id })}</span>
+          <CopyButton value={confirmation.id} />
+        </div>
         <p className="text-muted-foreground mx-auto mt-4 max-w-md text-xs leading-relaxed">
           {t("booking.responseTime")}
         </p>
@@ -257,7 +261,7 @@ export function BookingForm({
       noValidate
     >
       <div className="min-w-0 space-y-4 sm:space-y-6">
-        <section className="min-w-0 border-t pt-6 sm:pt-8">
+        <section className="min-w-0 pt-2 sm:pt-4">
           <SectionHeading
             number="01"
             title={t("booking.tripSection")}
@@ -266,7 +270,7 @@ export function BookingForm({
 
           <div className="mt-4 space-y-3 sm:mt-6">
             <input type="hidden" {...register("vehicleId")} />
-            <div className="border-border flex items-center gap-3 border-y py-3">
+            <div className="flex items-center gap-3 py-3">
               <span className="bg-media text-media-foreground relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-none sm:h-14 sm:w-20">
                 {vehicle.imageUrl ? (
                   <Image
@@ -371,7 +375,7 @@ export function BookingForm({
           />
         </section>
 
-        <section className="border-t pt-6 sm:pt-8">
+        <section className="pt-4 sm:pt-6">
           <SectionHeading
             number="02"
             title={t("booking.detailsSection")}
@@ -522,7 +526,7 @@ function SectionHeading({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="bg-foreground text-background flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold sm:h-8 sm:w-8 sm:text-xs">
+      <span className="bg-foreground text-background flex h-7 w-7 shrink-0 items-center justify-center rounded-none text-[11px] font-bold sm:h-8 sm:w-8 sm:text-xs">
         {number}
       </span>
       <div>

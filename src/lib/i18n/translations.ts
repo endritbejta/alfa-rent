@@ -103,6 +103,8 @@ const en = {
   "booking.confirmation":
     "Your booking total is {total} EUR. Our team will contact you to confirm within business hours — nothing is charged until pickup.",
   "booking.reference": "Reference: {id}",
+  "common.copy": "Copy",
+  "common.copied": "Copied",
   "booking.backToFleet": "Back to the fleet",
   "booking.chooseError": "Choose a vehicle",
   "booking.pickupRequired": "Pickup date is required",
@@ -844,6 +846,8 @@ const sq: TranslationDictionary = {
   "booking.confirmation":
     "Totali i rezervimit është {total} EUR. Ekipi ynë do t'ju kontaktojë për konfirmim gjatë orarit të punës — pagesa bëhet vetëm në marrje.",
   "booking.reference": "Referenca: {id}",
+  "common.copy": "Kopjo",
+  "common.copied": "U kopjua",
   "booking.backToFleet": "Kthehu te flota",
   "booking.chooseError": "Zgjidh një veturë",
   "booking.pickupRequired": "Kërkohet data e marrjes",

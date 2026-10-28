@@ -31,7 +31,7 @@ export function StatStrip({ stats }: { stats: Stat[] }) {
     <dl className="grid grid-cols-2 gap-x-8 gap-y-6 py-2 sm:grid-cols-4 lg:grid-cols-7">
       {stats.map((stat) => (
         <div key={stat.label} className="min-w-0">
-          <dt className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
+          <dt className="text-muted-foreground min-h-8 text-[11px] font-medium tracking-[0.18em] uppercase">
             {stat.label}
           </dt>
           <dd

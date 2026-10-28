@@ -65,7 +65,7 @@ export async function VehicleCard({
         href={detailHref}
         tabIndex={-1}
         aria-hidden="true"
-        className="bg-media relative block aspect-[16/10] overflow-hidden md:col-span-7"
+        className="bg-media relative block aspect-[16/10] overflow-hidden rounded-md md:col-span-7"
       >
         {cover ? (
           <Image

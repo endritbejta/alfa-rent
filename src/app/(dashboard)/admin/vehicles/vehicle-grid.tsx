@@ -36,7 +36,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
           href={`/admin/vehicles/${v.id}/edit`}
           className="group block cursor-pointer overflow-hidden text-left"
         >
-          <div className="bg-media relative aspect-[16/10]">
+          <div className="bg-media relative aspect-[16/10] overflow-hidden rounded-md">
             {v.image ? (
               <Image
                 src={v.image}
@@ -52,9 +52,11 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 {v.brand}
               </span>
             )}
-            <span className="absolute top-3 right-3">
-              <StatusBadge status={v.status} variant="overlay" />
-            </span>
+            {v.status !== "AVAILABLE" && (
+              <span className="absolute top-3 right-3">
+                <StatusBadge status={v.status} variant="overlay" />
+              </span>
+            )}
           </div>
           <div className="border-b py-4">
             <div className="flex items-baseline justify-between gap-2">

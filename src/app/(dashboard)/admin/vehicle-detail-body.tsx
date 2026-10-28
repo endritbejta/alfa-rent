@@ -39,9 +39,11 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
               {vehicle.brand}
             </span>
           )}
-          <span className="absolute top-3 right-3">
-            <StatusBadge status={vehicle.status} variant="overlay" />
-          </span>
+          {vehicle.status !== "AVAILABLE" && (
+            <span className="absolute top-3 right-3">
+              <StatusBadge status={vehicle.status} variant="overlay" />
+            </span>
+          )}
         </div>
         {rest.length > 0 && (
           <div className="mt-2 grid grid-cols-4 gap-2">

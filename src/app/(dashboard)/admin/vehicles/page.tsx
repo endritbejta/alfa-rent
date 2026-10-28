@@ -100,7 +100,9 @@ async function VehicleTable({
                 {vehicle.category}
               </TableCell>
               <TableCell className={cn(dense && "py-2")}>
-                <StatusBadge status={vehicle.status} />
+                {vehicle.status !== "AVAILABLE" && (
+                  <StatusBadge status={vehicle.status} />
+                )}
               </TableCell>
               <TableCell
                 className={cn("text-right tabular-nums", dense && "py-2")}

@@ -111,29 +111,32 @@ export function FleetFilters() {
   };
   const chip = (active: boolean) =>
     cn(
-      "min-h-11 rounded-full border px-4 py-2 text-sm transition-[background-color,border-color,color] duration-[var(--motion-hover)] sm:min-h-8 sm:py-1.5",
+      "min-h-11 rounded-none border px-4 py-2 text-sm transition-[background-color,border-color,color] duration-[var(--motion-hover)] sm:min-h-8 sm:py-1.5",
       active
         ? "border-transparent bg-foreground font-semibold text-background"
-        : "bg-card text-muted-foreground hover:text-foreground"
+        : "text-muted-foreground hover:text-foreground"
     );
 
   const controls = (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Sort lives with the results (FleetSort, beside the count), so the
           search gets the panel's full width. */}
       <div>
-        <form onSubmit={submitSearch} className="flex min-w-0 flex-1 gap-2">
+        <form
+          onSubmit={submitSearch}
+          className="flex min-w-0 flex-1 items-end gap-6"
+        >
           <div className="relative min-w-0 flex-1">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-1 h-5 w-5 -translate-y-1/2" />
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("filter.search")}
               aria-label={t("filter.search")}
-              className="pl-9 sm:pl-9"
+              className="focus-visible:border-foreground h-14 border-0 border-b bg-transparent py-3 pr-4 pl-10 text-lg focus-visible:ring-0 sm:h-14 sm:py-3 sm:pr-4 sm:pl-10 md:text-lg"
             />
           </div>
-          <Button type="submit" variant="outline">
+          <Button type="submit" variant="outline" className="h-11 px-8 sm:h-11">
             {t("common.search")}
           </Button>
         </form>
@@ -206,7 +209,7 @@ export function FleetFilters() {
           type="button"
           onClick={() => remove(key)}
           aria-label={t("filter.remove", { label })}
-          className="bg-foreground text-background hover:bg-foreground/85 inline-flex min-h-9 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-3.5 text-sm font-medium transition-colors"
+          className="bg-foreground text-background hover:bg-foreground/85 inline-flex min-h-9 items-center gap-1.5 rounded-none py-1 pr-2.5 pl-3.5 text-sm font-medium transition-colors"
         >
           {label}
           <X className="h-3.5 w-3.5" aria-hidden />
@@ -236,14 +239,14 @@ export function FleetFilters() {
             <SlidersHorizontal />
             {t("filter.open")}
             {activeCount > 0 && (
-              <span className="bg-foreground text-background rounded-full px-2 py-0.5 text-[11px]">
+              <span className="bg-foreground text-background rounded-none px-2 py-0.5 text-[11px]">
                 {activeCount}
               </span>
             )}
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="max-h-[88dvh] overflow-y-auto rounded-t-3xl"
+            className="max-h-[88dvh] overflow-y-auto rounded-t-none"
           >
             <SheetHeader className="border-b px-5 py-5">
               <SheetTitle>{t("filter.title")}</SheetTitle>
@@ -259,9 +262,7 @@ export function FleetFilters() {
         </Sheet>
       </div>
 
-      <div className="bg-card hidden rounded-2xl border p-5 shadow-xs md:block">
-        {controls}
-      </div>
+      <div className="hidden border-b pb-4 md:block">{controls}</div>
 
       {appliedRow}
     </div>

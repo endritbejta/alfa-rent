@@ -184,7 +184,7 @@ export function InspectionPhotoUpload({
         {items.map((item) => (
           <div
             key={item.id}
-            className="bg-media relative aspect-square overflow-hidden rounded-lg border"
+            className="bg-media relative aspect-square overflow-hidden rounded-none border"
           >
             <Image
               src={item.preview}
@@ -208,7 +208,7 @@ export function InspectionPhotoUpload({
               type="button"
               aria-label={t("admin.removePhoto")}
               onClick={() => remove(item.id)}
-              className="absolute top-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white"
+              className="absolute top-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-none bg-black/70 text-white"
             >
               <X className="h-3 w-3" />
             </button>
@@ -218,7 +218,7 @@ export function InspectionPhotoUpload({
           <button
             type="button"
             onClick={() => input.current?.click()}
-            className="text-muted-foreground hover:text-brand hover:border-brand/40 flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed"
+            className="text-muted-foreground hover:text-brand hover:border-brand/40 flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-none border border-dashed"
           >
             {items.length === 0 ? (
               <Camera className="h-5 w-5" />

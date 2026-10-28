@@ -59,7 +59,7 @@ export function AdminNav({
               aria-current={active ? "page" : undefined}
               aria-label={collapsed ? t(label) : undefined}
               className={cn(
-                "relative flex items-center rounded-lg text-sm transition-colors",
+                "relative flex items-center rounded-none text-sm transition-colors",
                 collapsed ? "h-10 w-10 justify-center" : "gap-3 px-3 py-2",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
@@ -67,19 +67,19 @@ export function AdminNav({
               )}
             >
               {active && !collapsed && (
-                <span className="bg-sidebar-primary absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full" />
+                <span className="bg-sidebar-primary absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-none" />
               )}
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span className="flex-1">{t(label)}</span>}
               {badge && !collapsed && (
-                <span className="bg-brand rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                <span className="bg-brand rounded-none px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
                   {pendingCount}
                 </span>
               )}
               {/* Collapsed: the count has nowhere to sit, so it becomes a dot.
                   The number is gone but the fact that someone is waiting is not. */}
               {badge && collapsed && (
-                <span className="bg-brand ring-sidebar absolute top-1 right-1 h-2 w-2 rounded-full ring-2" />
+                <span className="bg-brand ring-sidebar absolute top-1 right-1 h-2 w-2 rounded-none ring-2" />
               )}
             </Link>
           );
@@ -91,7 +91,7 @@ export function AdminNav({
               <Tooltip.Trigger render={link} />
               <Tooltip.Portal>
                 <Tooltip.Positioner side="right" sideOffset={10}>
-                  <Tooltip.Popup className="bg-popover text-popover-foreground rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-md">
+                  <Tooltip.Popup className="bg-popover text-popover-foreground rounded-none border px-2.5 py-1.5 text-xs font-medium shadow-md">
                     {t(label)}
                     {badge && (
                       <span className="text-brand ml-1.5 font-bold tabular-nums">

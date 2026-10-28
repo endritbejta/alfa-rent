@@ -28,7 +28,7 @@ export function VehicleGallery({
 
   return (
     <div>
-      <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800 sm:rounded-2xl">
+      <div className="bg-media relative aspect-[16/10] overflow-hidden">
         {current ? (
           <Image
             key={current.id}
@@ -69,7 +69,7 @@ export function VehicleGallery({
               })}
               aria-pressed={i === index}
               className={cn(
-                "bg-media ring-offset-background focus-visible:ring-ring relative aspect-[16/10] overflow-hidden rounded-lg ring-offset-2 transition-[box-shadow,opacity] duration-[var(--motion-hover)] focus-visible:ring-2 focus-visible:outline-none",
+                "bg-media ring-offset-background focus-visible:ring-ring relative aspect-[16/10] overflow-hidden ring-offset-2 transition-[box-shadow,opacity] duration-[var(--motion-hover)] focus-visible:ring-2 focus-visible:outline-none",
                 i === index
                   ? "ring-foreground ring-2"
                   : "opacity-70 hover:opacity-100"

@@ -38,7 +38,7 @@ export function FleetSort() {
         aria-busy={pending}
         value={params.get("sort") ?? "newest"}
         onChange={(event) => change(event.target.value)}
-        className="border-input bg-card focus-visible:border-ring focus-visible:ring-ring/50 h-11 cursor-pointer rounded-lg border pr-9 pl-9 text-sm font-medium shadow-xs transition-opacity outline-none focus-visible:ring-3 aria-busy:opacity-70 sm:h-9"
+        className="border-border focus-visible:border-ring focus-visible:ring-ring/50 h-11 cursor-pointer rounded-none border bg-transparent pr-9 pl-9 text-sm font-medium transition-opacity outline-none focus-visible:ring-3 aria-busy:opacity-70 sm:h-9"
       >
         <option value="newest">{t("filter.sortNewest")}</option>
         <option value="price-asc">{t("filter.sortPriceLow")}</option>

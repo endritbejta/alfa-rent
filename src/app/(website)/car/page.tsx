@@ -7,6 +7,7 @@ import { getPublicVehicles } from "@/services/vehicle.service";
 import { vehicleFilterSchema } from "@/lib/validations/vehicle";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { FleetFilters } from "@/components/forms/fleet-filters";
+import { FleetView } from "@/components/forms/fleet-view";
 import { FleetSort } from "@/components/forms/fleet-sort";
 import { Pagination } from "@/components/dashboard/pagination";
 import { Button } from "@/components/ui/button";
@@ -67,13 +68,13 @@ export default async function FleetPage({
 
   return (
     <>
-      <section className="bg-band text-band-foreground">
-        <div className="mx-auto max-w-6xl px-5 pt-8 pb-6 sm:pt-12 sm:pb-9">
-          <span className="eyebrow text-band-muted">{t("fleet.eyebrow")}</span>
-          <h1 className="font-display mt-3 text-2xl font-bold tracking-tight sm:mt-4 sm:text-3xl lg:text-4xl">
-            {t("fleet.title")}
-          </h1>
-          <p className="text-band-muted mt-2 max-w-lg text-sm sm:mt-3 sm:text-base">
+      <section>
+        <div className="mx-auto max-w-6xl px-5 pt-8 pb-5 sm:pt-10 sm:pb-6">
+          <span className="eyebrow text-muted-foreground">
+            {t("fleet.eyebrow")}
+          </span>
+          <h1 className="display-xl reveal mt-4">{t("fleet.title")}</h1>
+          <p className="text-muted-foreground mt-4 max-w-lg text-sm sm:text-base">
             {dateRange
               ? t("fleet.availableDescription", {
                   from: format(dateRange.from, "dd MMM", {
@@ -88,59 +89,61 @@ export default async function FleetPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-6 sm:py-10">
+      <section className="mx-auto max-w-6xl px-5 pb-8">
         <FleetFilters />
 
-        <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-muted-foreground text-sm">
-            {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
-              count: total,
-            })}
-            {dateRange ? t("fleet.availableSuffix") : ""}
-          </p>
-          {total > 1 && <FleetSort />}
-        </div>
-
-        {items.length === 0 ? (
-          <div className="rounded-xl border border-dashed px-6 py-16 text-center">
-            <p className="font-display text-lg font-bold">
-              {t("fleet.emptyTitle")}
+        <FleetView
+          summary={
+            <p className="text-muted-foreground text-sm">
+              {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
+                count: total,
+              })}
+              {dateRange ? t("fleet.availableSuffix") : ""}
             </p>
-            <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
-              {t("fleet.emptyText")}
-            </p>
-            <Button
-              variant="outline"
-              className="mt-6"
-              nativeButton={false}
-              render={<Link href={clearHref} />}
-            >
-              {t("filter.clear")}
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="grid gap-6 pb-8 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((vehicle, index) => (
-                <VehicleCard
-                  key={vehicle.id}
-                  vehicle={vehicle}
-                  query={query}
-                  bookingReady={Boolean(dateRange)}
-                  preload={index === 0}
-                />
-              ))}
+          }
+          sort={total > 1 ? <FleetSort /> : undefined}
+        >
+          {items.length === 0 ? (
+            <div className="border-y px-6 py-20 text-center">
+              <p className="font-display text-lg font-bold">
+                {t("fleet.emptyTitle")}
+              </p>
+              <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
+                {t("fleet.emptyText")}
+              </p>
+              <Button
+                variant="outline"
+                className="mt-6"
+                nativeButton={false}
+                render={<Link href={clearHref} />}
+              >
+                {t("filter.clear")}
+              </Button>
             </div>
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              total={total}
-              perPage={perPage}
-              basePath="/car"
-              labelKey="common.vehicles"
-            />
-          </>
-        )}
+          ) : (
+            <>
+              <div className="grid gap-x-8 gap-y-12 pb-8 md:grid-cols-2 md:group-data-[view=one]/fleet:grid-cols-1 md:group-data-[view=one]/fleet:gap-y-0 md:group-data-[view=one]/fleet:divide-y lg:group-data-[view=three]/fleet:grid-cols-3">
+                {items.map((vehicle, index) => (
+                  <VehicleCard
+                    key={vehicle.id}
+                    vehicle={vehicle}
+                    query={query}
+                    bookingReady={Boolean(dateRange)}
+                    preload={index === 0}
+                  />
+                ))}
+              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                total={total}
+                perPage={perPage}
+                basePath="/car"
+                labelKey="common.vehicles"
+              />
+            </>
+          )}
+        </FleetView>
       </section>
     </>
   );

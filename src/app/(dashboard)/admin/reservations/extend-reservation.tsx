@@ -130,7 +130,7 @@ export function ExtendReservation({
   }
 
   return (
-    <div className="bg-secondary/60 mt-3 space-y-3 rounded-lg border p-3">
+    <div className="bg-secondary/60 mt-3 space-y-3 rounded-none border p-3">
       <div>
         <label
           htmlFor="extend-return"

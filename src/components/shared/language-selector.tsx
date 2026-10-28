@@ -21,7 +21,7 @@ export function LanguageSelector({
   return (
     <label
       className={cn(
-        "relative inline-flex h-9 items-center gap-1.5 rounded-lg border border-current/20 px-2 text-xs",
+        "relative inline-flex h-9 items-center gap-1.5 rounded-none border border-current/20 px-2 text-xs",
         className
       )}
     >

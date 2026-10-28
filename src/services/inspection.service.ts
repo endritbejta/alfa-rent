@@ -27,6 +27,17 @@ function expectedInspection(status: string): InspectionType | null {
  * There is no state where a rental is marked active/completed but its required
  * condition record failed to save.
  */
+/** Odometer reading recorded when the vehicle left, or null if none yet. */
+export async function getPickupMileage(
+  reservationId: string
+): Promise<number | null> {
+  const pickup = await prisma.rentalInspection.findUnique({
+    where: { reservationId_type: { reservationId, type: "PICKUP" } },
+    select: { mileage: true },
+  });
+  return pickup?.mileage ?? null;
+}
+
 export async function recordRentalInspection(
   reservationId: string,
   createdById: string,

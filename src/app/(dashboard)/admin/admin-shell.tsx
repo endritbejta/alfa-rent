@@ -72,7 +72,7 @@ function SidebarChrome({
               collapsed ? t("admin.expandSidebar") : t("admin.collapseSidebar")
             }  [`}
             className={cn(
-              "border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground relative flex shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-colors hover:bg-white/8",
+              "border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground relative flex shrink-0 cursor-pointer items-center justify-center rounded-none border transition-colors hover:bg-white/8",
               collapsed ? "h-6 w-6" : "h-7 w-7"
             )}
           >
@@ -216,7 +216,7 @@ export function AdminShell({
               collapsed ? "w-[88px]" : "w-[264px]"
             )}
           >
-            <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-[20px] shadow-lg">
+            <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-none shadow-lg">
               <SidebarChrome
                 user={user}
                 signOutAction={signOutAction}
@@ -236,7 +236,7 @@ export function AdminShell({
             >
               <SheetClose
                 aria-label={t("admin.closeMenu")}
-                className="text-sidebar-foreground/70 hover:text-sidebar-foreground absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+                className="text-sidebar-foreground/70 hover:text-sidebar-foreground absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-none transition-colors"
               >
                 <X className="h-5 w-5" />
               </SheetClose>
@@ -265,7 +265,7 @@ export function AdminShell({
               >
                 <Menu className="h-5 w-5" />
                 {pendingCount > 0 && (
-                  <span className="bg-brand absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
+                  <span className="bg-brand absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-none px-1 text-[10px] font-bold text-white">
                     {pendingCount}
                   </span>
                 )}

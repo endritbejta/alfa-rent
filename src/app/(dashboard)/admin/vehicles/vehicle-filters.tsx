@@ -60,10 +60,7 @@ export function VehicleFilters({
   }));
 
   return (
-    <section
-      id="fleet"
-      className="bg-card scroll-mt-6 overflow-hidden rounded-xl border shadow-xs"
-    >
+    <section id="fleet" className="scroll-mt-6 overflow-hidden border-y">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
         <h2 className="font-display flex items-center gap-2 text-sm font-bold">
           <SlidersHorizontal className="text-brand h-4 w-4" />
@@ -124,7 +121,7 @@ export function VehicleFilters({
               key={key}
               type="button"
               onClick={() => set(key, null)}
-              className="bg-card hover:border-destructive/40 hover:text-destructive group flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
+              className="bg-card hover:border-destructive/40 hover:text-destructive group flex cursor-pointer items-center gap-1.5 rounded-none border px-3 py-1 text-xs font-medium transition-colors"
             >
               <span className="text-muted-foreground group-hover:text-destructive/70">
                 {t(FILTER_LABELS[key])}:
@@ -147,7 +144,7 @@ export function VehicleFilters({
 }
 
 const selectClass =
-  "border-input bg-control focus:ring-ring h-9 w-full cursor-pointer rounded-lg border pr-9 pl-3 text-sm outline-none transition-colors focus:ring-2";
+  "border-input bg-control focus:ring-ring h-12 w-full cursor-pointer rounded-none border pr-9 pl-4 text-sm outline-none transition-colors focus:ring-2";
 
 /**
  * A <label> wrapping the control, not a <p> beside it.

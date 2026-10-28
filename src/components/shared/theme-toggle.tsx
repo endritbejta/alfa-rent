@@ -35,7 +35,7 @@ export function ThemeToggle({
       title={mounted ? action : t("theme.toggle")}
       onClick={() => setTheme(dark ? "light" : "dark")}
       className={cn(
-        "border-band-border text-band-muted hover:text-band-foreground inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 transition-colors hover:bg-white/8",
+        "border-band-border text-band-muted hover:text-band-foreground inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-none border px-2 transition-colors hover:bg-white/8",
         showLabel && "justify-start px-2.5 text-xs font-semibold",
         className
       )}

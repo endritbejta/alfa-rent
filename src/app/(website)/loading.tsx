@@ -20,7 +20,7 @@ export default function WebsiteLoading() {
           {Array.from({ length: 6 }, (_, index) => (
             <div
               key={index}
-              className="bg-card overflow-hidden rounded-2xl shadow-sm"
+              className="bg-card overflow-hidden rounded-none shadow-sm"
             >
               <Skeleton className="aspect-[16/10] w-full rounded-none" />
               <div className="space-y-3 p-5">

@@ -66,7 +66,7 @@ export function CustomerDetailBody({
             {contactMissing && (
               <p
                 role="note"
-                className="bg-status-maint/10 text-status-maint mb-2 rounded-lg p-3 text-xs"
+                className="bg-status-maint/10 text-status-maint mb-2 rounded-none p-3 text-xs"
               >
                 {t("admin.contactMissing")}
               </p>
@@ -88,7 +88,7 @@ export function CustomerDetailBody({
               </Row>
             </div>
             {detail.notes && (
-              <p className="bg-secondary text-muted-foreground mt-2 rounded-lg p-3 text-xs">
+              <p className="bg-secondary text-muted-foreground mt-2 rounded-none p-3 text-xs">
                 {detail.notes === "Repeat customer, prefers automatic."
                   ? t("admin.demoRepeatCustomer")
                   : detail.notes}
@@ -100,7 +100,7 @@ export function CustomerDetailBody({
 
       <section>
         <SectionTitle icon={IdCard}>{t("admin.driversLicence")}</SectionTitle>
-        <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-3 text-xs">
+        <p className="text-muted-foreground rounded-none border border-dashed px-3 py-3 text-xs">
           {t("admin.licenceNotCaptured")}
         </p>
       </section>
@@ -157,7 +157,7 @@ function ReservationRow({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-secondary rounded-lg border p-3 text-center">
+    <div className="bg-secondary rounded-none border p-3 text-center">
       <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
         {label}
       </p>

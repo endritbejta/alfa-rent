@@ -30,15 +30,15 @@ export default async function LoginPage({
   return (
     <main className="bg-band text-band-foreground relative flex min-h-screen items-center justify-center overflow-hidden p-5">
       <LanguageSelector className="text-band-muted absolute top-5 right-5" />
-      <div className="bg-card text-card-foreground grid w-full max-w-4xl overflow-hidden rounded-3xl shadow-lg md:grid-cols-[1.05fr_.95fr]">
+      <div className="bg-card text-card-foreground grid w-full max-w-4xl overflow-hidden rounded-none shadow-lg md:grid-cols-[1.05fr_.95fr]">
         <section className="bg-sidebar text-sidebar-foreground relative hidden min-h-[34rem] flex-col justify-between overflow-hidden p-10 md:flex">
           <div
             aria-hidden="true"
-            className="bg-brand/15 absolute -top-32 -left-32 h-80 w-80 rounded-full blur-3xl"
+            className="bg-brand/15 absolute -top-32 -left-32 h-80 w-80 rounded-none blur-3xl"
           />
           <BrandLogo className="relative text-xl" preload />
           <div className="relative">
-            <span className="bg-sidebar-accent text-sidebar-accent-foreground mb-6 flex h-12 w-12 items-center justify-center rounded-2xl">
+            <span className="bg-sidebar-accent text-sidebar-accent-foreground mb-6 flex h-12 w-12 items-center justify-center rounded-none">
               <ShieldCheck className="h-6 w-6" />
             </span>
             <h1 className="font-display max-w-sm text-3xl leading-tight font-bold">

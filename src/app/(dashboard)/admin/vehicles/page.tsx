@@ -46,7 +46,7 @@ async function VehicleTable({
 }) {
   const { locale, t } = await getI18n();
   return (
-    <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
+    <div className="overflow-hidden border-y">
       <Table>
         <TableHeader>
           <TableRow>
@@ -73,10 +73,10 @@ async function VehicleTable({
                       alt={`${vehicle.brand} ${vehicle.model}`}
                       width={96}
                       height={60}
-                      className="h-12 w-20 rounded object-cover"
+                      className="h-12 w-20 rounded-none object-cover"
                     />
                   ) : (
-                    <div className="bg-skeleton text-muted-foreground flex h-12 w-20 items-center justify-center rounded text-[10px]">
+                    <div className="bg-skeleton text-muted-foreground flex h-12 w-20 items-center justify-center rounded-none text-[10px]">
                       {t("admin.noImage")}
                     </div>
                   )}
@@ -100,7 +100,9 @@ async function VehicleTable({
                 {vehicle.category}
               </TableCell>
               <TableCell className={cn(dense && "py-2")}>
-                <StatusBadge status={vehicle.status} />
+                {vehicle.status !== "AVAILABLE" && (
+                  <StatusBadge status={vehicle.status} />
+                )}
               </TableCell>
               <TableCell
                 className={cn("text-right tabular-nums", dense && "py-2")}
@@ -203,7 +205,7 @@ export default async function VehiclesPage({
       <VehicleFilters brands={brands} total={total} />
 
       {items.length === 0 ? (
-        <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
+        <div className="border-y px-6 py-14 text-center">
           <p className="font-display text-lg font-bold">
             {t("admin.noVehicles")}
           </p>

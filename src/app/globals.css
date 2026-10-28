@@ -134,16 +134,16 @@
    * and most borders can then come off. This one value is the reason the
    * rest of the pass works.
    */
-  --background: #f4f2f1; /* N-75 */
+  --background: #f5f2ec; /* warm ivory */
   --foreground: #161414; /* N-900 */
-  --card: #ffffff;
+  --card: #fbf9f5;
   --card-foreground: #161414;
   --popover: #ffffff;
   --popover-foreground: #161414;
   --primary: #dc2028; /* Alfa red 600 */
   --primary-foreground: #ffffff;
   --brand-hover: #b8161f;
-  --secondary: #f7f6f5; /* N-50 */
+  --secondary: #ece8e0; /* ivory, one step down */
   --secondary-foreground: #161414;
   --muted: #ebe8e7;
   --muted-foreground: #5b5655; /* N-600 */
@@ -161,7 +161,7 @@
   /* A control boundary must remain identifiable against both white sheets
      and the warm canvas. This solid warm neutral clears 3:1 on white. */
   --input: #918b89;
-  --control: #ffffff;
+  --control: transparent;
   --ring: #dc2028;
   --surface-hover: rgba(22, 20, 20, 0.06);
   --surface-selected: rgba(22, 20, 20, 0.1);
@@ -188,7 +188,7 @@
    * Buttons are deliberately pills and are unaffected; that is identity, not
    * a default.
    */
-  --radius: 0.75rem;
+  --radius: 0;
 
   /*
    * Motion tokens (design doc C+, §5). Durations agree app-wide; exits run
@@ -463,13 +463,49 @@
     --glass-blur: 40px;
   }
 
+  /* Editorial scale: oversized only on introductions, never in forms. */
+  .display-xl {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-size: clamp(2.5rem, 7vw, 5.5rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 600;
+  }
+  .display-lg {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-size: clamp(1.875rem, 4vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.032em;
+    font-weight: 600;
+  }
+  /* Hairline-ruled list: separators instead of containers. */
+  .rule-list > * + * {
+    border-top: 1px solid var(--divider);
+  }
+  /* Underline that draws in on hover/focus. */
+  .link-rule {
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px
+      no-repeat;
+    transition: background-size var(--motion-hover) var(--ease-standard);
+  }
+  .link-rule:hover,
+  .link-rule:focus-visible {
+    background-size: 100% 1px;
+  }
+  /* Restrained section reveal; skipped entirely under reduced motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in 600ms var(--ease-standard) both;
+    }
+  }
+
   /* Alfa Globe eyebrow: red dash + letterspaced uppercase label */
   .eyebrow {
-    @apply inline-flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase;
+    @apply inline-flex items-center gap-3 text-[11px] font-medium tracking-[0.22em] uppercase;
   }
   .eyebrow::before {
     content: "";
-    @apply bg-brand h-0.5 w-7;
+    @apply bg-brand h-px w-8;
   }
 }
 
@@ -477,6 +513,16 @@
    responsive variant fully overrides — unlike composing two slide-in
    utilities, where translateX and translateY both survive and read as a
    diagonal. */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @keyframes drawer-in-bottom {
   from {
     transform: translateY(100%);
@@ -602,7 +648,7 @@
 :root {
   --ambient-canvas: var(--background);
   --ambient-blob: 148 146 144;
-  --ambient-alpha: 0.22;
+  --ambient-alpha: 0.06;
 }
 .dark {
   --ambient-canvas: var(--background);
@@ -626,92 +672,13 @@
   background: var(--ambient-canvas);
 }
 
-.ambient-background::before,
-.ambient-background::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 160vw;
-  height: 160vh;
-  /*
-   * Radial gradients already provide soft edges. Filtering two 200vw ×
-   * 200vh layers forced mobile browsers to continuously rasterize enormous
-   * blurred textures while scrolling.
-   */
-  transform: translate(-50%, -50%);
-  will-change: transform;
-}
-
-.ambient-background::before {
-  background:
-    radial-gradient(
-      closest-side at 28% 30%,
-      rgb(var(--ambient-blob) / var(--ambient-alpha)),
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 76% 24%,
-      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.85)),
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 58% 78%,
-      rgb(var(--ambient-blob) / var(--ambient-alpha)),
-      transparent
-    );
-}
-
-.ambient-background::after {
-  background:
-    radial-gradient(
-      closest-side at 16% 72%,
-      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.9)),
-      transparent
-    ),
-    radial-gradient(
-      closest-side at 88% 58%,
-      rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.8)),
-      transparent
-    );
-}
-
-/*
- * Mobile fleet pages can be taller than ten viewports. Keep their backdrop
- * static and cheap: no oversized animated layers competing with image decode
- * and card paint during a touch scroll.
- */
-@media (max-width: 767px), (hover: none) and (pointer: coarse) {
-  .ambient-background {
-    background:
-      radial-gradient(
-        circle at 18% 14%,
-        rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.42)),
-        transparent 48%
-      ),
-      radial-gradient(
-        circle at 82% 76%,
-        rgb(var(--ambient-blob) / calc(var(--ambient-alpha) * 0.32)),
-        transparent 52%
-      ),
-      var(--ambient-canvas);
-  }
-
-  .ambient-background::before,
-  .ambient-background::after {
-    content: none;
-    animation: none;
-    will-change: auto;
-  }
-}
-
 /*
  * The browser can skip layout and paint for fleet cards that are several
  * screens away, while reserving a stable estimate to avoid scroll jumps.
  */
 .fleet-card {
   content-visibility: auto;
-  contain-intrinsic-size: auto 407px;
+  contain-intrinsic-size: auto 480px;
 }
 
 @media (hover: hover) and (pointer: fine) {

@@ -78,7 +78,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
                 e.stopPropagation();
                 openReservation(r.id);
               }}
-              className="focus-visible:ring-ring/40 cursor-pointer rounded text-left font-medium hover:underline focus-visible:ring-2 focus-visible:outline-none"
+              className="focus-visible:ring-ring/40 cursor-pointer rounded-none text-left font-medium hover:underline focus-visible:ring-2 focus-visible:outline-none"
             >
               {r.customer.firstName} {r.customer.lastName}
             </button>
@@ -146,7 +146,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             onClick={() => openReservation(r.id)}
-            className="hover:bg-surface-hover cursor-pointer rounded-lg border p-4 transition-colors"
+            className="hover:bg-surface-hover cursor-pointer border-b px-2 py-4 transition-colors"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -159,7 +159,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                     e.stopPropagation();
                     openReservation(r.id);
                   }}
-                  className="focus-visible:ring-ring/40 max-w-full cursor-pointer truncate rounded text-left text-sm font-semibold hover:underline focus-visible:ring-2 focus-visible:outline-none"
+                  className="focus-visible:ring-ring/40 max-w-full cursor-pointer truncate rounded-none text-left text-sm font-semibold hover:underline focus-visible:ring-2 focus-visible:outline-none"
                 >
                   {r.customer.firstName} {r.customer.lastName}
                 </button>

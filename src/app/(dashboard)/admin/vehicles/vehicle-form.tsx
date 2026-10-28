@@ -104,7 +104,7 @@ export function VehicleForm({
       className="space-y-5 pb-4"
     >
       {/* Sticky action bar — the decisions travel with the operator. */}
-      <div className="bg-card/90 sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 shadow-xs backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+      <div className="bg-background sticky top-0 z-20 -mx-4 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="min-w-0">
           <h1 className="font-display truncate text-xl font-bold tracking-tight">
             {vehicle
@@ -161,7 +161,7 @@ export function VehicleForm({
       {error && (
         <p
           role="alert"
-          className="border-destructive/30 bg-destructive/[0.07] text-destructive rounded-lg border px-4 py-3 text-sm"
+          className="border-destructive/30 bg-destructive/[0.07] text-destructive rounded-none border px-4 py-3 text-sm"
         >
           {error}
         </p>
@@ -477,7 +477,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-card rounded-xl border shadow-xs">
+    <section className="border-t">
       <div className="flex items-start justify-between gap-3 border-b px-5 py-3">
         <div>
           <h2 className="font-display flex items-center gap-2 text-sm font-bold">
@@ -532,7 +532,7 @@ function Select({
   return (
     <select
       {...props}
-      className="border-input bg-control focus:border-ring focus:ring-ring/30 h-9 w-full cursor-pointer rounded-lg border pr-9 pl-3 text-sm transition-colors outline-none focus:ring-2"
+      className="border-input bg-control focus:border-ring focus:ring-ring/30 h-12 w-full cursor-pointer rounded-none border pr-9 pl-4 text-sm transition-colors outline-none focus:ring-2"
     >
       {children}
     </select>

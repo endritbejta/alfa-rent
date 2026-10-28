@@ -48,7 +48,7 @@ export async function StatusFilter({
       <div
         role="group"
         aria-label={t("admin.filterStatus")}
-        className="bg-secondary inline-flex w-max rounded-full border p-0.5"
+        className="inline-flex w-max border-b"
       >
         {options.map((option) => {
           const selected = active === option.key;
@@ -62,9 +62,9 @@ export async function StatusFilter({
               href={option.href}
               aria-current={selected ? "page" : undefined}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors",
+                "flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-xs font-semibold whitespace-nowrap transition-colors",
                 selected
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "border-foreground text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

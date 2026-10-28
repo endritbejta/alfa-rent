@@ -125,7 +125,7 @@ export function RepairsPanel({
 
   return (
     <section
-      className="bg-card rounded-xl border p-5 shadow-xs"
+      className="border-t pt-5"
       onChange={(event) => event.stopPropagation()}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -151,7 +151,7 @@ export function RepairsPanel({
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {summary.map((s) => (
-          <div key={s.label} className="bg-secondary rounded-lg border p-3">
+          <div key={s.label} className="bg-secondary rounded-none border p-3">
             <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
               {s.label}
             </p>
@@ -166,7 +166,7 @@ export function RepairsPanel({
       {open && (
         <div
           ref={repairFieldsRef}
-          className="bg-secondary mb-5 space-y-3 rounded-lg border p-4"
+          className="bg-secondary mb-5 space-y-3 rounded-none border p-4"
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -243,7 +243,7 @@ export function RepairsPanel({
       )}
 
       {repairs.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+        <p className="text-muted-foreground rounded-none border border-dashed px-4 py-6 text-center text-sm">
           {t("admin.noRepairs")}
         </p>
       ) : (

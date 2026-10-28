@@ -43,14 +43,14 @@ export function ConfirmDialog({
       <DialogContent
         role="alertdialog"
         showCloseButton={false}
-        className="max-w-sm rounded-2xl p-6"
+        className="max-w-sm rounded-none p-6"
       >
         <div className="flex gap-4">
           <span
             className={
               tone === "danger"
-                ? "bg-destructive/10 text-destructive flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                : "bg-status-maint/10 text-status-maint flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                ? "bg-destructive/10 text-destructive flex h-10 w-10 shrink-0 items-center justify-center rounded-none"
+                : "bg-status-maint/10 text-status-maint flex h-10 w-10 shrink-0 items-center justify-center rounded-none"
             }
           >
             <AlertTriangle className="h-5 w-5" />

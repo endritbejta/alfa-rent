@@ -23,10 +23,10 @@ export function BarList({
               {suffix}
             </span>
           </div>
-          <div className="bg-secondary h-1.5 overflow-hidden rounded-full">
+          <div className="bg-secondary h-1.5 overflow-hidden rounded-none">
             <div
               className={cn(
-                "h-full rounded-full transition-[width] duration-200",
+                "h-full rounded-none transition-[width] duration-200",
                 item.barClassName ?? barClassName
               )}
               style={{ width: `${(item.value / max) * 100}%` }}

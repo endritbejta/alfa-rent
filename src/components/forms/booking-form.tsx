@@ -18,9 +18,11 @@ import {
 import {
   DatePicker,
   fromDateValue,
+  OccupiedDates,
   toDateValue,
 } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/shared/copy-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ApiResponse } from "@/types/api";
@@ -200,10 +202,12 @@ export function BookingForm({
 
   if (confirmation) {
     return (
-      <div className="bg-card mx-auto max-w-2xl rounded-3xl p-8 text-center shadow-md motion-safe:animate-[modal-in_var(--motion-panel)_var(--ease-standard)]">
-        <span className="bg-status-available/10 text-status-available mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-          <CheckCircle2 className="h-8 w-8" />
-        </span>
+      <div className="mx-auto max-w-2xl py-12 text-center motion-safe:animate-[modal-in_var(--motion-panel)_var(--ease-standard)]">
+        <CheckCircle2
+          aria-hidden
+          className="text-status-available mx-auto h-14 w-14"
+          strokeWidth={1.5}
+        />
         <h2
           ref={confirmationHeading}
           tabIndex={-1}
@@ -216,9 +220,10 @@ export function BookingForm({
             total: formatPrice(confirmation.totalPrice, locale),
           })}
         </p>
-        <p className="bg-muted mx-auto mt-5 w-fit rounded-full px-4 py-2 font-mono text-xs">
-          {t("booking.reference", { id: confirmation.id })}
-        </p>
+        <div className="bg-muted mx-auto mt-5 flex w-fit items-center gap-2 py-1 pr-1 pl-4 font-mono text-xs">
+          <span>{t("booking.reference", { id: confirmation.id })}</span>
+          <CopyButton value={confirmation.id} />
+        </div>
         <p className="text-muted-foreground mx-auto mt-4 max-w-md text-xs leading-relaxed">
           {t("booking.responseTime")}
         </p>
@@ -256,7 +261,7 @@ export function BookingForm({
       noValidate
     >
       <div className="min-w-0 space-y-4 sm:space-y-6">
-        <section className="bg-card min-w-0 rounded-2xl p-4 shadow-sm sm:p-7">
+        <section className="min-w-0 pt-2 sm:pt-4">
           <SectionHeading
             number="01"
             title={t("booking.tripSection")}
@@ -265,8 +270,8 @@ export function BookingForm({
 
           <div className="mt-4 space-y-3 sm:mt-6">
             <input type="hidden" {...register("vehicleId")} />
-            <div className="border-border flex items-center gap-3 rounded-xl border p-2.5 sm:p-3">
-              <span className="bg-media text-media-foreground relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg sm:h-14 sm:w-20">
+            <div className="flex items-center gap-3 py-3">
+              <span className="bg-media text-media-foreground relative flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-none sm:h-14 sm:w-20">
                 {vehicle.imageUrl ? (
                   <Image
                     src={vehicle.imageUrl}
@@ -364,15 +369,13 @@ export function BookingForm({
               {fieldError("to")}
             </div>
           </div>
-          {bookingCalendar.blockedRanges.length > 0 && (
-            <p className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
-              <span className="bg-destructive/70 h-2 w-2 rounded-full" />
-              {t("availability.unavailableDates")}
-            </p>
-          )}
+          <OccupiedDates
+            ranges={bookingCalendar.blockedRanges}
+            className="mt-3"
+          />
         </section>
 
-        <section className="bg-card rounded-2xl p-4 shadow-sm sm:p-7">
+        <section className="pt-4 sm:pt-6">
           <SectionHeading
             number="02"
             title={t("booking.detailsSection")}
@@ -437,12 +440,12 @@ export function BookingForm({
         </section>
       </div>
 
-      <aside className="bg-card top-24 rounded-2xl p-4 shadow-sm sm:p-5 lg:sticky">
+      <aside className="top-24 border-t pt-6 lg:sticky lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
         <h2 className="font-display font-bold">{t("booking.summary")}</h2>
         <div className="mt-4">
           {/* Desktop only: on phones the car is already pictured in step 1,
               right above this summary. */}
-          <div className="bg-media text-media-foreground relative mb-4 hidden aspect-[16/9] items-center justify-center overflow-hidden rounded-xl lg:flex">
+          <div className="bg-media text-media-foreground relative mb-4 hidden aspect-[16/9] items-center justify-center overflow-hidden lg:flex">
             {vehicle.imageUrl ? (
               <Image
                 src={vehicle.imageUrl}
@@ -523,7 +526,7 @@ function SectionHeading({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="bg-foreground text-background flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold sm:h-8 sm:w-8 sm:text-xs">
+      <span className="bg-foreground text-background flex h-7 w-7 shrink-0 items-center justify-center rounded-none text-[11px] font-bold sm:h-8 sm:w-8 sm:text-xs">
         {number}
       </span>
       <div>

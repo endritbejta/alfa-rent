@@ -62,7 +62,7 @@ export function FleetStatusFilter({
       <div
         role="group"
         aria-label={t("admin.filterAvailability")}
-        className="bg-secondary inline-flex w-max rounded-full border p-0.5"
+        className="inline-flex w-max border-b"
       >
         <Segment
           selected={!active}
@@ -104,13 +104,13 @@ function Segment({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors",
+        "flex cursor-pointer items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-xs font-semibold whitespace-nowrap transition-colors",
         selected
-          ? "bg-card text-foreground shadow-xs"
+          ? "border-foreground text-foreground"
           : "text-muted-foreground hover:text-foreground"
       )}
     >
-      {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dot)} />}
+      {dot && <span className={cn("h-1.5 w-1.5 rounded-none", dot)} />}
       {label}
       <span className="text-muted-foreground tabular-nums">{count}</span>
     </button>

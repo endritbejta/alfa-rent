@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
 import { ClipboardCheck } from "lucide-react";
 import {
+  getPickupMileageAction,
   recordRentalInspectionAction,
   signInspectionUploadAction,
 } from "./actions";
@@ -38,7 +39,7 @@ export function InspectionAction({
   signerName: string;
   onSuccess?: () => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const type = status === "CONFIRMED" ? "PICKUP" : "RETURN";
   const visible = status === "CONFIRMED" || status === "ACTIVE";
   const disabled = type === "PICKUP" && !timing.canStart;
@@ -49,6 +50,21 @@ export function InspectionAction({
   const [uploadErrors, setUploadErrors] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [pickupMileage, setPickupMileage] = useState<number | null>(null);
+
+  // The return form shows where the odometer started.
+  useEffect(() => {
+    if (!open || type !== "RETURN") return;
+    let cancelled = false;
+    getPickupMileageAction(reservationId)
+      .then((km) => {
+        if (!cancelled) setPickupMileage(km);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, type, reservationId]);
 
   const sign = useCallback(
     () => signInspectionUploadAction(reservationId, type),
@@ -149,6 +165,13 @@ export function InspectionAction({
                   required
                   placeholder={t("admin.mileagePlaceholder")}
                 />
+                {type === "RETURN" && pickupMileage !== null && (
+                  <p className="text-muted-foreground text-xs tabular-nums">
+                    {t("admin.pickupMileage", {
+                      km: pickupMileage.toLocaleString(locale),
+                    })}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -204,7 +227,7 @@ export function InspectionAction({
               </div>
             </div>
 
-            <div className="rounded-lg border p-3">
+            <div className="rounded-none border p-3">
               <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
                 <input
                   type="checkbox"
@@ -295,7 +318,7 @@ export function InspectionAction({
       </Dialog>
 
       {disabled && timing.startBlockedReason && (
-        <p className="text-muted-foreground max-w-52 text-right text-xs">
+        <p className="text-muted-foreground order-last basis-full text-right text-xs">
           {timing.startBlockedReason === "Rental window has ended"
             ? t("admin.rentalWindowEnded")
             : t("admin.availablePickupDate")}

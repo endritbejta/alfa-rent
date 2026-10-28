@@ -318,7 +318,7 @@ export function MediaGrid({
   const full = items.length >= MAX_VEHICLE_IMAGES;
 
   return (
-    <section className="bg-card rounded-xl border shadow-xs">
+    <section className="border-t">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
         <h2 className="font-display flex items-center gap-2 text-sm font-bold">
           <ImagePlus className="text-brand h-4 w-4" />
@@ -362,7 +362,7 @@ export function MediaGrid({
             type="button"
             onClick={open}
             className={cn(
-              "flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors",
+              "flex w-full cursor-pointer flex-col items-center justify-center rounded-none border border-dashed px-6 py-12 text-center transition-colors",
               dragging
                 ? "border-brand bg-brand/[0.06]"
                 : "border-input hover:border-brand/40 hover:bg-surface-hover"
@@ -370,8 +370,8 @@ export function MediaGrid({
           >
             <span
               className={cn(
-                "mb-3 flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-                dragging ? "bg-brand text-white" : "bg-secondary text-brand"
+                "mb-3 flex h-11 w-11 items-center justify-center rounded-none transition-colors",
+                dragging ? "bg-brand text-white" : "text-brand"
               )}
             >
               <Upload className="h-5 w-5" />
@@ -398,7 +398,7 @@ export function MediaGrid({
                 className={cn(
                   "grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5",
                   dragging &&
-                    "outline-brand rounded-xl outline-2 outline-dashed"
+                    "outline-brand rounded-none outline-2 outline-dashed"
                 )}
               >
                 {items.map((item, index) => (
@@ -415,7 +415,7 @@ export function MediaGrid({
                     type="button"
                     onClick={open}
                     aria-label={t("admin.addPhotos")}
-                    className="border-input text-muted-foreground hover:border-brand/50 hover:bg-surface-hover hover:text-brand flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors"
+                    className="border-input text-muted-foreground hover:border-brand/50 hover:bg-surface-hover hover:text-brand flex aspect-square cursor-pointer items-center justify-center rounded-none border-2 border-dashed transition-colors"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
@@ -475,7 +475,7 @@ function Tile({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "bg-media group relative overflow-hidden rounded-lg border",
+        "bg-media group relative overflow-hidden rounded-none border",
         // The cover photo is what the fleet grid and search results show,
         // so it earns the space that makes it obviously different.
         cover ? "col-span-2 row-span-2 aspect-square" : "aspect-square",
@@ -504,16 +504,16 @@ function Tile({
       />
 
       {cover && !failed && (
-        <span className="pointer-events-none absolute top-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+        <span className="pointer-events-none absolute top-2 left-2 rounded-none bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
           {t("admin.cover")}
         </span>
       )}
 
       {item.status === "uploading" && (
         <div className="pointer-events-none absolute inset-x-2 bottom-2">
-          <div className="h-1 overflow-hidden rounded-full bg-white/25">
+          <div className="h-1 overflow-hidden rounded-none bg-white/25">
             <div
-              className="bg-brand h-full rounded-full transition-[width] duration-200"
+              className="bg-brand h-full rounded-none transition-[width] duration-200"
               style={{ width: `${item.progress ?? 0}%` }}
             />
           </div>
@@ -535,7 +535,7 @@ function Tile({
         type="button"
         aria-label={t("admin.removePhoto")}
         onClick={onRemove}
-        className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-black/70 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-none bg-black/70 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
       >
         <X className="h-3 w-3" />
       </button>

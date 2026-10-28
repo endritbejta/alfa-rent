@@ -188,7 +188,7 @@ export function NewReservationDialog({
   };
 
   const field =
-    "border-input bg-control focus:ring-ring h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2";
+    "border-input bg-control focus:ring-ring h-12 w-full rounded-none border px-4 text-sm outline-none focus:ring-2";
 
   const STATUS: { value: Status; label: string; dot: string }[] = [
     { value: "PENDING", label: t("vehicle.pending"), dot: "bg-status-maint" },
@@ -271,7 +271,7 @@ export function NewReservationDialog({
                   aria-pressed={mode === value}
                   onClick={() => setMode(value)}
                   className={cn(
-                    "rounded-lg border py-2 text-xs font-semibold transition-colors",
+                    "rounded-none border py-2 text-xs font-semibold transition-colors",
                     mode === value
                       ? "border-foreground bg-secondary"
                       : "text-muted-foreground hover:bg-surface-hover"
@@ -305,13 +305,13 @@ export function NewReservationDialog({
                   aria-pressed={status === s.value}
                   onClick={() => setStatus(s.value)}
                   className={cn(
-                    "flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-semibold transition-colors",
+                    "flex cursor-pointer items-center justify-center gap-1.5 rounded-none border py-2 text-xs font-semibold transition-colors",
                     status === s.value
                       ? "border-foreground bg-secondary"
                       : "text-muted-foreground hover:bg-surface-hover"
                   )}
                 >
-                  <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                  <span className={cn("h-2 w-2 rounded-none", s.dot)} />
                   {s.label}
                 </button>
               ))}
@@ -379,7 +379,7 @@ function QuotePanel({
   }
   return (
     <div
-      className="bg-secondary space-y-2 rounded-lg border p-3"
+      className="bg-secondary space-y-2 rounded-none border p-3"
       aria-live="polite"
     >
       <div className="flex items-baseline justify-between gap-2 text-sm">
@@ -424,7 +424,7 @@ function CustomerPicker({
 
   if (selected) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border p-3">
+      <div className="flex items-center gap-3 rounded-none border p-3">
         <UserRound className="text-muted-foreground h-4 w-4 shrink-0" />
         <div className="min-w-0 flex-1 text-sm">
           <p className="font-medium">
@@ -480,7 +480,7 @@ function CustomerPicker({
         </p>
       )}
       {shown && !shown.error && query.trim().length >= 2 && (
-        <ul className="max-h-48 divide-y overflow-y-auto rounded-lg border">
+        <ul className="max-h-48 divide-y overflow-y-auto rounded-none border">
           {shown.hits.length === 0 ? (
             <li className="text-muted-foreground p-3 text-xs">
               {t("admin.noCustomerFound")}

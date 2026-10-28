@@ -55,7 +55,7 @@ export function DuplicateGroups({ groups }: { groups: DuplicateGroupView[] }) {
             key={group.customers.map((c) => c.id).join(",")}
             className="flex flex-wrap items-center gap-3 py-3"
           >
-            <span className="bg-status-maint/10 text-status-maint rounded-full px-2 py-0.5 text-[11px] font-semibold">
+            <span className="bg-status-maint/10 text-status-maint rounded-none px-2 py-0.5 text-[11px] font-semibold">
               {group.reason === "phone"
                 ? t("admin.samePhone")
                 : t("admin.sameName")}
@@ -154,7 +154,7 @@ function MergeDialog({
               key={c.id}
               htmlFor={`keep-${c.id}`}
               className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm",
+                "flex cursor-pointer items-start gap-3 rounded-none border p-3 text-sm",
                 keepId === c.id && "border-brand bg-brand/5"
               )}
             >

@@ -25,7 +25,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
     <div className="space-y-6">
       {/* Gallery */}
       <div>
-        <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-900">
+        <div className="relative aspect-[16/9] overflow-hidden rounded-none bg-gradient-to-br from-neutral-800 to-neutral-900">
           {cover ? (
             <Image
               src={cover.url}
@@ -39,16 +39,18 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
               {vehicle.brand}
             </span>
           )}
-          <span className="absolute top-3 right-3">
-            <StatusBadge status={vehicle.status} variant="overlay" />
-          </span>
+          {vehicle.status !== "AVAILABLE" && (
+            <span className="absolute top-3 right-3">
+              <StatusBadge status={vehicle.status} variant="overlay" />
+            </span>
+          )}
         </div>
         {rest.length > 0 && (
           <div className="mt-2 grid grid-cols-4 gap-2">
             {rest.slice(0, 4).map((img) => (
               <div
                 key={img.id}
-                className="bg-media relative aspect-[16/10] overflow-hidden rounded-md"
+                className="bg-media relative aspect-[16/10] overflow-hidden rounded-none"
               >
                 <Image
                   src={img.url}
@@ -128,7 +130,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
           </Row>
         </div>
         {vehicle.serviceNotes && (
-          <p className="bg-secondary text-muted-foreground mt-2 rounded-lg p-3 text-xs">
+          <p className="bg-secondary text-muted-foreground mt-2 rounded-none p-3 text-xs">
             {vehicle.serviceNotes}
           </p>
         )}
@@ -160,7 +162,7 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
           {t("common.reservations")} ({vehicle.reservations.length})
         </SectionTitle>
         {active && (
-          <p className="bg-status-rented/10 text-status-rented mb-2 rounded-lg px-3 py-2 text-xs font-semibold">
+          <p className="bg-status-rented/10 text-status-rented mb-2 rounded-none px-3 py-2 text-xs font-semibold">
             {t("admin.outNow", {
               name: `${active.customer.firstName} ${active.customer.lastName}`,
               date: format(active.returnDate, "dd MMM", { locale: dateLocale }),
@@ -211,7 +213,7 @@ function Metric({
   tone?: "good" | "bad";
 }) {
   return (
-    <div className="bg-secondary rounded-lg border p-3">
+    <div className="bg-secondary rounded-none border p-3">
       <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.08em] uppercase">
         {label}
       </p>

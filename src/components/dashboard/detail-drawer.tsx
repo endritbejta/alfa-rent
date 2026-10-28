@@ -94,8 +94,8 @@ export function DetailDrawer({
         // blur is what says that work is still there. 32rem, not 26 — a
         // workspace needs room (design doc C+, §3).
         className={cn(
-          "glass-l5 absolute right-0 bottom-0 flex max-h-[92vh] w-full flex-col rounded-t-2xl shadow-lg outline-none",
-          "sm:top-0 sm:bottom-0 sm:max-h-none sm:w-[32rem] sm:rounded-none sm:rounded-l-2xl",
+          "glass-l5 absolute right-0 bottom-0 flex max-h-[92vh] w-full flex-col rounded-t-none shadow-lg outline-none",
+          "sm:top-0 sm:bottom-0 sm:max-h-none sm:w-[32rem] sm:rounded-none sm:rounded-l-none",
           closing
             ? "animate-[drawer-out-bottom_var(--motion-panel-exit)_var(--ease-exit)_forwards] sm:animate-[drawer-out-right_var(--motion-panel-exit)_var(--ease-exit)_forwards]"
             : "animate-[drawer-in-bottom_var(--motion-panel)_var(--ease-standard)] sm:animate-[drawer-in-right_var(--motion-panel)_var(--ease-standard)]"

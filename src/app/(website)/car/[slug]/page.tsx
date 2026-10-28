@@ -167,29 +167,25 @@ export default async function VehiclePage({
           <span className="eyebrow text-muted-foreground mt-5 lg:mt-10">
             {t(CATEGORY_KEYS[vehicle.category])} · {vehicle.year}
           </span>
-          <h1 className="font-display mt-2 text-2xl font-bold tracking-tight sm:mt-3 sm:text-3xl lg:text-4xl">
+          <h1 className="display-lg mt-2 sm:mt-3">
             {vehicle.brand} {vehicle.model}
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:mt-4 sm:text-base">
             {description}
           </p>
 
-          <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-3">
-            {specs.map(({ icon: Icon, label, value }) => (
-              <div
-                key={label}
-                className="bg-card min-w-0 rounded-lg border p-2.5 shadow-xs sm:rounded-xl sm:p-4"
-              >
-                <Icon className="text-brand mb-1 h-3.5 w-3.5 sm:mb-2 sm:h-5 sm:w-5" />
-                <p className="text-muted-foreground text-[10px] leading-tight sm:text-xs">
+          <dl className="mt-6 grid grid-cols-2 gap-x-6 border-t sm:mt-10 sm:grid-cols-3">
+            {specs.map(({ label, value }) => (
+              <div key={label} className="min-w-0 border-b py-4">
+                <dt className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
                   {label}
-                </p>
-                <p className="mt-1 text-xs leading-tight font-semibold break-words sm:mt-0 sm:text-sm">
+                </dt>
+                <dd className="mt-1.5 text-base font-medium break-words">
                   {value}
-                </p>
+                </dd>
               </div>
             ))}
-          </div>
+          </dl>
         </div>
 
         {/* Booking rail */}
@@ -197,8 +193,8 @@ export default async function VehiclePage({
           id="booking"
           className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start"
         >
-          <div className="bg-card rounded-2xl border p-5 shadow-sm sm:p-6">
-            <p className="font-display text-2xl font-bold sm:text-3xl">
+          <div className="border-t pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-10">
+            <p className="font-display text-3xl font-semibold tabular-nums sm:text-4xl">
               {formatPrice(vehicle.pricePerDay, locale)}
               <span className="text-muted-foreground font-sans text-sm font-medium">
                 {" "}

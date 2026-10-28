@@ -48,10 +48,10 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
+        "inline-flex items-center gap-2 text-xs font-medium",
         variant === "overlay"
-          ? "bg-media/95 border-white/25 text-white shadow-md backdrop-blur-sm"
-          : cn("border-current/15", SURFACE_HUES[status])
+          ? "text-white"
+          : SURFACE_HUES[status].split(" ")[0]
       )}
     >
       <span

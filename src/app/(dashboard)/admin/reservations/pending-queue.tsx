@@ -47,7 +47,7 @@ export function PendingQueue({
   if (requests.length === 0) {
     if (compact) return null;
     return (
-      <div className="bg-card rounded-2xl border border-dashed px-6 py-12 text-center">
+      <div className="border-y px-6 py-14 text-center">
         <p className="font-display text-lg font-bold">
           {t("admin.nothingWaiting")}
         </p>
@@ -59,12 +59,7 @@ export function PendingQueue({
   }
 
   return (
-    <section
-      className={cn(
-        "border-brand/20 from-brand/[0.05] rounded-2xl border bg-gradient-to-b to-transparent p-4 sm:p-5",
-        compact && "shadow-sm"
-      )}
-    >
+    <section className={cn("border-brand/40 border-t-2 pt-4", compact && "")}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="bg-brand flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white">
@@ -83,7 +78,7 @@ export function PendingQueue({
           </div>
         </div>
 
-        <div className="bg-card inline-flex rounded-full border p-0.5">
+        <div className="inline-flex rounded-sm border p-0.5">
           {(
             [
               ["single", Rows3, t("admin.oneColumn")],

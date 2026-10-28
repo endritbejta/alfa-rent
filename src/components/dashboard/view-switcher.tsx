@@ -48,7 +48,7 @@ export function ViewSwitcher({
 
   return (
     <div className="mb-4 flex justify-end">
-      <div className="bg-secondary inline-flex rounded-full border p-0.5">
+      <div className="inline-flex border-b">
         {views.map((view) => {
           const Icon = ICONS[view];
           return (
@@ -58,9 +58,9 @@ export function ViewSwitcher({
               aria-pressed={active === view}
               onClick={() => select(view)}
               className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                "flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-xs font-semibold transition-colors",
                 active === view
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "border-foreground text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

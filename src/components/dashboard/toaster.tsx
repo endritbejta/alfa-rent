@@ -73,7 +73,7 @@ function ToastList() {
         toast={toast}
         data-toast
         className={cn(
-          "glass-l5 relative flex w-full items-start gap-3 rounded-xl border p-3 shadow-lg",
+          "glass-l5 relative flex w-full items-start gap-3 rounded-md border p-3 shadow-lg",
           // Entry and exit reuse the app's motion tokens; the reduced-motion
           // block in globals.css shortens them by the [data-toast] hook.
           "data-starting-style:translate-y-2 data-starting-style:opacity-0",

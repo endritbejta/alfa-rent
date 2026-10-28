@@ -95,13 +95,13 @@ export default async function HomePage() {
         <HeroBackground />
         <div className="relative z-10 mx-auto max-w-6xl px-5 pt-14 pb-14 lg:pt-20 lg:pb-16">
           <span className="eyebrow text-band-muted">{t("home.eyebrow")}</span>
-          <h1 className="font-display mt-5 max-w-3xl text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          <h1 className="display-xl reveal mt-5 max-w-4xl text-balance">
             {t("home.titleLine1")}
             <br />
             {t("home.titleLine2")}{" "}
             <span className="text-brand">{t("home.titleAccent")}</span>
           </h1>
-          <p className="text-band-muted mt-6 max-w-xl text-lg">
+          <p className="text-band-muted mt-6 max-w-xl text-base sm:text-lg">
             {t("home.intro")}
           </p>
 
@@ -131,10 +131,7 @@ export default async function HomePage() {
             <span className="eyebrow text-muted-foreground">
               {t("home.featured")}
             </span>
-            <h2
-              id="featured-heading"
-              className="font-display mt-3 text-3xl font-bold tracking-tight"
-            >
+            <h2 id="featured-heading" className="display-lg mt-3">
               {t("home.latest")}
             </h2>
           </div>
@@ -146,7 +143,7 @@ export default async function HomePage() {
             <ArrowRight className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:translate-x-0.5 motion-reduce:transition-none" />
           </Link>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rule-list">
           {featured.map((vehicle, index) => (
             <VehicleCard
               key={vehicle.id}
@@ -158,30 +155,28 @@ export default async function HomePage() {
       </section>
 
       {/* How it works — warm tint band */}
-      <section className="bg-secondary border-y">
+      <section className="bg-secondary">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <span className="eyebrow text-muted-foreground">{t("home.how")}</span>
-          <h2 className="font-display mt-3 mb-12 text-3xl font-bold tracking-tight">
-            {t("home.stepsTitle")}
-          </h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            {STEPS.map(({ icon: Icon, title, text }, i) => (
-              <div key={title} className="relative">
-                <div className="bg-accent text-accent-foreground mb-4 flex h-11 w-11 items-center justify-center rounded-full">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em]">
-                  {t("home.step", { number: i + 1 })}
+          <h2 className="display-lg mt-3 mb-12">{t("home.stepsTitle")}</h2>
+          <ol className="rule-list border-t">
+            {STEPS.map(({ title, text }, i) => (
+              <li
+                key={title}
+                className="grid gap-2 py-7 md:grid-cols-12 md:gap-8"
+              >
+                <p className="text-muted-foreground text-sm tabular-nums md:col-span-2">
+                  {String(i + 1).padStart(2, "0")}
                 </p>
-                <h3 className="font-display mt-1 mb-2 text-lg font-bold">
+                <h3 className="text-xl font-semibold tracking-tight md:col-span-4">
                   {t(title)}
                 </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">
+                <p className="text-muted-foreground max-w-md text-sm leading-relaxed md:col-span-6">
                   {t(text)}
                 </p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
@@ -189,23 +184,16 @@ export default async function HomePage() {
       <section className="bg-band text-band-foreground">
         <div className="mx-auto max-w-6xl px-5 py-20">
           <span className="eyebrow text-band-muted">{t("home.why")}</span>
-          <h2 className="font-display mt-3 mb-12 text-3xl font-bold tracking-tight">
-            {t("home.whyTitle")}
-          </h2>
-          <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2">
-            {WHY.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="flex gap-4">
-                <div className="bg-brand/15 text-brand flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-display mb-1.5 text-lg font-bold">
-                    {t(title)}
-                  </h3>
-                  <p className="text-band-muted text-sm leading-relaxed">
-                    {t(text)}
-                  </p>
-                </div>
+          <h2 className="display-lg mt-3 mb-12">{t("home.whyTitle")}</h2>
+          <div className="border-band-border grid gap-x-12 border-t sm:grid-cols-2">
+            {WHY.map(({ title, text }) => (
+              <div key={title} className="border-band-border border-b py-8">
+                <h3 className="mb-2 text-xl font-semibold tracking-tight">
+                  {t(title)}
+                </h3>
+                <p className="text-band-muted text-sm leading-relaxed">
+                  {t(text)}
+                </p>
               </div>
             ))}
           </div>
@@ -216,9 +204,7 @@ export default async function HomePage() {
       <section className="bg-brand-fill text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-5 py-16">
           <div>
-            <h2 className="font-display text-3xl font-bold tracking-tight">
-              {t("home.ctaTitle")}
-            </h2>
+            <h2 className="display-lg">{t("home.ctaTitle")}</h2>
             <p className="mt-2 text-white/80">{t("home.ctaText")}</p>
           </div>
           <Button

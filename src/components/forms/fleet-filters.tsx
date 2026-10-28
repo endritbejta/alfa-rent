@@ -111,10 +111,10 @@ export function FleetFilters() {
   };
   const chip = (active: boolean) =>
     cn(
-      "min-h-11 rounded-full border px-4 py-2 text-sm transition-[background-color,border-color,color] duration-[var(--motion-hover)] sm:min-h-8 sm:py-1.5",
+      "min-h-11 rounded-sm border px-4 py-2 text-sm transition-[background-color,border-color,color] duration-[var(--motion-hover)] sm:min-h-8 sm:py-1.5",
       active
         ? "border-transparent bg-foreground font-semibold text-background"
-        : "bg-card text-muted-foreground hover:text-foreground"
+        : "text-muted-foreground hover:text-foreground"
     );
 
   const controls = (
@@ -206,7 +206,7 @@ export function FleetFilters() {
           type="button"
           onClick={() => remove(key)}
           aria-label={t("filter.remove", { label })}
-          className="bg-foreground text-background hover:bg-foreground/85 inline-flex min-h-9 items-center gap-1.5 rounded-full py-1 pr-2.5 pl-3.5 text-sm font-medium transition-colors"
+          className="bg-foreground text-background hover:bg-foreground/85 inline-flex min-h-9 items-center gap-1.5 rounded-sm py-1 pr-2.5 pl-3.5 text-sm font-medium transition-colors"
         >
           {label}
           <X className="h-3.5 w-3.5" aria-hidden />
@@ -236,14 +236,14 @@ export function FleetFilters() {
             <SlidersHorizontal />
             {t("filter.open")}
             {activeCount > 0 && (
-              <span className="bg-foreground text-background rounded-full px-2 py-0.5 text-[11px]">
+              <span className="bg-foreground text-background rounded-sm px-2 py-0.5 text-[11px]">
                 {activeCount}
               </span>
             )}
           </SheetTrigger>
           <SheetContent
             side="bottom"
-            className="max-h-[88dvh] overflow-y-auto rounded-t-3xl"
+            className="max-h-[88dvh] overflow-y-auto rounded-t-md"
           >
             <SheetHeader className="border-b px-5 py-5">
               <SheetTitle>{t("filter.title")}</SheetTitle>
@@ -259,9 +259,7 @@ export function FleetFilters() {
         </Sheet>
       </div>
 
-      <div className="bg-card hidden rounded-2xl border p-5 shadow-xs md:block">
-        {controls}
-      </div>
+      <div className="hidden border-y py-5 md:block">{controls}</div>
 
       {appliedRow}
     </div>

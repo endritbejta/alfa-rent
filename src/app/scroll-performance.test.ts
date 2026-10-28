@@ -26,8 +26,8 @@ describe("mobile scroll performance", () => {
     expect(styles).toMatch(
       /\.fleet-card\s*\{[\s\S]*?content-visibility:\s*auto/
     );
-    expect(styles).toContain("contain-intrinsic-size: auto 407px");
-    expect(vehicleCard).toContain("fleet-card bg-card");
+    expect(styles).toContain("contain-intrinsic-size: auto 320px");
+    expect(vehicleCard).toContain("fleet-card group");
   });
 
   it("preloads only the first fleet image and leaves the rest lazy", () => {

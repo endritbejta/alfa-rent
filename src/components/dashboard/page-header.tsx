@@ -11,12 +11,12 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
       <div>
-        <h1 className="font-display flex items-center gap-2.5 text-2xl font-bold tracking-tight">
+        <h1 className="font-display flex items-center gap-2.5 text-3xl font-semibold tracking-tight">
           {title}
           {count !== undefined && (
-            <span className="bg-brand rounded-full px-2.5 py-0.5 text-sm font-bold text-white tabular-nums">
+            <span className="bg-brand rounded-sm px-2 py-0.5 text-sm font-semibold text-white tabular-nums">
               {count}
             </span>
           )}

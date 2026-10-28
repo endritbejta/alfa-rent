@@ -15,12 +15,12 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section
-      className={cn("bg-card rounded-xl border p-5 shadow-xs", className)}
-    >
+    <section className={cn("border-t pt-5", className)}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-sm font-bold">{title}</h2>
+          <h2 className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
+            {title}
+          </h2>
           {subtitle && (
             <p className="text-muted-foreground mt-0.5 text-xs">{subtitle}</p>
           )}

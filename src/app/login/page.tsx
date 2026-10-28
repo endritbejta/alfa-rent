@@ -30,7 +30,7 @@ export default async function LoginPage({
   return (
     <main className="bg-band text-band-foreground relative flex min-h-screen items-center justify-center overflow-hidden p-5">
       <LanguageSelector className="text-band-muted absolute top-5 right-5" />
-      <div className="bg-card text-card-foreground grid w-full max-w-4xl overflow-hidden rounded-3xl shadow-lg md:grid-cols-[1.05fr_.95fr]">
+      <div className="bg-card text-card-foreground grid w-full max-w-4xl overflow-hidden rounded-md shadow-lg md:grid-cols-[1.05fr_.95fr]">
         <section className="bg-sidebar text-sidebar-foreground relative hidden min-h-[34rem] flex-col justify-between overflow-hidden p-10 md:flex">
           <div
             aria-hidden="true"

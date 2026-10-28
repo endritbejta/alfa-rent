@@ -146,8 +146,8 @@ export function AvailabilityWidget({
         <div
           className={
             quote.available
-              ? "bg-status-available/10 rounded-lg px-4 py-3"
-              : "bg-destructive/8 rounded-lg px-4 py-3"
+              ? "bg-status-available/10 rounded-sm px-4 py-3"
+              : "bg-destructive/8 rounded-sm px-4 py-3"
           }
         >
           {quote.available ? (

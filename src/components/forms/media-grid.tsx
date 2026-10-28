@@ -318,7 +318,7 @@ export function MediaGrid({
   const full = items.length >= MAX_VEHICLE_IMAGES;
 
   return (
-    <section className="bg-card rounded-xl border shadow-xs">
+    <section className="border-t">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
         <h2 className="font-display flex items-center gap-2 text-sm font-bold">
           <ImagePlus className="text-brand h-4 w-4" />
@@ -362,7 +362,7 @@ export function MediaGrid({
             type="button"
             onClick={open}
             className={cn(
-              "flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors",
+              "flex w-full cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed px-6 py-12 text-center transition-colors",
               dragging
                 ? "border-brand bg-brand/[0.06]"
                 : "border-input hover:border-brand/40 hover:bg-surface-hover"

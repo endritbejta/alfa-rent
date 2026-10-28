@@ -146,7 +146,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             onClick={() => openReservation(r.id)}
-            className="hover:bg-surface-hover cursor-pointer rounded-lg border p-4 transition-colors"
+            className="hover:bg-surface-hover cursor-pointer border-b px-2 py-4 transition-colors"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

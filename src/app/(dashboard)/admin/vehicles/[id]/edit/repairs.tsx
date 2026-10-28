@@ -125,7 +125,7 @@ export function RepairsPanel({
 
   return (
     <section
-      className="bg-card rounded-xl border p-5 shadow-xs"
+      className="border-t pt-5"
       onChange={(event) => event.stopPropagation()}
     >
       <div className="mb-4 flex items-start justify-between gap-3">

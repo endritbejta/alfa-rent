@@ -34,7 +34,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
         <Link
           key={v.id}
           href={`/admin/vehicles/${v.id}/edit`}
-          className="bg-card hover:border-brand/30 group block cursor-pointer overflow-hidden rounded-xl border text-left shadow-sm transition-[border-color,box-shadow] duration-[var(--motion-hover)] hover:shadow-md"
+          className="group block cursor-pointer overflow-hidden text-left"
         >
           <div className="bg-media relative aspect-[16/10]">
             {v.image ? (
@@ -45,7 +45,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
                 // Must track the column count above, or every card downloads
                 // an image sized for a wider slot than it renders in.
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                className="object-cover"
+                className="object-cover transition-transform duration-500 ease-[var(--ease-standard)] group-hover:scale-[1.03] motion-reduce:transition-none"
               />
             ) : (
               <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-xs tracking-[0.14em] uppercase">
@@ -56,7 +56,7 @@ export function VehicleGrid({ items }: { items: Item[] }) {
               <StatusBadge status={v.status} variant="overlay" />
             </span>
           </div>
-          <div className="p-4">
+          <div className="border-b py-4">
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="font-display truncate text-base font-bold">
                 {v.brand} {v.model}

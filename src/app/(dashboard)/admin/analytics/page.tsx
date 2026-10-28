@@ -45,16 +45,16 @@ export default async function AnalyticsPage({
       <PageHeader title={t("admin.analytics")} description={periodDescription}>
         {/* Period switch: a soft navigation, so charts re-render on the
             server without a full page load. */}
-        <div className="bg-secondary inline-flex rounded-full border p-0.5">
+        <div className="inline-flex border-b">
           {PERIODS.map((p) => (
             <Link
               key={p.key}
               href={`/admin/analytics?period=${p.key}`}
               scroll={false}
               className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                "border-b-2 border-transparent px-3.5 py-2 text-xs font-semibold transition-colors",
                 period === p.key
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "border-foreground text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

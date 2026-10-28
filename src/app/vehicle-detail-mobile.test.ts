@@ -12,8 +12,8 @@ const mobileBookingBar = readFileSync(
 );
 
 describe("mobile vehicle detail actions", () => {
-  it("uses a compact three-by-two specification grid", () => {
-    expect(detailPage).toContain("grid grid-cols-3 gap-2");
+  it("uses a compact ruled specification list", () => {
+    expect(detailPage).toContain("grid grid-cols-2 gap-x-6");
   });
 
   it("keeps a safe-area-aware booking action visible on mobile", () => {

@@ -47,7 +47,7 @@ export function SiteHeader() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-full px-4 py-2 text-sm transition-colors",
+                  "px-4 py-2 text-sm transition-colors",
                   active
                     ? "text-band-foreground font-semibold"
                     : "text-band-muted hover:text-band-foreground"
@@ -55,7 +55,7 @@ export function SiteHeader() {
               >
                 {t(item.label)}
                 {active && (
-                  <span className="bg-brand mx-auto mt-0.5 block h-0.5 w-5 rounded-full" />
+                  <span className="bg-brand mx-auto mt-0.5 block h-px w-5" />
                 )}
               </Link>
             );
@@ -75,7 +75,7 @@ export function SiteHeader() {
           <ThemeToggle />
           <button
             type="button"
-            className="text-band-foreground hover:bg-band-border/60 -mr-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors"
+            className="text-band-foreground hover:bg-band-border/60 -mr-2 flex h-11 w-11 items-center justify-center rounded-sm transition-colors"
             aria-label={open ? t("header.closeMenu") : t("header.openMenu")}
             aria-expanded={open}
             aria-controls="mobile-nav"

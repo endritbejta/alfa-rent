@@ -40,7 +40,7 @@ export default async function ContactPage() {
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-4 px-5 py-6 sm:gap-6 sm:py-14 lg:grid-cols-[1.35fr_.65fr]">
-        <div className="bg-card rounded-3xl p-6 shadow-sm sm:p-8">
+        <div className="border-t pt-6 sm:pt-8">
           <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
             {t("footer.contact")}
           </p>
@@ -62,14 +62,14 @@ export default async function ContactPage() {
               />
             )}
             {!hasDirectContact && (
-              <p className="text-muted-foreground bg-muted rounded-2xl p-5 text-sm leading-relaxed sm:col-span-2">
+              <p className="text-muted-foreground bg-muted rounded-sm p-5 text-sm leading-relaxed sm:col-span-2">
                 {t("contact.verifiedOnly")}
               </p>
             )}
             {!hasDirectContact && process.env.NODE_ENV === "development" && (
               // Visible only in development: tells whoever runs the site what
               // to set, without ever showing customers a configuration note.
-              <p className="rounded-2xl border border-dashed border-amber-500/60 p-4 font-mono text-xs leading-relaxed text-amber-700 sm:col-span-2 dark:text-amber-400">
+              <p className="rounded-sm border border-dashed border-amber-500/60 p-4 font-mono text-xs leading-relaxed text-amber-700 sm:col-span-2 dark:text-amber-400">
                 Dev only: set NEXT_PUBLIC_CONTACT_PHONE and/or
                 NEXT_PUBLIC_CONTACT_EMAIL to show direct contact options.
               </p>
@@ -99,7 +99,7 @@ export default async function ContactPage() {
             href={mapHref}
             target="_blank"
             rel="noreferrer"
-            className="bg-card hover:bg-surface-hover group flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm transition-colors"
+            className="hover:bg-surface-hover group flex min-h-32 items-start gap-4 border-t p-5 transition-colors"
           >
             <ContactIcon icon={MapPin} />
             <div>
@@ -114,7 +114,7 @@ export default async function ContactPage() {
             </div>
           </a>
 
-          <div className="bg-card flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm">
+          <div className="flex min-h-32 items-start gap-4 border-t p-5">
             <ContactIcon icon={Clock} />
             <div>
               <p className="font-display font-bold">{t("contact.hours")}</p>
@@ -146,7 +146,7 @@ function ContactAction({
   return (
     <a
       href={href}
-      className="bg-foreground text-background group rounded-2xl p-5"
+      className="bg-foreground text-background group rounded-sm p-5"
     >
       <ContactIcon icon={icon} inverted />
       <p className="mt-6 text-xs font-semibold tracking-[0.12em] uppercase opacity-65">

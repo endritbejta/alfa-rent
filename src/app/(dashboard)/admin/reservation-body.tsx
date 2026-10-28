@@ -151,7 +151,7 @@ export function ReservationBody({
             {detail.inspections.map((inspection) => (
               <article
                 key={inspection.id}
-                className="bg-secondary/60 rounded-xl border p-3"
+                className="bg-secondary/60 rounded-sm p-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

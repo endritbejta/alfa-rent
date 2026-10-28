@@ -477,7 +477,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-card rounded-xl border shadow-xs">
+    <section className="border-t">
       <div className="flex items-start justify-between gap-3 border-b px-5 py-3">
         <div>
           <h2 className="font-display flex items-center gap-2 text-sm font-bold">

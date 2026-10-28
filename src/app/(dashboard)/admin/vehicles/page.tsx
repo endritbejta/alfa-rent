@@ -46,7 +46,7 @@ async function VehicleTable({
 }) {
   const { locale, t } = await getI18n();
   return (
-    <div className="bg-card overflow-hidden rounded-xl border shadow-xs">
+    <div className="overflow-hidden border-y">
       <Table>
         <TableHeader>
           <TableRow>
@@ -203,7 +203,7 @@ export default async function VehiclesPage({
       <VehicleFilters brands={brands} total={total} />
 
       {items.length === 0 ? (
-        <div className="bg-card rounded-xl border border-dashed px-6 py-12 text-center">
+        <div className="border-y px-6 py-14 text-center">
           <p className="font-display text-lg font-bold">
             {t("admin.noVehicles")}
           </p>

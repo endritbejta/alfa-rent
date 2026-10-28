@@ -51,8 +51,8 @@ export function PendingRequestCard({
   return (
     <article
       className={cn(
-        "bg-card hover:border-brand/40 rounded-xl border transition-colors duration-[var(--motion-hover)]",
-        emphasis ? "p-5 shadow-sm sm:p-6" : "p-4 shadow-xs sm:p-5"
+        "hover:bg-surface-hover border-b transition-colors duration-[var(--motion-hover)]",
+        emphasis ? "py-6" : "py-4"
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">

@@ -182,7 +182,7 @@ export function CalendarTimeline({
               </button>
             ))}
           </div>
-          <div className="bg-card flex items-center gap-1 rounded-full border p-0.5">
+          <div className="bg-card flex items-center gap-1 rounded-sm border p-0.5">
             <button
               type="button"
               aria-label={t("admin.previousMonth")}
@@ -213,7 +213,7 @@ export function CalendarTimeline({
       <div
         ref={scroller}
         onScroll={syncMonth}
-        className="bg-card max-h-[68vh] overflow-auto overscroll-x-contain rounded-xl border shadow-xs [--name-w:7.5rem] sm:[--name-w:12.5rem]"
+        className="bg-card max-h-[68vh] overflow-auto overscroll-x-contain border-y [--name-w:7.5rem] sm:[--name-w:12.5rem]"
       >
         <div style={{ width: rowW(gridW) }}>
           {/* Header: month band + day numbers */}

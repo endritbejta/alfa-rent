@@ -23,7 +23,7 @@ export async function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link href="/booking" className="hover:text-band-foreground">
+              <Link href="/car" className="hover:text-band-foreground">
                 {t("footer.book")}
               </Link>
             </li>

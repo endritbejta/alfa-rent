@@ -17,22 +17,29 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ContactPage() {
   const { t } = await getI18n();
   const hasDirectContact = Boolean(publicContact.phone || publicContact.email);
+  // Without a configured map link, a maps search for the configured address
+  // is still accurate; it is derived from real data, not invented.
+  const mapHref =
+    publicContact.mapUrl ??
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(publicContact.address)}`;
 
   return (
     <>
       <section className="bg-band text-band-foreground">
-        <div className="mx-auto max-w-6xl px-5 pt-14 pb-10">
+        <div className="mx-auto max-w-6xl px-5 pt-8 pb-6 sm:pt-12 sm:pb-9">
           <span className="eyebrow text-band-muted">
             {t("contact.eyebrow")}
           </span>
-          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight">
+          <h1 className="font-display mt-3 text-2xl font-bold tracking-tight sm:mt-4 sm:text-3xl lg:text-4xl">
             {t("contact.title")}
           </h1>
-          <p className="text-band-muted mt-3 max-w-lg">{t("contact.intro")}</p>
+          <p className="text-band-muted mt-2 max-w-lg text-sm sm:mt-3 sm:text-base">
+            {t("contact.intro")}
+          </p>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-6 px-5 py-14 lg:grid-cols-[1.35fr_.65fr]">
+      <section className="mx-auto grid max-w-6xl gap-4 px-5 py-6 sm:gap-6 sm:py-14 lg:grid-cols-[1.35fr_.65fr]">
         <div className="bg-card rounded-3xl p-6 shadow-sm sm:p-8">
           <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
             {t("footer.contact")}
@@ -59,6 +66,14 @@ export default async function ContactPage() {
                 {t("contact.verifiedOnly")}
               </p>
             )}
+            {!hasDirectContact && process.env.NODE_ENV === "development" && (
+              // Visible only in development: tells whoever runs the site what
+              // to set, without ever showing customers a configuration note.
+              <p className="rounded-2xl border border-dashed border-amber-500/60 p-4 font-mono text-xs leading-relaxed text-amber-700 sm:col-span-2 dark:text-amber-400">
+                Dev only: set NEXT_PUBLIC_CONTACT_PHONE and/or
+                NEXT_PUBLIC_CONTACT_EMAIL to show direct contact options.
+              </p>
+            )}
           </div>
 
           <div className="border-divider mt-7 border-t pt-7">
@@ -80,33 +95,24 @@ export default async function ContactPage() {
         </div>
 
         <div className="space-y-4">
-          {publicContact.mapUrl ? (
-            <a
-              href={publicContact.mapUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-card hover:bg-surface-hover group flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm transition-colors"
-            >
-              <ContactIcon icon={MapPin} />
-              <div>
-                <p className="font-display font-bold">{t("contact.address")}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {publicContact.address}
-                </p>
-                <ArrowUpRight className="text-muted-foreground mt-4 h-4 w-4" />
-              </div>
-            </a>
-          ) : (
-            <div className="bg-card flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm">
-              <ContactIcon icon={MapPin} />
-              <div>
-                <p className="font-display font-bold">{t("contact.address")}</p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {publicContact.address}
-                </p>
-              </div>
+          <a
+            href={mapHref}
+            target="_blank"
+            rel="noreferrer"
+            className="bg-card hover:bg-surface-hover group flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm transition-colors"
+          >
+            <ContactIcon icon={MapPin} />
+            <div>
+              <p className="font-display font-bold">{t("contact.address")}</p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {publicContact.address}
+              </p>
+              <span className="text-foreground mt-4 inline-flex items-center gap-1 text-sm font-medium">
+                {t("contact.openMap")}
+                <ArrowUpRight className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none" />
+              </span>
             </div>
-          )}
+          </a>
 
           <div className="bg-card flex min-h-32 items-start gap-4 rounded-2xl p-5 shadow-sm">
             <ContactIcon icon={Clock} />

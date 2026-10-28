@@ -54,6 +54,8 @@ const en = {
   "filter.description": "Narrow the fleet by category, gearbox, and budget.",
   "filter.active": "{count} active",
   "filter.clear": "Clear filters",
+  "filter.applied": "Applied",
+  "filter.remove": "Remove filter: {label}",
   "filter.search": "Search make or model",
   "filter.sort": "Sort",
   "filter.sortNewest": "Newest",
@@ -83,6 +85,8 @@ const en = {
   "booking.summary": "Reservation summary",
   "booking.selectForSummary": "Choose a vehicle to see its summary.",
   "booking.estimated": "Estimated daily rate",
+  "common.oneDay": "1 day",
+  "common.days": "{count} days",
   "booking.email": "Email",
   "booking.responseTime":
     "Keep this reference. The team handling your request will provide contact details and next steps.",
@@ -91,16 +95,13 @@ const en = {
   "booking.firstName": "First name",
   "booking.lastName": "Last name",
   "booking.phone": "Phone",
-  "booking.notes": "Notes (optional)",
-  "booking.notesPlaceholder":
-    "Child seat, additional driver, anything we should know",
   "booking.send": "Send booking request",
   "booking.sending": "Sending request…",
   "booking.noPayment":
     "No payment now. Our team confirms availability and meets you at pickup.",
   "booking.received": "Request received",
   "booking.confirmation":
-    "Your booking total is {total} EUR. Our team will confirm by email within business hours — nothing is charged until pickup.",
+    "Your booking total is {total} EUR. Our team will contact you to confirm within business hours — nothing is charged until pickup.",
   "booking.reference": "Reference: {id}",
   "booking.backToFleet": "Back to the fleet",
   "booking.chooseError": "Choose a vehicle",
@@ -118,6 +119,9 @@ const en = {
   "detail.year": "Year",
   "detail.category": "Category",
   "detail.insurance": "Insurance",
+  "detail.back": "Back to the fleet",
+  "detail.photos": "Vehicle photos",
+  "detail.photo": "Photo {index} of {count}",
   "detail.included": "Included",
   "detail.insuranceText":
     "Insurance included. Confirmed by our team within hours.",
@@ -315,7 +319,8 @@ const en = {
   "contact.weekdays": "Mon - Sat: 08:00 - 20:00",
   "contact.sunday": "Sun: 09:00 - 17:00",
   "contact.verifiedOnly":
-    "Official phone and email details will appear here once configured.",
+    "Send your request online with your phone number, and our team will call you back to confirm.",
+  "contact.openMap": "Open in maps",
   "contact.bookingAction": "Start a booking",
   "contact.bookingText":
     "For a new rental, choose a vehicle and send a request online.",
@@ -785,6 +790,8 @@ const sq: TranslationDictionary = {
     "Ngushto flotën sipas kategorisë, transmisionit dhe buxhetit.",
   "filter.active": "{count} aktivë",
   "filter.clear": "Pastro filtrat",
+  "filter.applied": "Të aplikuara",
+  "filter.remove": "Hiq filtrin: {label}",
   "filter.search": "Kërko markën ose modelin",
   "filter.sort": "Renditja",
   "filter.sortNewest": "Më të rejat",
@@ -815,6 +822,8 @@ const sq: TranslationDictionary = {
   "booking.summary": "Përmbledhja e rezervimit",
   "booking.selectForSummary": "Zgjidh një veturë për ta parë përmbledhjen.",
   "booking.estimated": "Çmimi ditor i parashikuar",
+  "common.oneDay": "1 ditë",
+  "common.days": "{count} ditë",
   "booking.email": "Email",
   "booking.responseTime":
     "Ruaje këtë referencë. Ekipi që trajton kërkesën do të japë kontaktin dhe hapat e ardhshëm.",
@@ -823,16 +832,13 @@ const sq: TranslationDictionary = {
   "booking.firstName": "Emri",
   "booking.lastName": "Mbiemri",
   "booking.phone": "Telefoni",
-  "booking.notes": "Shënime (opsionale)",
-  "booking.notesPlaceholder":
-    "Ulëse për fëmijë, shofer shtesë apo diçka tjetër që duhet ta dimë",
   "booking.send": "Dërgo kërkesën",
   "booking.sending": "Duke e dërguar…",
   "booking.noPayment":
     "Nuk ka pagesë tani. Ekipi ynë konfirmon veturën dhe të pret në marrje.",
   "booking.received": "Kërkesa u pranua",
   "booking.confirmation":
-    "Totali i rezervimit është {total} EUR. Ekipi ynë do ta konfirmojë me email gjatë orarit të punës — pagesa bëhet vetëm në marrje.",
+    "Totali i rezervimit është {total} EUR. Ekipi ynë do t'ju kontaktojë për konfirmim gjatë orarit të punës — pagesa bëhet vetëm në marrje.",
   "booking.reference": "Referenca: {id}",
   "booking.backToFleet": "Kthehu te flota",
   "booking.chooseError": "Zgjidh një veturë",
@@ -850,6 +856,9 @@ const sq: TranslationDictionary = {
   "detail.year": "Viti",
   "detail.category": "Kategoria",
   "detail.insurance": "Sigurimi",
+  "detail.back": "Kthehu te flota",
+  "detail.photos": "Fotot e veturës",
+  "detail.photo": "Foto {index} nga {count}",
   "detail.included": "I përfshirë",
   "detail.insuranceText":
     "Sigurimi është i përfshirë. Ekipi ynë konfirmon brenda disa orësh.",
@@ -1038,7 +1047,8 @@ const sq: TranslationDictionary = {
   "contact.weekdays": "Hën - Sht: 08:00 - 20:00",
   "contact.sunday": "E diel: 09:00 - 17:00",
   "contact.verifiedOnly":
-    "Telefoni dhe emaili zyrtar do të shfaqen këtu pasi të konfigurohen.",
+    "Dërgoni kërkesën online me numrin tuaj të telefonit dhe ekipi ynë ju kthen thirrje për konfirmim.",
+  "contact.openMap": "Hape në hartë",
   "contact.bookingAction": "Fillo rezervimin",
   "contact.bookingText":
     "Për një qira të re, zgjidh veturën dhe dërgo kërkesën online.",

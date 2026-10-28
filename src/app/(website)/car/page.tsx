@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
@@ -6,7 +7,9 @@ import { getPublicVehicles } from "@/services/vehicle.service";
 import { vehicleFilterSchema } from "@/lib/validations/vehicle";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { FleetFilters } from "@/components/forms/fleet-filters";
+import { FleetSort } from "@/components/forms/fleet-sort";
 import { Pagination } from "@/components/dashboard/pagination";
+import { Button } from "@/components/ui/button";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,16 +58,22 @@ export default async function FleetPage({
   if (params.to) forward.set("to", params.to);
   if (params.category) forward.set("category", params.category);
   const query = forward.toString();
+  // Leaving an empty result keeps the dates, since those are a decision the
+  // customer already made; only the narrowing filters go.
+  const keepDates = new URLSearchParams();
+  if (params.from) keepDates.set("from", params.from);
+  if (params.to) keepDates.set("to", params.to);
+  const clearHref = keepDates.size ? `/car?${keepDates}` : "/car";
 
   return (
     <>
       <section className="bg-band text-band-foreground">
-        <div className="mx-auto max-w-6xl px-5 pt-14 pb-10">
+        <div className="mx-auto max-w-6xl px-5 pt-8 pb-6 sm:pt-12 sm:pb-9">
           <span className="eyebrow text-band-muted">{t("fleet.eyebrow")}</span>
-          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight">
+          <h1 className="font-display mt-3 text-2xl font-bold tracking-tight sm:mt-4 sm:text-3xl lg:text-4xl">
             {t("fleet.title")}
           </h1>
-          <p className="text-band-muted mt-3 max-w-lg">
+          <p className="text-band-muted mt-2 max-w-lg text-sm sm:mt-3 sm:text-base">
             {dateRange
               ? t("fleet.availableDescription", {
                   from: format(dateRange.from, "dd MMM", {
@@ -79,24 +88,35 @@ export default async function FleetPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-10">
+      <section className="mx-auto max-w-6xl px-5 py-6 sm:py-10">
         <FleetFilters />
 
-        <p className="text-muted-foreground mt-8 mb-4 text-sm">
-          {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
-            count: total,
-          })}
-          {dateRange ? t("fleet.availableSuffix") : ""}
-        </p>
+        <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-muted-foreground text-sm">
+            {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
+              count: total,
+            })}
+            {dateRange ? t("fleet.availableSuffix") : ""}
+          </p>
+          {total > 1 && <FleetSort />}
+        </div>
 
         {items.length === 0 ? (
           <div className="rounded-xl border border-dashed px-6 py-16 text-center">
             <p className="font-display text-lg font-bold">
               {t("fleet.emptyTitle")}
             </p>
-            <p className="text-muted-foreground mt-2 text-sm">
+            <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
               {t("fleet.emptyText")}
             </p>
+            <Button
+              variant="outline"
+              className="mt-6"
+              nativeButton={false}
+              render={<Link href={clearHref} />}
+            >
+              {t("filter.clear")}
+            </Button>
           </div>
         ) : (
           <>

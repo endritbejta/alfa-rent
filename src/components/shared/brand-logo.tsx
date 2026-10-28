@@ -21,6 +21,10 @@ export function BrandLogo({
         aria-hidden="true"
         width={226}
         height={223}
+        // A 4 KB local PNG. The project's loader only resizes Cloudinary
+        // URLs and returns this one untouched, which Next flagged on every
+        // page as a loader that ignores width; say so explicitly instead.
+        unoptimized
         preload={preload}
         className="h-8 w-8 shrink-0 object-contain"
       />

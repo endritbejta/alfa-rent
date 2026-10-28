@@ -12,6 +12,7 @@ import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
+import { formatPrice } from "@/lib/money";
 import { PendingStatus } from "@/components/shared/pending-status";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 
@@ -39,7 +40,7 @@ export function AvailabilityWidget({
   initialRangeAvailable: boolean;
   bookingCalendar: VehicleBookingCalendar;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const router = useRouter();
   // Prefilled from the hero/fleet selection carried through the URL, so a
   // customer who already chose dates lands here with a live quote.
@@ -159,7 +160,10 @@ export function AvailabilityWidget({
                   days === 1
                     ? "availability.summary"
                     : "availability.summaryPlural",
-                  { count: days, total: quote.totalPrice ?? 0 }
+                  {
+                    count: days,
+                    total: formatPrice(quote.totalPrice ?? 0, locale),
+                  }
                 )}
               </p>
             </>

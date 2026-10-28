@@ -5,6 +5,7 @@ import type { PublicVehicle } from "@/services/vehicle.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { getI18n } from "@/lib/i18n/server";
+import { formatPrice } from "@/lib/money";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const CATEGORY_KEYS = {
@@ -38,7 +39,7 @@ export async function VehicleCard({
   bookingReady?: boolean;
   preload?: boolean;
 }) {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   const cover = vehicle.images[0];
   const detailHref = `/car/${vehicle.slug}${query ? `?${query}` : ""}`;
   const bookingParams = new URLSearchParams(query);
@@ -111,7 +112,7 @@ export async function VehicleCard({
         </div>
         <div className="flex items-center justify-between border-t pt-4">
           <p className="font-display text-xl font-bold">
-            {vehicle.pricePerDay}
+            {formatPrice(vehicle.pricePerDay, locale)}
             <span className="text-muted-foreground font-sans text-xs font-medium">
               {" "}
               EUR / {t("common.perDay")}

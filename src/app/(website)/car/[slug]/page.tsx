@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import {
+  ArrowLeft,
   Users,
   Fuel,
   Settings2,
@@ -13,15 +14,15 @@ import {
 import { getPublicVehicleBySlug } from "@/services/vehicle.service";
 import { getVehicleBookingCalendar } from "@/services/reservation.service";
 import { NotFoundError } from "@/lib/errors";
-import { StatusBadge } from "@/components/shared/status-badge";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
 import { MobileBookingBar } from "@/components/forms/mobile-booking-bar";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
 import { isBookingRangeAvailable } from "@/lib/booking-calendar";
+import { VehicleGallery } from "./vehicle-gallery";
 import { cloudinaryJpegCrop } from "@/lib/cloudinary/image-loader";
-import { formatAmount } from "@/lib/money";
+import { formatAmount, formatPrice } from "@/lib/money";
 import { openGraphLocale } from "@/lib/site-url";
 
 const CATEGORY_KEYS = {
@@ -113,7 +114,11 @@ export default async function VehiclePage({
     bookingCalendar
   );
   const description = getVehicleDescription(vehicle, locale);
-  const [cover, ...rest] = vehicle.images;
+  // Back to the fleet with the customer's dates and category still applied.
+  const back = new URLSearchParams();
+  if (from) back.set("from", from);
+  if (to) back.set("to", to);
+  const fleetHref = back.size ? `/car?${back}` : "/car";
 
   const specs = [
     {
@@ -144,65 +149,38 @@ export default async function VehiclePage({
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-5 pt-12 pb-28 lg:py-12">
-      <div className="grid gap-10 lg:grid-cols-[1.5fr_1fr]">
+    <div className="mx-auto max-w-6xl px-5 pt-2 pb-28 lg:pt-8 lg:pb-12">
+      <Link
+        href={fleetHref}
+        className="text-muted-foreground hover:text-foreground group mb-1 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium transition-colors lg:mb-5"
+      >
+        <ArrowLeft className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:-translate-x-0.5 motion-reduce:transition-none" />
+        {t("detail.back")}
+      </Link>
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-10">
         <div>
-          {/* Gallery */}
-          <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800">
-            {cover ? (
-              <Image
-                src={cover.url}
-                alt={`${vehicle.brand} ${vehicle.model}`}
-                fill
-                preload
-                sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover"
-              />
-            ) : (
-              <span className="text-media-foreground absolute inset-0 flex items-center justify-center text-sm tracking-[0.16em] uppercase">
-                {vehicle.brand} {vehicle.model}
-              </span>
-            )}
-            <span className="absolute top-4 left-4">
-              <StatusBadge status={vehicle.status} variant="overlay" />
-            </span>
-          </div>
-          {rest.length > 0 && (
-            <div className="mt-3 grid grid-cols-4 gap-3">
-              {rest.slice(0, 4).map((image) => (
-                <div
-                  key={image.id}
-                  className="bg-media relative aspect-[16/10] overflow-hidden rounded-lg"
-                >
-                  <Image
-                    src={image.url}
-                    alt={`${vehicle.brand} ${vehicle.model}`}
-                    fill
-                    sizes="15vw"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <VehicleGallery
+            images={vehicle.images}
+            name={`${vehicle.brand} ${vehicle.model}`}
+          />
 
-          <span className="eyebrow text-muted-foreground mt-10">
-            {t(CATEGORY_KEYS[vehicle.category])}
+          <span className="eyebrow text-muted-foreground mt-5 lg:mt-10">
+            {t(CATEGORY_KEYS[vehicle.category])} · {vehicle.year}
           </span>
-          <h1 className="font-display mt-3 text-4xl font-bold tracking-tight">
+          <h1 className="font-display mt-2 text-2xl font-bold tracking-tight sm:mt-3 sm:text-3xl lg:text-4xl">
             {vehicle.brand} {vehicle.model}
           </h1>
-          <p className="text-muted-foreground mt-4 max-w-2xl leading-relaxed">
+          <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-relaxed sm:mt-4 sm:text-base">
             {description}
           </p>
 
-          <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-3">
             {specs.map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
-                className="bg-card min-w-0 rounded-xl border p-3 shadow-xs sm:p-4"
+                className="bg-card min-w-0 rounded-lg border p-2.5 shadow-xs sm:rounded-xl sm:p-4"
               >
-                <Icon className="text-brand mb-1.5 h-4 w-4 sm:mb-2 sm:h-5 sm:w-5" />
+                <Icon className="text-brand mb-1 h-3.5 w-3.5 sm:mb-2 sm:h-5 sm:w-5" />
                 <p className="text-muted-foreground text-[10px] leading-tight sm:text-xs">
                   {label}
                 </p>
@@ -219,9 +197,9 @@ export default async function VehiclePage({
           id="booking"
           className="scroll-mt-24 lg:sticky lg:top-24 lg:self-start"
         >
-          <div className="bg-card rounded-2xl border p-6 shadow-sm">
-            <p className="font-display text-3xl font-bold">
-              {vehicle.pricePerDay}
+          <div className="bg-card rounded-2xl border p-5 shadow-sm sm:p-6">
+            <p className="font-display text-2xl font-bold sm:text-3xl">
+              {formatPrice(vehicle.pricePerDay, locale)}
               <span className="text-muted-foreground font-sans text-sm font-medium">
                 {" "}
                 EUR / {t("common.perDay")}

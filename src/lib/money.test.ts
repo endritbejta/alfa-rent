@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Prisma } from "@prisma/client";
-import { formatAmount, formatEur, toMoney } from "@/lib/money";
+import { formatAmount, formatEur, formatPrice, toMoney } from "@/lib/money";
 
 describe("money", () => {
   it("takes a Decimal, a string or a number", () => {
@@ -35,5 +35,26 @@ describe("money", () => {
   it("omits the unit for sentences that supply their own", () => {
     // "At {rate} EUR/day" would otherwise read "At 45.00 EUR EUR/day".
     expect(formatAmount(45, "en")).toBe("45.00");
+  });
+});
+
+/**
+ * Storefront prices: whole euros stay whole, cents are never rounded away.
+ * Before this, cards printed the raw number ("65.5") while the booking
+ * summary printed a locale-formatted one, so one car showed two prices.
+ */
+describe("formatPrice", () => {
+  it("keeps whole euros whole", () => {
+    expect(formatPrice(92, "sq")).toBe("92");
+    expect(formatPrice(92, "en")).toBe("92");
+  });
+
+  it("keeps both cent digits in the reader's locale", () => {
+    expect(formatPrice(65.5, "sq")).toBe("65,50");
+    expect(formatPrice(65.5, "en")).toBe("65.50");
+  });
+
+  it("groups thousands for totals", () => {
+    expect(formatPrice(1250, "en")).toBe("1,250");
   });
 });

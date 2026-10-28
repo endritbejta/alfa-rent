@@ -149,7 +149,7 @@ export function FleetFilters() {
                 event.target.value === "newest" ? null : event.target.value
               )
             }
-            className="border-input bg-control focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-3 sm:h-8"
+            className="border-input bg-control focus-visible:border-ring focus-visible:ring-ring/50 h-11 w-full cursor-pointer rounded-lg border pr-9 pl-3 text-sm outline-none focus-visible:ring-3 sm:h-8"
           >
             <option value="newest">{t("filter.sortNewest")}</option>
             <option value="price-asc">{t("filter.sortPriceLow")}</option>

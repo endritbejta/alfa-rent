@@ -218,7 +218,7 @@ export function NewReservationDialog({
             </Label>
             <select
               id="booking-vehicle"
-              className={cn(field, "cursor-pointer")}
+              className={cn(field, "cursor-pointer pr-9")}
               value={vehicleId}
               onChange={(e) => setVehicleId(e.target.value)}
             >

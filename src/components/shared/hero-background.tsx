@@ -1,8 +1,8 @@
 /**
  * Hero backdrop — pure CSS, no external asset: a near-black base, a soft
- * red glow and a vignette that keeps the headline and search legible. The
- * real vehicles are the featured cards that overlap the hero's lower edge;
- * a drawn silhouette competed with them.
+ * red glow and a vignette that keeps the headline and search legible. A drawn
+ * car silhouette used to sit here; it read as stray grey shapes behind the
+ * search.
  */
 export function HeroBackground() {
   return (

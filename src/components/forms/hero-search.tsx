@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, format, startOfToday } from "date-fns";
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 import { VehicleCategory } from "@prisma/client";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
@@ -61,14 +61,16 @@ export function HeroSearch() {
         }}
       />
 
-      <label className="block md:w-56">
-        <span className="text-band-muted mb-1.5 block text-[11px] font-semibold tracking-wide uppercase">
+      {/* Built like the date fields beside it (label inside the box), so the
+          three controls share one height and one baseline. */}
+      <label className="relative block cursor-pointer rounded-xl bg-white/[0.06] px-4 py-2.5 ring-1 ring-white/10 transition-colors focus-within:ring-2 focus-within:ring-[var(--brand)] hover:bg-white/[0.08] md:w-56">
+        <span className="text-band-muted block text-[11px] font-semibold tracking-wide uppercase">
           {t("filter.category")}
         </span>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as VehicleCategory | "")}
-          className="[&>option]:bg-card [&>option]:text-card-foreground h-11 w-full cursor-pointer rounded-xl border-0 bg-white/10 px-3 text-sm text-white ring-1 ring-white/15 outline-none focus:ring-2 focus:ring-[var(--brand)]"
+          className="[&>option]:bg-card [&>option]:text-card-foreground mt-0.5 block w-full cursor-pointer appearance-none bg-transparent pr-7 text-sm text-white outline-none"
         >
           <option value="">{t("filter.anyCategory")}</option>
           {Object.values(VehicleCategory).map((c) => (
@@ -77,11 +79,15 @@ export function HeroSearch() {
             </option>
           ))}
         </select>
+        <ChevronDown
+          aria-hidden
+          className="text-band-muted pointer-events-none absolute right-4 bottom-3 h-4 w-4"
+        />
       </label>
 
       <button
         type="submit"
-        className="bg-brand hover:bg-brand-hover flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-7 text-sm font-semibold text-white transition-[background-color,transform] duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-colors md:h-11 md:w-auto md:self-end"
+        className="bg-brand hover:bg-brand-hover flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-7 text-sm font-semibold text-white transition-[background-color,transform] duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-colors md:h-auto md:w-auto"
       >
         <Search className="h-4 w-4" />
         {t("common.search")}

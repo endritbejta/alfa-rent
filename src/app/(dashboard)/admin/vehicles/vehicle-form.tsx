@@ -532,7 +532,7 @@ function Select({
   return (
     <select
       {...props}
-      className="border-input bg-control focus:border-ring focus:ring-ring/30 h-9 w-full cursor-pointer rounded-lg border px-3 text-sm transition-colors outline-none focus:ring-2"
+      className="border-input bg-control focus:border-ring focus:ring-ring/30 h-9 w-full cursor-pointer rounded-lg border pr-9 pl-3 text-sm transition-colors outline-none focus:ring-2"
     >
       {children}
     </select>

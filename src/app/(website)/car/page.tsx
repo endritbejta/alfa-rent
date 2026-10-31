@@ -66,6 +66,13 @@ export default async function FleetPage({
   if (params.to) keepDates.set("to", params.to);
   const clearHref = keepDates.size ? `/car?${keepDates}` : "/car";
 
+  const summary = (
+    <p className="text-muted-foreground text-sm">
+      {t(total === 1 ? "fleet.count" : "fleet.countPlural", { count: total })}
+      {dateRange ? t("fleet.availableSuffix") : ""}
+    </p>
+  );
+
   return (
     <>
       <section>
@@ -90,17 +97,13 @@ export default async function FleetPage({
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-8">
-        <FleetFilters />
+        <FleetFilters
+          summary={summary}
+          sort={total > 1 ? <FleetSort fill /> : undefined}
+        />
 
         <FleetView
-          summary={
-            <p className="text-muted-foreground text-sm">
-              {t(total === 1 ? "fleet.count" : "fleet.countPlural", {
-                count: total,
-              })}
-              {dateRange ? t("fleet.availableSuffix") : ""}
-            </p>
-          }
+          summary={summary}
           sort={total > 1 ? <FleetSort /> : undefined}
         >
           {items.length === 0 ? (

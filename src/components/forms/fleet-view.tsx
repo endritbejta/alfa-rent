@@ -72,7 +72,7 @@ export function FleetView({
 
   return (
     <div data-view={view} className="group/fleet">
-      <div className="mt-4 mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+      <div className="mt-4 mb-6 hidden flex-wrap items-center justify-between gap-3 border-b pb-4 md:flex">
         {summary}
         <div className="flex items-center gap-3">
           {sort}

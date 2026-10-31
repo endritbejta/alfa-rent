@@ -36,7 +36,13 @@ const FILTER_KEYS = ["q", "category", "transmission", "maxPrice"] as const;
  * set; mobile keeps the first viewport focused on vehicles and moves the same
  * controls into a spatially anchored sheet.
  */
-export function FleetFilters() {
+export function FleetFilters({
+  sort,
+  summary,
+}: {
+  sort?: React.ReactNode;
+  summary?: React.ReactNode;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
@@ -77,7 +83,9 @@ export function FleetFilters() {
     navigate(next);
   };
 
-  const activeCount = FILTER_KEYS.filter((key) => params.has(key)).length;
+  const activeCount =
+    FILTER_KEYS.filter((key) => params.has(key)).length +
+    (params.has("sort") ? 1 : 0);
 
   /** The applied filters as removable chips, in the order of the panel. */
   const applied: { key: (typeof FILTER_KEYS)[number]; label: string }[] = [];
@@ -231,10 +239,16 @@ export function FleetFilters() {
       data-pending={pending || undefined}
       className="transition-opacity duration-[var(--motion-hover)] data-[pending]:opacity-70 motion-reduce:transition-none"
     >
-      <div className="md:hidden">
+      <div className="mt-4 mb-6 flex items-center justify-between gap-3 border-b pb-4 md:hidden">
+        {summary}
         <Sheet>
           <SheetTrigger
-            render={<Button variant="outline" className="justify-between" />}
+            render={
+              <Button
+                variant="outline"
+                className="h-11 justify-center gap-2 px-4"
+              />
+            }
           >
             <SlidersHorizontal />
             {t("filter.open")}
@@ -252,7 +266,17 @@ export function FleetFilters() {
               <SheetTitle>{t("filter.title")}</SheetTitle>
               <SheetDescription>{t("filter.description")}</SheetDescription>
             </SheetHeader>
-            <div className="px-5">{controls}</div>
+            <div className="space-y-6 px-5">
+              {sort && (
+                <fieldset>
+                  <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-[0.12em] uppercase">
+                    {t("filter.sort")}
+                  </legend>
+                  {sort}
+                </fieldset>
+              )}
+              {controls}
+            </div>
             <SheetFooter className="bg-popover sticky bottom-0 border-t px-5">
               <SheetClose render={<Button className="w-full" />}>
                 {t("filter.showResults")}

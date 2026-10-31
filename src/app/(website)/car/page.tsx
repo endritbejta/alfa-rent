@@ -122,7 +122,7 @@ export default async function FleetPage({
             </div>
           ) : (
             <>
-              <div className="grid gap-x-8 gap-y-12 pb-8 md:grid-cols-2 md:group-data-[view=one]/fleet:grid-cols-1 md:group-data-[view=one]/fleet:gap-y-0 md:group-data-[view=one]/fleet:divide-y lg:group-data-[view=three]/fleet:grid-cols-3">
+              <div className="grid grid-cols-1 gap-x-8 gap-y-12 pb-8 md:grid-cols-2 md:group-data-[view=one]/fleet:grid-cols-1 md:group-data-[view=one]/fleet:gap-y-0 md:group-data-[view=one]/fleet:divide-y lg:group-data-[view=three]/fleet:grid-cols-3">
                 {items.map((vehicle, index) => (
                   <VehicleCard
                     key={vehicle.id}

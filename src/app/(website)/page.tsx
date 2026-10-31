@@ -143,7 +143,7 @@ export default async function HomePage() {
             <ArrowRight className="h-4 w-4 transition-transform duration-[var(--motion-hover)] group-hover:translate-x-0.5 motion-reduce:transition-none" />
           </Link>
         </div>
-        <div className="grid gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
           {featured.map((vehicle, index) => (
             <VehicleCard
               key={vehicle.id}

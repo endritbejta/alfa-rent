@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ListFilter } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
@@ -10,7 +11,7 @@ import { useI18n } from "@/components/shared/locale-provider";
  * the filters that narrow them. Same URL contract as the filter panel: the
  * query string is the state, and changing the order starts again at page 1.
  */
-export function FleetSort() {
+export function FleetSort({ fill = false }: { fill?: boolean }) {
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
@@ -28,7 +29,12 @@ export function FleetSort() {
   };
 
   return (
-    <label className="relative inline-flex items-center">
+    <label
+      className={cn(
+        "relative items-center",
+        fill ? "flex w-full" : "inline-flex"
+      )}
+    >
       <ListFilter
         aria-hidden
         className="text-muted-foreground pointer-events-none absolute left-3 h-4 w-4"
@@ -38,7 +44,10 @@ export function FleetSort() {
         aria-busy={pending}
         value={params.get("sort") ?? "newest"}
         onChange={(event) => change(event.target.value)}
-        className="border-border focus-visible:border-ring focus-visible:ring-ring/50 h-11 cursor-pointer rounded-none border bg-transparent pr-9 pl-9 text-sm font-medium transition-opacity outline-none focus-visible:ring-3 aria-busy:opacity-70 sm:h-9"
+        className={cn(
+          "border-border focus-visible:border-ring focus-visible:ring-ring/50 h-11 cursor-pointer rounded-none border bg-transparent pr-9 pl-9 text-sm font-medium transition-opacity outline-none focus-visible:ring-3 aria-busy:opacity-70 sm:h-9",
+          fill && "w-full"
+        )}
       >
         <option value="newest">{t("filter.sortNewest")}</option>
         <option value="price-asc">{t("filter.sortPriceLow")}</option>

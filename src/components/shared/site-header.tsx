@@ -92,7 +92,7 @@ export function SiteHeader() {
       {open && (
         <nav
           id="mobile-nav"
-          className="border-band-border border-t px-5 py-4 md:hidden"
+          className="bg-band border-band-border absolute inset-x-0 top-full border-y px-5 py-4 shadow-lg md:hidden"
         >
           <div className="flex flex-col gap-1">
             {NAV.map((item) => {

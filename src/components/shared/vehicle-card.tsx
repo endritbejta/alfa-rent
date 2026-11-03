@@ -5,6 +5,7 @@ import type { PublicVehicle } from "@/services/vehicle.service";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { getI18n } from "@/lib/i18n/server";
 import { formatPrice } from "@/lib/money";
+import { placeholderStyle } from "@/lib/cloudinary/image-loader";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const CATEGORY_KEYS = {
@@ -60,12 +61,23 @@ export async function VehicleCard({
   ];
 
   return (
-    <article className="fleet-card group flex flex-col gap-5 md:group-data-[view=one]/fleet:grid md:group-data-[view=one]/fleet:grid-cols-12 md:group-data-[view=one]/fleet:items-center md:group-data-[view=one]/fleet:gap-10 md:group-data-[view=one]/fleet:py-10">
+    <article
+      className="fleet-card group flex flex-col gap-5 md:group-data-[view=one]/fleet:grid md:group-data-[view=one]/fleet:grid-cols-12 md:group-data-[view=one]/fleet:items-center md:group-data-[view=one]/fleet:gap-10 md:group-data-[view=one]/fleet:py-10"
+      // Lets the fleet's layout switch move this card rather than redraw it.
+      // Inline, with the transition's CSS in FleetView: Turbopack's CSS pass
+      // drops view-transition rules from the stylesheet.
+      style={{
+        viewTransitionName: `fleet-${vehicle.id}`,
+        viewTransitionClass: "fleet-card",
+      }}
+    >
       <Link
         href={detailHref}
         tabIndex={-1}
         aria-hidden="true"
         className="bg-media relative block aspect-[16/10] overflow-hidden md:group-data-[view=one]/fleet:col-span-7"
+        // A blurred preview of this photo holds the frame until it loads.
+        style={placeholderStyle(cover?.url)}
       >
         {cover ? (
           <Image

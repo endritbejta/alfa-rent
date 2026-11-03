@@ -50,27 +50,46 @@ export function AvailabilityWidget({
     initialFrom && initialTo && initialTo > initialFrom
       ? differenceInCalendarDays(new Date(initialTo), new Date(initialFrom))
       : 0;
-  const [quote, setQuote] = useState<Quote | null>(
+  /*
+   * Every quote fetched on this page, by date range. A customer comparing
+   * dates goes back and forth between the same few ranges; each return used
+   * to wipe the answer and ask again. Now the known answer shows at once and
+   * a fresh check runs behind it (stale-while-revalidate). Only ever the
+   * range on screen is read, so a quote for other dates can no longer stand
+   * in while new ones load — it used to, and kept Continue enabled with it.
+   */
+  const [quotes, setQuotes] = useState<Record<string, Quote>>(() =>
     initialRangeAvailable && initialDays > 0
       ? {
-          available: true,
-          totalPrice: initialDays * pricePerDay,
+          [`${initialFrom}|${initialTo}`]: {
+            available: true,
+            totalPrice: initialDays * pricePerDay,
+          },
         }
-      : null
+      : {}
   );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const forget = (key: string) =>
+    setQuotes((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  const rangeKey = from && to && to > from ? `${from}|${to}` : null;
+  const quote = rangeKey ? (quotes[rangeKey] ?? null) : null;
 
   // Debounced availability check; the timeout also keeps state updates
   // out of the synchronous effect body.
   useEffect(() => {
     if (!from || !to || to <= from) {
-      const timer = setTimeout(() => setQuote(null), 0);
+      const timer = setTimeout(() => setError(null), 0);
       return () => clearTimeout(timer);
     }
     if (initialRangeAvailable && from === initialFrom && to === initialTo) {
       return;
     }
+    const key = `${from}|${to}`;
     let cancelled = false;
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -86,13 +105,15 @@ export function AvailabilityWidget({
         const json: ApiResponse<Quote> = await res.json();
         if (cancelled) return;
         if (!json.success) {
-          setQuote(null);
+          forget(key);
           setError(json.error.message);
           return;
         }
-        setQuote(json.data);
+        setQuotes((current) => ({ ...current, [key]: json.data }));
       } catch {
         if (!cancelled) {
+          // An answer we could not confirm is not shown as current.
+          forget(key);
           setError(t("availability.error"));
         }
       } finally {
@@ -132,18 +153,23 @@ export function AvailabilityWidget({
       />
 
       <PendingStatus message={loading ? t("availability.checking") : null} />
-      {loading && (
-        <p className="text-muted-foreground text-sm">
-          {t("availability.checking")}
-        </p>
-      )}
       {error && (
         <p role="alert" className="text-destructive text-sm">
           {error}
         </p>
       )}
-      {quote && !loading && (
+      {/* A first check for these dates holds the quote's own space, so the
+          answer lands without pushing the button down; a known answer stays
+          up while it is re-checked. */}
+      {loading && !quote && (
         <div
+          aria-hidden="true"
+          className="bg-skeleton h-[4.25rem] animate-pulse rounded-none motion-reduce:animate-none"
+        />
+      )}
+      {quote && (
+        <div
+          aria-busy={loading || undefined}
           className={
             quote.available
               ? "bg-status-available/10 rounded-none px-4 py-3"
@@ -155,7 +181,7 @@ export function AvailabilityWidget({
               <p className="text-status-available text-sm font-semibold">
                 {t("availability.available")}
               </p>
-              <p className="mt-0.5 text-sm">
+              <p className="mt-0.5 text-sm tabular-nums">
                 {t(
                   days === 1
                     ? "availability.summary"
@@ -177,6 +203,7 @@ export function AvailabilityWidget({
 
       <Button
         className="h-14 w-full text-base sm:h-14"
+        // Only ever the quote for the dates on screen; never a leftover one.
         disabled={!quote?.available}
         onClick={() =>
           router.push(`/booking?vehicle=${slug}&from=${from}&to=${to}`)

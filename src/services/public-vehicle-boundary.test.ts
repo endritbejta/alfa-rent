@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const WEBSITE_DATA_ENTRYPOINTS = [
-  "src/app/(website)/page.tsx",
-  "src/app/(website)/car/page.tsx",
+  "src/app/(website)/(home)/page.tsx",
+  "src/app/(website)/car/(list)/page.tsx",
   "src/app/(website)/booking/page.tsx",
   "src/app/(website)/car/[slug]/page.tsx",
 ];

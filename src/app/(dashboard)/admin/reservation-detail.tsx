@@ -28,6 +28,10 @@ import { DrawerSkeleton } from "./detail-primitives";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { useI18n } from "@/components/shared/locale-provider";
 import { reportError } from "@/lib/observability";
+import { PendingStatus } from "@/components/shared/pending-status";
+
+/** Marks a history entry the drawer pushed, so closing knows to pop it. */
+const DRAWER_ENTRY = "alfaDrawer";
 
 /**
  * Which record is loaded, tagged with the request that asked for it. Keying
@@ -79,6 +83,13 @@ export function ReservationDetailProvider({
   } | null>(null);
   // Bumped to re-fetch the record already on screen without touching the URL.
   const [reloads, setReloads] = useState(0);
+  /*
+   * Every record opened this session, by kind and id: stale-while-revalidate.
+   * Reopening one shows it at once while a fresh copy loads, instead of the
+   * skeleton every time — staff flip between the same few bookings all day.
+   * Memory only, never storage, so it goes with a reload or a sign-out.
+   */
+  const [seen, setSeen] = useState<Record<string, Loaded>>({});
 
   const kind = target?.kind ?? null;
   const id = target?.id ?? null;
@@ -90,9 +101,12 @@ export function ReservationDetailProvider({
     void fetchDetail(requestKey, kind, id)
       .then((result) => {
         if (cancelled) return;
-        if ("error" in result)
+        if ("error" in result) {
           setFailure({ key: requestKey, message: result.error });
-        else setLoaded(result);
+        } else {
+          setLoaded(result);
+          setSeen((current) => ({ ...current, [`${kind}:${id}`]: result }));
+        }
       })
       /*
        * The detail actions call requireUser() outside their try, so an
@@ -116,18 +130,40 @@ export function ReservationDetailProvider({
    * a server action, so a navigation would re-render the whole admin page to
    * change nothing. Next syncs useSearchParams with the History API, so the
    * URL is still the state and Back still works.
+   *
+   * The drawer is one layer over the page, never a stack: opening a record
+   * from inside an open drawer swaps the entry in place, so Back and Close
+   * both always land on the page underneath.
    */
   const openDetail = useCallback((kind: DrawerKind, id: string) => {
-    window.history.pushState(
-      null,
-      "",
-      `?${withDrawerTarget(window.location.search, { kind, id })}`
-    );
+    const url = `?${withDrawerTarget(window.location.search, { kind, id })}`;
+    // Fresh state objects only: Next skips syncing useSearchParams for any
+    // state that already carries its own internal flag, so handing the
+    // current entry's state back would leave the drawer showing the old record.
+    if (readDrawerTarget(new URLSearchParams(window.location.search))) {
+      const pushed = Boolean(window.history.state?.[DRAWER_ENTRY]);
+      window.history.replaceState(
+        pushed ? { [DRAWER_ENTRY]: true } : null,
+        "",
+        url
+      );
+    } else {
+      window.history.pushState({ [DRAWER_ENTRY]: true }, "", url);
+    }
   }, []);
 
-  // Closing replaces rather than pushes: dismissing the drawer should not
-  // become another step to press Back through.
+  /*
+   * Closing pops the entry the drawer pushed. It used to overwrite it with
+   * the list's URL instead, which left the list in history twice: the next
+   * Back appeared to do nothing, and the one after jumped two pages. A drawer
+   * opened from a link — a bookmark, a colleague's URL — has no entry of its
+   * own to pop, and only that case still rewrites the URL in place.
+   */
   const close = useCallback(() => {
+    if (window.history.state?.[DRAWER_ENTRY]) {
+      window.history.back();
+      return;
+    }
     const query = withoutDrawerTarget(window.location.search);
     window.history.replaceState(
       null,
@@ -147,11 +183,17 @@ export function ReservationDetailProvider({
 
   // While closing, the panel stays mounted for its exit animation — so the
   // last record keeps rendering rather than blanking on the way out.
-  const body = !target || loaded?.key === requestKey ? loaded : null;
+  const fresh = !target || loaded?.key === requestKey ? loaded : null;
   const message =
     failure?.key === requestKey
       ? (failure.message ?? t("admin.detailUnavailable"))
       : null;
+  // The copy from last time stands in until the fresh one lands — but not
+  // over an error, which has to be read.
+  const stale =
+    !fresh && !message && kind && id ? (seen[`${kind}:${id}`] ?? null) : null;
+  const body = fresh ?? stale;
+  const revalidating = stale !== null;
   const loading = requestKey !== null && !body && !message;
 
   const title =
@@ -178,32 +220,49 @@ export function ReservationDetailProvider({
       <DetailDrawer
         open={target !== null}
         onClose={close}
+        // Once it is off screen the record is history: reopening it goes
+        // through the stale-while-revalidate path like any other, rather
+        // than passing last time's copy off as fresh.
+        onClosed={() => setLoaded(null)}
         title={title}
         subtitle={subtitle}
       >
-        {loading && <DrawerSkeleton />}
+        {loading && kind && <DrawerSkeleton kind={kind} />}
         {message && (
           <p role="alert" className="text-destructive text-sm">
             {message}
           </p>
         )}
-        {body?.kind === "reservation" && (
-          <ReservationBody
-            detail={body.data}
-            onDone={close}
-            // An extension rewrites the dates and total shown here, so the
-            // drawer reloads in place rather than dismissing — the operator
-            // stays on the record they just changed and sees the result.
-            onChanged={() => setReloads((n) => n + 1)}
+        {/* A stale copy can be read but not acted on: until the fresh one
+            arrives its buttons might confirm a booking a colleague already
+            cancelled. The bar only shows if the refresh is slow enough to
+            notice. */}
+        <PendingStatus message={revalidating ? t("admin.refreshing") : null} />
+        {revalidating && (
+          <div
+            aria-hidden="true"
+            className="bg-brand/70 -mt-5 mb-4 -ml-5 h-0.5 w-[calc(100%+2.5rem)] origin-left animate-[refresh-bar_1.2s_var(--ease-standard)_400ms_infinite_both] motion-reduce:animate-none motion-reduce:opacity-60"
           />
         )}
-        {body?.kind === "vehicle" && <VehicleDetailBody detail={body.data} />}
-        {body?.kind === "customer" && (
-          <CustomerDetailBody
-            detail={body.data}
-            onChanged={() => setReloads((n) => n + 1)}
-          />
-        )}
+        <div inert={revalidating} aria-busy={revalidating || undefined}>
+          {body?.kind === "reservation" && (
+            <ReservationBody
+              detail={body.data}
+              onDone={close}
+              // An extension rewrites the dates and total shown here, so the
+              // drawer reloads in place rather than dismissing — the operator
+              // stays on the record they just changed and sees the result.
+              onChanged={() => setReloads((n) => n + 1)}
+            />
+          )}
+          {body?.kind === "vehicle" && <VehicleDetailBody detail={body.data} />}
+          {body?.kind === "customer" && (
+            <CustomerDetailBody
+              detail={body.data}
+              onChanged={() => setReloads((n) => n + 1)}
+            />
+          )}
+        </div>
       </DetailDrawer>
     </DetailDrawerContext.Provider>
   );

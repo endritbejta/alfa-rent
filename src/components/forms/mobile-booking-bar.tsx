@@ -58,12 +58,14 @@ export function MobileBookingBar({
       aria-label={bookingInView ? undefined : bookLabel}
       data-mobile-booking-bar
       data-visible={!bookingInView}
-      className={`bg-card fixed inset-x-0 bottom-0 z-40 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg transition-transform duration-300 ease-out motion-reduce:transition-none lg:hidden ${
+      // Every side but the top meets the screen edge, so each keeps clear of
+      // the home indicator and, in landscape, the notch and rounded corners.
+      className={`bg-card fixed inset-x-0 bottom-0 z-40 border-t pt-3 pr-[max(1rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] shadow-lg transition-transform duration-300 ease-out motion-reduce:transition-none lg:hidden ${
         bookingInView ? "pointer-events-none translate-y-full" : "translate-y-0"
       }`}
     >
       <div className="mx-auto flex max-w-md items-center justify-between gap-4">
-        <p className="font-display text-xl font-bold">
+        <p className="font-display text-xl font-bold tabular-nums">
           {formatPrice(pricePerDay, locale)}
           <span className="text-muted-foreground ml-1 font-sans text-xs font-medium">
             EUR / {perDayLabel}

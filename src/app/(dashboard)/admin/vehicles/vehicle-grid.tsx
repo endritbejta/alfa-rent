@@ -6,6 +6,7 @@ import { Cog, Fuel, Users } from "lucide-react";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatAmount } from "@/lib/money";
+import { placeholderStyle } from "@/lib/cloudinary/image-loader";
 
 type Item = {
   id: string;
@@ -36,7 +37,10 @@ export function VehicleGrid({ items }: { items: Item[] }) {
           href={`/admin/vehicles/${v.id}/edit`}
           className="group block cursor-pointer overflow-hidden text-left"
         >
-          <div className="bg-media relative aspect-[16/10] overflow-hidden rounded-none">
+          <div
+            className="bg-media relative aspect-[16/10] overflow-hidden rounded-none"
+            style={placeholderStyle(v.image)}
+          >
             {v.image ? (
               <Image
                 src={v.image}

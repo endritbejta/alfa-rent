@@ -46,6 +46,47 @@ export default function cloudinaryLoader({
 }
 
 /**
+ * A blurred, postage-stamp render of a Cloudinary photo, painted behind the
+ * real one while it loads.
+ *
+ * Photos used to arrive into a black box and land all at once; on a phone
+ * on a weak connection the box was what people looked at. This is the
+ * BlurHash idea without BlurHash: the car's colours and shape arrive in a
+ * few hundred bytes, then the photo sharpens over them. Cloudinary renders
+ * it from the URL (32px wide, blurred, low quality, in whatever format the
+ * browser takes), so there is no dependency, no build step, nothing stored
+ * per image and no server work in the render path.
+ *
+ * Meant for a CSS background on the photo's frame: no JavaScript, works in
+ * server components, and a card that `content-visibility` is skipping does
+ * not fetch it until it is near the screen. Returns null for anything that
+ * is not a Cloudinary delivery URL, leaving the frame's plain colour.
+ */
+export function cloudinaryPlaceholder(
+  src: string | null | undefined
+): string | null {
+  if (!src?.startsWith(DELIVERY_HOST)) return null;
+  const at = src.indexOf(UPLOAD_SEGMENT);
+  if (at === -1) return null;
+  const cut = at + UPLOAD_SEGMENT.length;
+  return `${src.slice(0, cut)}c_limit,w_32,e_blur:400,q_auto:low,f_auto/${src.slice(cut)}`;
+}
+
+/** The frame style that shows a photo's placeholder, or nothing. */
+export function placeholderStyle(
+  src: string | null | undefined
+): React.CSSProperties | undefined {
+  const placeholder = cloudinaryPlaceholder(src);
+  return placeholder
+    ? {
+        backgroundImage: `url("${placeholder}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : undefined;
+}
+
+/**
  * A fixed-size JPEG crop of a Cloudinary photo, for places that cannot
  * negotiate formats or sizes the way a browser does: link previews (Open
  * Graph) and email. The crop is pinned so a tall phone photo still fills the

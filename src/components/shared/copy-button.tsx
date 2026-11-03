@@ -42,7 +42,7 @@ export function CopyButton({
       aria-label={label}
       title={label}
       className={cn(
-        "text-muted-foreground hover:text-foreground relative inline-flex h-8 w-8 items-center justify-center transition-colors",
+        "text-muted-foreground hover:text-foreground hit-area relative inline-flex h-8 w-8 items-center justify-center transition-colors",
         className
       )}
     >

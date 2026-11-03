@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { VehicleCategory, Transmission } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { useOptimisticParams } from "@/lib/use-optimistic-params";
 import { useI18n } from "@/components/shared/locale-provider";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { Button } from "@/components/ui/button";
@@ -44,19 +44,15 @@ export function FleetFilters({
   summary?: React.ReactNode;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const params = useSearchParams();
-  const [query, setQuery] = useState(params.get("q") ?? "");
   // A transition keeps the current results on screen while the next set
-  // loads, and gives the panel something honest to show meanwhile.
-  const [pending, startTransition] = useTransition();
+  // loads, and gives the panel something honest to show meanwhile. The chips
+  // read the optimistic query, so the one just pressed is pressed at once.
+  const { params, navigate: go, pending } = useOptimisticParams("/car");
+  const [query, setQuery] = useState(params.get("q") ?? "");
 
   const navigate = (next: URLSearchParams) => {
     next.delete("page");
-    const search = next.toString();
-    startTransition(() => {
-      router.push(search ? `/car?${search}` : "/car", { scroll: false });
-    });
+    go(next);
   };
 
   const set = (key: string, value: string | null) => {
@@ -217,7 +213,7 @@ export function FleetFilters({
           type="button"
           onClick={() => remove(key)}
           aria-label={t("filter.remove", { label })}
-          className="bg-foreground text-background hover:bg-foreground/85 inline-flex min-h-9 items-center gap-1.5 rounded-none py-1 pr-2.5 pl-3.5 text-sm font-medium transition-colors"
+          className="bg-foreground text-background hover:bg-foreground/85 hit-area relative inline-flex min-h-9 items-center gap-1.5 rounded-none py-1 pr-2.5 pl-3.5 text-sm font-medium transition-colors"
         >
           {label}
           <X className="h-3.5 w-3.5" aria-hidden />
@@ -226,7 +222,7 @@ export function FleetFilters({
       <button
         type="button"
         onClick={clear}
-        className="text-muted-foreground hover:text-foreground min-h-9 px-2 text-sm underline-offset-4 transition-colors hover:underline"
+        className="text-muted-foreground hover:text-foreground hit-area relative min-h-9 px-2 text-sm underline-offset-4 transition-colors hover:underline"
       >
         {t("filter.clear")}
       </button>
@@ -241,7 +237,7 @@ export function FleetFilters({
     >
       <div className="mt-4 mb-6 flex items-center justify-between gap-3 border-b pb-4 md:hidden">
         {summary}
-        <Sheet>
+        <Sheet side="bottom">
           <SheetTrigger
             render={
               <Button
@@ -258,15 +254,16 @@ export function FleetFilters({
               </span>
             )}
           </SheetTrigger>
-          <SheetContent
-            side="bottom"
-            className="max-h-[88dvh] overflow-y-auto rounded-t-none"
-          >
-            <SheetHeader className="border-b px-5 py-5">
+          {/* Header and footer hold still and only the controls scroll, so
+              the header is always somewhere to grab the sheet by, and a
+              swipe down from the top of the list dismisses it while a swipe
+              further down just scrolls. */}
+          <SheetContent className="max-h-[88dvh] rounded-t-none">
+            <SheetHeader className="border-b px-5 pt-1 pb-5">
               <SheetTitle>{t("filter.title")}</SheetTitle>
               <SheetDescription>{t("filter.description")}</SheetDescription>
             </SheetHeader>
-            <div className="space-y-6 px-5">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5">
               {sort && (
                 <fieldset>
                   <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-[0.12em] uppercase">
@@ -277,7 +274,7 @@ export function FleetFilters({
               )}
               {controls}
             </div>
-            <SheetFooter className="bg-popover sticky bottom-0 border-t px-5">
+            <SheetFooter className="bg-popover border-t px-5">
               <SheetClose render={<Button className="w-full" />}>
                 {t("filter.showResults")}
               </SheetClose>

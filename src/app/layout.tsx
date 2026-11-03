@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { LocaleProvider } from "@/components/shared/locale-provider";
@@ -28,6 +28,22 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+/**
+ * `cover` is what makes the safe-area insets real. Without it iOS reports
+ * every `env(safe-area-inset-*)` as 0, so the padding the mobile booking bar
+ * already asked for never applied. With it the page owns the whole screen
+ * and the insets are honoured where they matter: the sticky headers, the
+ * fixed booking bar, sheets, drawers and toasts, plus the body's sides in
+ * landscape (globals.css).
+ *
+ * The theme colour is the charcoal band both headers share, so the browser
+ * chrome above them reads as part of the bar rather than a strip of ivory.
+ */
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: "#0e0d0d",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const { locale, t } = await getI18n();

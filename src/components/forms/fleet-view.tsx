@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
 
@@ -26,6 +27,32 @@ function ColumnsIcon({ count }: { count: number }) {
 
 type View = "one" | "two" | "three";
 const STORAGE_KEY = "alfa-fleet-view";
+
+/*
+ * Styling for the column switch's view transition. It ships with the
+ * component as a hoisted <style> rather than from globals.css because
+ * Turbopack's CSS pass drops ::view-transition rules (Tailwind's own output
+ * keeps them), so from the stylesheet they never reached the browser.
+ *
+ * Cards travel on the app's panel timing and their snapshots fill the new
+ * box rather than letterboxing; the page around them only cross-fades;
+ * clicks pass through to the live page instead of being lost while it
+ * plays; and under reduced motion nothing animates at all (choose() also
+ * skips the transition there).
+ */
+const VIEW_TRANSITION_CSS = `
+::view-transition { pointer-events: none; }
+::view-transition-group(.fleet-card) {
+  animation-duration: var(--motion-panel);
+  animation-timing-function: var(--ease-standard);
+}
+::view-transition-old(.fleet-card),
+::view-transition-new(.fleet-card) { height: 100%; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}`;
 
 /**
  * Results toolbar plus list. The cards are server-rendered and arrive as
@@ -57,11 +84,28 @@ export function FleetView({
     return () => clearTimeout(id);
   }, []);
 
+  /*
+   * The cards rearrange instead of jumping: each is named after its vehicle
+   * (VehicleCard), so the View Transitions API carries it from its old place
+   * to its new one and the eye can follow a car across the switch. Same page,
+   * same cars, so a move rather than a slide or a fade. Where the API is
+   * missing, or reduced motion is asked for, the layout simply changes, as
+   * it always did.
+   */
   const choose = (next: View) => {
-    setView(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {}
+    const animate =
+      typeof document.startViewTransition === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!animate) {
+      setView(next);
+      return;
+    }
+    document.startViewTransition(() => {
+      flushSync(() => setView(next));
+    });
   };
 
   const options = [
@@ -72,6 +116,9 @@ export function FleetView({
 
   return (
     <div data-view={view} className="group/fleet">
+      <style href="fleet-view-transition" precedence="default">
+        {VIEW_TRANSITION_CSS}
+      </style>
       <div className="mt-4 mb-6 hidden flex-wrap items-center justify-between gap-3 border-b pb-4 md:flex">
         {summary}
         <div className="flex items-center gap-3">

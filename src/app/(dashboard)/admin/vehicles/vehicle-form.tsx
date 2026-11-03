@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/components/shared/locale-provider";
 import { PendingStatus } from "@/components/shared/pending-status";
 import { toasts } from "@/components/dashboard/toaster";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes";
 
 /**
  * A plain, already-serialized vehicle — deliberately not Prisma's
@@ -81,6 +82,9 @@ export function VehicleForm({
   const [confirm, setConfirm] = useState<"discard" | "delete" | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
+
+  // Cancel already asks; the sidebar, Back and a reload now do too.
+  useUnsavedChangesGuard(dirty && !pending, t("admin.discardBody"));
 
   const submit = (formData: FormData) => {
     setError(null);

@@ -11,6 +11,7 @@ import { FleetView } from "@/components/forms/fleet-view";
 import { FleetSort } from "@/components/forms/fleet-sort";
 import { Pagination } from "@/components/dashboard/pagination";
 import { Button } from "@/components/ui/button";
+import { OptimisticParamsProvider } from "@/lib/use-optimistic-params";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -97,56 +98,60 @@ export default async function FleetPage({
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-8">
-        <FleetFilters
-          summary={summary}
-          sort={total > 1 ? <FleetSort fill /> : undefined}
-        />
+        {/* The panel, both sort selects and the chips share one optimistic
+            query, so a sort chosen while a category loads keeps it. */}
+        <OptimisticParamsProvider basePath="/car">
+          <FleetFilters
+            summary={summary}
+            sort={total > 1 ? <FleetSort fill /> : undefined}
+          />
 
-        <FleetView
-          summary={summary}
-          sort={total > 1 ? <FleetSort /> : undefined}
-        >
-          {items.length === 0 ? (
-            <div className="border-y px-6 py-20 text-center">
-              <p className="font-display text-lg font-bold">
-                {t("fleet.emptyTitle")}
-              </p>
-              <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
-                {t("fleet.emptyText")}
-              </p>
-              <Button
-                variant="outline"
-                className="mt-6"
-                nativeButton={false}
-                render={<Link href={clearHref} />}
-              >
-                {t("filter.clear")}
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-x-8 gap-y-12 pb-8 md:grid-cols-2 md:group-data-[view=one]/fleet:grid-cols-1 md:group-data-[view=one]/fleet:gap-y-0 md:group-data-[view=one]/fleet:divide-y lg:group-data-[view=three]/fleet:grid-cols-3">
-                {items.map((vehicle, index) => (
-                  <VehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    query={query}
-                    bookingReady={Boolean(dateRange)}
-                    preload={index === 0}
-                  />
-                ))}
+          <FleetView
+            summary={summary}
+            sort={total > 1 ? <FleetSort /> : undefined}
+          >
+            {items.length === 0 ? (
+              <div className="border-y px-6 py-20 text-center">
+                <p className="font-display text-lg font-bold">
+                  {t("fleet.emptyTitle")}
+                </p>
+                <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
+                  {t("fleet.emptyText")}
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-6"
+                  nativeButton={false}
+                  render={<Link href={clearHref} />}
+                >
+                  {t("filter.clear")}
+                </Button>
               </div>
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                total={total}
-                perPage={perPage}
-                basePath="/car"
-                labelKey="common.vehicles"
-              />
-            </>
-          )}
-        </FleetView>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-x-8 gap-y-12 pb-8 md:grid-cols-2 md:group-data-[view=one]/fleet:grid-cols-1 md:group-data-[view=one]/fleet:gap-y-0 md:group-data-[view=one]/fleet:divide-y lg:group-data-[view=three]/fleet:grid-cols-3">
+                  {items.map((vehicle, index) => (
+                    <VehicleCard
+                      key={vehicle.id}
+                      vehicle={vehicle}
+                      query={query}
+                      bookingReady={Boolean(dateRange)}
+                      preload={index === 0}
+                    />
+                  ))}
+                </div>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  total={total}
+                  perPage={perPage}
+                  basePath="/car"
+                  labelKey="common.vehicles"
+                />
+              </>
+            )}
+          </FleetView>
+        </OptimisticParamsProvider>
       </section>
     </>
   );

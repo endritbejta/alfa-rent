@@ -1,6 +1,11 @@
 import { after, type NextRequest } from "next/server";
 import { ok, withErrorHandling } from "@/lib/api";
 import { TooManyRequestsError } from "@/lib/errors";
+import {
+  IDEMPOTENCY_HEADER,
+  IDEMPOTENT_REPLAY_HEADER,
+  idempotencyKeySchema,
+} from "@/lib/idempotency";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { createBookingSchema } from "@/lib/validations/reservation";
 import { createReservation } from "@/services/reservation.service";
@@ -28,11 +33,21 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     );
   }
 
+  // Optional, so existing callers keep working; malformed is a 400 rather
+  // than silently ignored, since a client that sends one is relying on it.
+  const header = request.headers.get(IDEMPOTENCY_HEADER);
+  const idempotencyKey =
+    header === null ? undefined : idempotencyKeySchema.parse(header);
+
   const input = createBookingSchema.parse(await request.json());
-  const { reservation, paymentAccessToken } = await createReservation(input);
+  const { reservation, paymentAccessToken, replayed } = await createReservation(
+    input,
+    { idempotencyKey }
+  );
   // After the response: the customer's confirmation never waits on, or fails
-  // because of, the mail provider. sendEmail reports its own failures.
-  after(() => notifyStaffOfBookingRequest(reservation.id));
+  // because of, the mail provider. sendEmail reports its own failures. A
+  // replay is a booking staff were already told about.
+  if (!replayed) after(() => notifyStaffOfBookingRequest(reservation.id));
   return ok(
     {
       id: reservation.id,
@@ -40,6 +55,11 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       totalPrice: Number(reservation.totalPrice),
       paymentAccessToken,
     },
-    { status: 201 }
+    {
+      // The same answer the first attempt got, marked as a repeat so a
+      // client can tell (Stripe's header name; there is no standard one).
+      status: 201,
+      headers: replayed ? { [IDEMPOTENT_REPLAY_HEADER]: "true" } : undefined,
+    }
   );
 });

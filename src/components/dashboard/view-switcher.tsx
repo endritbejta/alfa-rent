@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Rows3 } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
 import { cn } from "@/lib/utils";
+import { useOptimisticParams } from "@/lib/use-optimistic-params";
 import { DEFAULT_VIEW, VIEWS, type View } from "@/components/dashboard/view";
 
 const ICONS = { grid: LayoutGrid, list: List, compact: Rows3 } as const;
@@ -35,15 +35,17 @@ export function ViewSwitcher({
   views?: readonly View[];
 }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const params = useSearchParams();
+  const { params, navigate, pending } = useOptimisticParams(basePath);
+  // While the other view renders on the server, the tab just chosen is the
+  // one shown pressed; the server's answer takes over when it lands.
+  const requested = (params.get("view") ?? DEFAULT_VIEW) as View;
+  const shown = pending && views.includes(requested) ? requested : active;
 
   const select = (view: View) => {
     const next = new URLSearchParams(params.toString());
     if (view === DEFAULT_VIEW) next.delete("view");
     else next.set("view", view);
-    const query = next.toString();
-    router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
+    navigate(next);
   };
 
   return (
@@ -55,11 +57,11 @@ export function ViewSwitcher({
             <button
               key={view}
               type="button"
-              aria-pressed={active === view}
+              aria-pressed={shown === view}
               onClick={() => select(view)}
               className={cn(
                 "flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-xs font-semibold transition-colors",
-                active === view
+                shown === view
                   ? "border-foreground text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}

@@ -21,6 +21,7 @@ import { ReservationAttention } from "@/components/shared/reservation-attention"
 import { InspectionAction } from "./reservations/inspection-action";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
+import { formatNumber } from "@/lib/number-format";
 
 export function ReservationBody({
   detail,
@@ -175,7 +176,7 @@ export function ReservationBody({
                   </div>
                   <span className="text-xs font-semibold tabular-nums">
                     {t("admin.fuelPercent", {
-                      mileage: inspection.mileage.toLocaleString(locale),
+                      mileage: formatNumber(inspection.mileage, locale),
                       fuel: inspection.fuelLevel,
                     })}
                   </span>

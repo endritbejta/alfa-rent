@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ReservationStatus } from "@prisma/client";
 import { businessDay, rentalCalendarDay } from "@/lib/reservation-lifecycle";
+import { idempotencyKeySchema } from "@/lib/idempotency";
 
 export const MAX_RENTAL_DAYS = 365;
 export const MAX_BOOKING_HORIZON_DAYS = 730;
@@ -105,6 +106,8 @@ export const manualReservationSchema = withValidRange(
     ...dateRange,
     status: z.enum(["PENDING", "CONFIRMED"]),
     notes: z.string().trim().max(1000).optional(),
+    /** Names the submission so a retry returns the first one's result. */
+    idempotencyKey: idempotencyKeySchema.optional(),
   })
 );
 

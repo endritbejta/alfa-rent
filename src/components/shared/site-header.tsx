@@ -32,7 +32,10 @@ export function SiteHeader() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header className="bg-band text-band-foreground border-band-border sticky top-0 z-40 border-b">
+    // The top inset is 0 wherever the browser draws its own status area; it
+    // matters where the page runs edge to edge, and then the band — not the
+    // links — goes under the clock.
+    <header className="bg-band text-band-foreground border-band-border sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
         <Link href="/" aria-label="Alfa Rent">
           <BrandLogo className="text-lg" preload />

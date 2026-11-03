@@ -29,6 +29,7 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { PendingStatus } from "@/components/shared/pending-status";
 import { toasts } from "@/components/dashboard/toaster";
 import { formatEur } from "@/lib/money";
+import { keyForPayload } from "@/lib/idempotency";
 import { cn } from "@/lib/utils";
 
 export type VehicleOption = { id: string; name: string };
@@ -81,6 +82,7 @@ export function NewReservationDialog({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const submission = useRef<{ payload: string; key: string } | null>(null);
 
   const [vehicleId, setVehicleId] = useState(seed.vehicleId);
   const [range, setRange] = useState({ from: seed.from, to: seed.to });
@@ -165,17 +167,28 @@ export function NewReservationDialog({
 
   const submit = () => {
     setError(null);
+    const payload = {
+      vehicleId,
+      customer:
+        mode === "existing" && selected
+          ? { kind: "existing" as const, id: selected.id }
+          : { kind: "new" as const, ...newCustomer },
+      pickupDate: `${range.from}T10:00:00Z`,
+      returnDate: `${range.to}T10:00:00Z`,
+      status,
+      notes: notes || undefined,
+    };
+    // Pressing Create again after a dropped connection resends the same key,
+    // so a booking that did land comes back instead of being made twice.
+    submission.current = keyForPayload(
+      submission.current,
+      JSON.stringify(payload)
+    );
+    const idempotencyKey = submission.current.key;
     startTransition(async () => {
       const result = await createManualReservationAction({
-        vehicleId,
-        customer:
-          mode === "existing" && selected
-            ? { kind: "existing", id: selected.id }
-            : { kind: "new", ...newCustomer },
-        pickupDate: `${range.from}T10:00:00Z`,
-        returnDate: `${range.to}T10:00:00Z`,
-        status,
-        notes: notes || undefined,
+        ...payload,
+        idempotencyKey,
       });
       if ("error" in result) {
         setError(result.error);

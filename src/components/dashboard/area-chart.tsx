@@ -2,6 +2,7 @@
 
 import type { SeriesPoint } from "@/services/analytics.service";
 import { useI18n } from "@/components/shared/locale-provider";
+import { formatNumber } from "@/lib/number-format";
 
 /**
  * Dependency-free SVG area chart. Server-rendered, theme-aware via
@@ -16,7 +17,7 @@ export function AreaChart({
   suffix?: string;
   height?: number;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   if (data.length === 0) return null;
   const w = 600;
   const h = height;
@@ -42,7 +43,7 @@ export function AreaChart({
         className="text-brand h-auto w-full"
         role="img"
         aria-label={t("admin.trendChart", {
-          value: `${data[data.length - 1].value}${suffix}`,
+          value: `${formatNumber(data[data.length - 1].value, locale)}${suffix}`,
         })}
       >
         {gridYs.map((gy) => (

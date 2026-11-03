@@ -34,10 +34,16 @@ function PopoverContent({
         sideOffset={sideOffset}
         className="isolate z-50"
       >
+        {/*
+          Transitions, not keyframes. A keyframe animation always plays from
+          its first frame, so closing a popover that was still opening
+          snapped it to fully open and then faded it out. A transition starts
+          from wherever the popup is, so open-close-open reverses smoothly.
+        */}
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "glass-l4 text-popover-foreground data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-none p-2.5 text-sm shadow-md outline-hidden duration-100",
+            "glass-l4 text-popover-foreground z-50 flex w-72 origin-(--transform-origin) flex-col gap-2.5 rounded-none p-2.5 text-sm shadow-md outline-hidden transition-[opacity,scale] duration-[var(--motion-hover)] ease-[var(--ease-standard)] data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-[var(--motion-panel-exit)] data-ending-style:ease-[var(--ease-exit)] data-starting-style:scale-95 data-starting-style:opacity-0",
             className
           )}
           {...props}

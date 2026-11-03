@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import cloudinaryLoader from "@/lib/cloudinary/image-loader";
+import cloudinaryLoader, {
+  cloudinaryPlaceholder,
+  placeholderStyle,
+} from "@/lib/cloudinary/image-loader";
 
 const DELIVERED =
   "https://res.cloudinary.com/demo-cloud/image/upload/v1712345678/alfa-rent-a-car/vehicles/abc/photo.jpg";
@@ -41,5 +44,38 @@ describe("the next/image loader", () => {
     ]) {
       expect(cloudinaryLoader({ src, width: 640 })).toBe(src);
     }
+  });
+});
+
+describe("the blurred placeholder", () => {
+  it("asks Cloudinary for a tiny blurred render of the same photo", () => {
+    expect(cloudinaryPlaceholder(DELIVERED)).toBe(
+      "https://res.cloudinary.com/demo-cloud/image/upload/c_limit,w_32,e_blur:400,q_auto:low,f_auto/v1712345678/alfa-rent-a-car/vehicles/abc/photo.jpg"
+    );
+  });
+
+  /**
+   * No photo, a local file or anything not delivered by Cloudinary keeps the
+   * frame's plain colour — never a broken background request.
+   */
+  it("leaves anything else alone", () => {
+    for (const src of [
+      null,
+      undefined,
+      "/brand/alfa-logo-red.png",
+      "https://example.test/photo.jpg",
+      "https://res.cloudinary.com/demo-cloud/video/upload/v1/clip.mp4",
+    ]) {
+      expect(cloudinaryPlaceholder(src)).toBeNull();
+      expect(placeholderStyle(src)).toBeUndefined();
+    }
+  });
+
+  it("paints it as a covering background", () => {
+    expect(placeholderStyle(DELIVERED)).toEqual({
+      backgroundImage: `url("${cloudinaryPlaceholder(DELIVERED)}")`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    });
   });
 });

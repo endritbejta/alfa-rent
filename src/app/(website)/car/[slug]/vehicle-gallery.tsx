@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
+import { placeholderStyle } from "@/lib/cloudinary/image-loader";
 
 type GalleryImage = { id: string; url: string };
 
@@ -28,7 +29,12 @@ export function VehicleGallery({
 
   return (
     <div>
-      <div className="bg-media relative aspect-[16/10] overflow-hidden">
+      {/* The page's largest element: its blurred preview paints first and
+          the photo fades in over it, rather than into a black box. */}
+      <div
+        className="bg-media relative aspect-[16/10] overflow-hidden"
+        style={placeholderStyle(current?.url)}
+      >
         {current ? (
           <Image
             key={current.id}

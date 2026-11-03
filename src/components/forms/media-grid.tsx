@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -34,6 +34,7 @@ import {
 } from "@/lib/validations/image";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 
 export type ExistingImage = { id: string; url: string };
 
@@ -142,6 +143,28 @@ export function MediaGrid({
   );
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState<string[]>([]);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const dndId = useId();
+  const undoOffers = useRef(new Set<() => void>());
+
+  /*
+   * Every open Undo is withdrawn the moment the form is submitted or the
+   * gallery goes away. After a save the removed photo may already be gone
+   * from Cloudinary, and putting a tile back for it would be a lie.
+   */
+  useEffect(() => {
+    const offers = undoOffers.current;
+    const form = galleryRef.current?.form;
+    const withdrawAll = () => {
+      offers.forEach((withdraw) => withdraw());
+      offers.clear();
+    };
+    form?.addEventListener("submit", withdrawAll);
+    return () => {
+      form?.removeEventListener("submit", withdrawAll);
+      withdrawAll();
+    };
+  }, []);
 
   const sensors = useSensors(
     // A few pixels of slack, or the delete button never gets its click.
@@ -294,13 +317,39 @@ export function MediaGrid({
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  /*
+   * A removal is honestly undoable until the gallery is saved: nothing has
+   * left the browser, the asset is still in Cloudinary, and the ordered list
+   * only goes to the server with the form. So it happens at once — no
+   * confirm in the way of a common edit — and the toast offers it back.
+   * A new upload's preview stays alive for the offer and is released once
+   * the offer lapses.
+   */
   const remove = (key: string) => {
-    setItems((current) => {
-      const gone = current.find((item) => item.key === key);
-      if (gone?.file) URL.revokeObjectURL(gone.previewUrl);
-      return current.filter((item) => item.key !== key);
-    });
+    const index = items.findIndex((item) => item.key === key);
+    const gone = items[index];
+    if (!gone) return;
+    setItems((current) => current.filter((item) => item.key !== key));
     onDirty?.();
+
+    const withdraw = toasts.undoable(t("admin.photoRemoved"), {
+      undoLabel: t("common.undo"),
+      onUndo: () => {
+        undoOffers.current.delete(withdraw);
+        setItems((current) => {
+          if (current.some((item) => item.key === key)) return current;
+          const next = [...current];
+          next.splice(Math.min(index, next.length), 0, gone);
+          return next;
+        });
+        onDirty?.();
+      },
+      onExpire: () => {
+        undoOffers.current.delete(withdraw);
+        if (gone.file) URL.revokeObjectURL(gone.previewUrl);
+      },
+    });
+    undoOffers.current.add(withdraw);
   };
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
@@ -386,6 +435,11 @@ export function MediaGrid({
           </button>
         ) : (
           <DndContext
+            // A stable id: dnd-kit otherwise numbers its instructions from a
+            // module counter that differs between server and browser, so
+            // every tile's aria-describedby pointed at an id that did not
+            // exist after hydration.
+            id={dndId}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={onDragEnd}
@@ -433,7 +487,12 @@ export function MediaGrid({
           className="hidden"
           onChange={(e) => accept(e.target.files)}
         />
-        <input type="hidden" name={name} value={serialize(items)} />
+        <input
+          ref={galleryRef}
+          type="hidden"
+          name={name}
+          value={serialize(items)}
+        />
 
         {rejected.length > 0 && (
           <ul role="alert" className="mt-3 space-y-1">
@@ -531,11 +590,13 @@ function Tile({
         <GripVertical className="h-4 w-4" />
       </span>
 
+      {/* Revealed on hover with a mouse; always shown on touch, where there
+          is no hover and the button used to be invisible but still live. */}
       <button
         type="button"
         aria-label={t("admin.removePhoto")}
         onClick={onRemove}
-        className="absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-none bg-black/70 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        className="hit-area absolute top-2 right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-none bg-black/70 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
       >
         <X className="h-3 w-3" />
       </button>

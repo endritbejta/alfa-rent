@@ -48,10 +48,17 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
+        {/* `username`, not `email`: this field is the account's identifier,
+            and that is the token password managers pair with
+            current-password to offer the saved login. Phones also stop
+            capitalising and "correcting" the address. */}
         <Input
           id="email"
           type="email"
-          autoComplete="email"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           aria-invalid={errors.email ? true : undefined}
           aria-describedby={errors.email ? "email-error" : undefined}
           {...register("email", {

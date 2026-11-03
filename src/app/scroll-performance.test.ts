@@ -9,7 +9,7 @@ const vehicleCard = readFileSync(
   "utf8"
 );
 const fleetPage = readFileSync(
-  resolve(root, "src/app/(website)/car/page.tsx"),
+  resolve(root, "src/app/(website)/car/(list)/page.tsx"),
   "utf8"
 );
 

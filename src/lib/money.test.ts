@@ -1,6 +1,37 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { formatAmount, formatEur, formatPrice, toMoney } from "@/lib/money";
+
+/**
+ * A browser without Albanian locale data, as the Claude desktop browser and
+ * some Android WebViews are: asking Intl for `sq` silently gets English, and
+ * `supportedLocalesOf` admits it. Node ships full ICU, so this has to be
+ * staged for the test to see what those browsers see.
+ */
+function withoutAlbanianLocaleData() {
+  const Real = Intl.NumberFormat;
+  const english = (locales?: string | string[]) =>
+    [locales ?? []].flat().map((l) => (l.startsWith("sq") ? "en-US" : l));
+  const Fake = function NumberFormat(
+    locales?: string | string[],
+    options?: Intl.NumberFormatOptions
+  ) {
+    return new Real(english(locales), options);
+  } as unknown as typeof Intl.NumberFormat;
+  Fake.supportedLocalesOf = (locales) =>
+    Real.supportedLocalesOf(locales).filter((l) => !l.startsWith("sq"));
+  Object.defineProperty(Intl, "NumberFormat", {
+    value: Fake,
+    configurable: true,
+    writable: true,
+  });
+  return () =>
+    Object.defineProperty(Intl, "NumberFormat", {
+      value: Real,
+      configurable: true,
+      writable: true,
+    });
+}
 
 describe("money", () => {
   it("takes a Decimal, a string or a number", () => {
@@ -56,5 +87,36 @@ describe("formatPrice", () => {
 
   it("groups thousands for totals", () => {
     expect(formatPrice(1250, "en")).toBe("1,250");
+  });
+});
+
+/**
+ * The server formats with full ICU; the browser that hydrates the page may
+ * not have Albanian at all. Both have to write the same digits, or the price
+ * is wrong on screen and React throws away the server's HTML.
+ */
+describe("without Albanian locale data in the runtime", () => {
+  let restore: (() => void) | null = null;
+  afterEach(() => {
+    restore?.();
+    restore = null;
+    vi.resetModules();
+  });
+
+  it("still writes Albanian money exactly as the server does", async () => {
+    restore = withoutAlbanianLocaleData();
+    expect(Intl.NumberFormat.supportedLocalesOf(["sq"])).toEqual([]);
+    // A fresh module, so no formatter cached under real ICU can stand in.
+    vi.resetModules();
+    const money = await import("@/lib/money");
+
+    expect(money.formatEur(1234567.891, "sq")).toBe("1 234 567,89 EUR");
+    expect(money.formatEur(162, "sq")).toBe("162,00 EUR");
+    expect(money.formatPrice(65.5, "sq")).toBe("65,50");
+    // Albanian groups from five digits, not four.
+    expect(money.formatPrice(1748, "sq")).toBe("1748");
+    expect(money.formatPrice(12345, "sq")).toBe("12 345");
+    // English was never in question.
+    expect(money.formatEur(1234567.891, "en")).toBe("1,234,567.89 EUR");
   });
 });

@@ -104,6 +104,23 @@ export class TooManyRequestsError extends AppError {
   }
 }
 
+/**
+ * A request reused an Idempotency-Key for a different booking. Replaying the
+ * stored result would answer a question the client did not ask, and running
+ * the request would defeat the key, so it is refused: 422, as the IETF
+ * idempotency-key draft specifies.
+ */
+export class IdempotencyKeyReusedError extends AppError {
+  constructor() {
+    super(
+      "This idempotency key was already used for a different request",
+      "IDEMPOTENCY_KEY_REUSED",
+      422,
+      { key: "err.idempotencyKeyReused" }
+    );
+  }
+}
+
 export class ServiceUnavailableError extends AppError {
   constructor(message = "This service is not available yet") {
     super(message, "SERVICE_UNAVAILABLE", 503);

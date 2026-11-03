@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { VehicleCategory } from "@prisma/client";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
+import { useOptimisticParams } from "@/lib/use-optimistic-params";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 /**
@@ -34,16 +34,13 @@ export function VehicleFilters({
   brands: string[];
   total: number;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
+  // Optimistic, so the option just chosen shows as chosen at once.
+  const { params, navigate } = useOptimisticParams("/admin/vehicles");
   const { t } = useI18n();
 
   const apply = (next: URLSearchParams) => {
     next.delete("page");
-    const qs = next.toString();
-    router.push(qs ? `/admin/vehicles?${qs}` : "/admin/vehicles", {
-      scroll: false,
-    });
+    navigate(next);
   };
 
   const set = (key: string, value: string | null) => {
@@ -132,7 +129,7 @@ export function VehicleFilters({
           ))}
           <button
             type="button"
-            onClick={() => router.push("/admin/vehicles", { scroll: false })}
+            onClick={() => navigate(new URLSearchParams())}
             className="text-muted-foreground hover:text-foreground ml-auto cursor-pointer text-xs font-semibold transition-colors"
           >
             {t("admin.clearAll")}

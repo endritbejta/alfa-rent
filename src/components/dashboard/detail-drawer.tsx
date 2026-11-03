@@ -1,126 +1,103 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Drawer } from "@base-ui/react/drawer";
 import { X } from "lucide-react";
-import { useFocusTrap } from "@/lib/use-focus-trap";
-import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
-
-/** Must match --motion-panel-exit in globals.css — the unmount is timed to it. */
-const EXIT_MS = 192;
+import { useMediaQuery } from "@/lib/use-media-query";
 
 /**
  * Right-side drawer used by every summary widget: clicking an item opens
  * detail here instead of navigating away, so staff keep their place.
  *
- * Motion is one axis per breakpoint — a bottom sheet on mobile, a panel
- * anchored to the right edge on desktop — and the element stays mounted
- * for the exit so closing reverses the same movement.
+ * A bottom sheet on phones and a panel on the right edge from `sm` up, built
+ * on Base UI's Drawer, which brings what the hand-rolled version could not:
+ *
+ * - Swipe to dismiss — down on a phone, right on a tablet — following the
+ *   finger, and only from the top of the scrolled content, so reading a long
+ *   reservation never closes it by accident. Esc, the close button and a
+ *   press outside still work, and on Android the system back gesture closes
+ *   it too (Base UI's CloseWatcher).
+ * - Transitions instead of keyframes. A keyframe always restarts from its
+ *   first frame, so closing a drawer that was still opening snapped it open
+ *   first; a transition reverses from wherever the panel is.
+ * - Focus trapped inside and handed back to the row that opened it.
+ *
+ * One axis per breakpoint: `sm:` resets the vertical offset explicitly, or
+ * both translations would survive and the panel would arrive diagonally.
  */
 export function DetailDrawer({
   open,
   onClose,
+  onClosed,
   title,
   subtitle,
   children,
 }: {
   open: boolean;
   onClose: () => void;
+  /** After the exit animation, when the panel is gone from the screen. */
+  onClosed?: () => void;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
-  const [mounted, setMounted] = useState(open);
-  const [closing, setClosing] = useState(false);
-  const panelRef = useRef<HTMLElement>(null);
-
-  // Tab stays inside; closing hands focus back to the row that opened it.
-  useFocusTrap(panelRef, open);
-
-  // Keep the panel mounted through its exit so closing reverses the entry
-  // rather than vanishing. State changes are deferred out of the effect body.
-  useEffect(() => {
-    if (open) {
-      const show = setTimeout(() => {
-        setMounted(true);
-        setClosing(false);
-      }, 0);
-      return () => clearTimeout(show);
-    }
-    if (!mounted) return;
-    const start = setTimeout(() => setClosing(true), 0);
-    const done = setTimeout(() => {
-      setMounted(false);
-      setClosing(false);
-    }, EXIT_MS);
-    return () => {
-      clearTimeout(start);
-      clearTimeout(done);
-    };
-  }, [open, mounted]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!mounted) return null;
+  const wide = useMediaQuery("(min-width: 40rem)");
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button
-        type="button"
-        aria-label={t("common.close")}
-        onClick={onClose}
-        data-drawer-overlay
-        className={cn(
-          "bg-overlay-modal absolute inset-0 cursor-default backdrop-blur-[1px]",
-          closing
-            ? "animate-[overlay-out_var(--motion-panel-exit)_var(--ease-exit)_forwards]"
-            : "animate-[overlay-in_var(--motion-panel)_var(--ease-standard)]"
-        )}
-      />
-      <aside
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-        data-drawer
-        // L5 glass: the drawer floats over work you'll return to, and the
-        // blur is what says that work is still there. 32rem, not 26 — a
-        // workspace needs room (design doc C+, §3).
-        className={cn(
-          "glass-l5 absolute right-0 bottom-0 flex max-h-[92vh] w-full flex-col rounded-t-none shadow-lg outline-none",
-          "sm:top-0 sm:bottom-0 sm:max-h-none sm:w-[32rem] sm:rounded-none sm:rounded-l-none",
-          closing
-            ? "animate-[drawer-out-bottom_var(--motion-panel-exit)_var(--ease-exit)_forwards] sm:animate-[drawer-out-right_var(--motion-panel-exit)_var(--ease-exit)_forwards]"
-            : "animate-[drawer-in-bottom_var(--motion-panel)_var(--ease-standard)] sm:animate-[drawer-in-right_var(--motion-panel)_var(--ease-standard)]"
-        )}
-      >
-        <header className="flex items-start justify-between gap-3 border-b p-5">
-          <div className="min-w-0">
-            <h2 className="font-display truncate text-lg font-bold">{title}</h2>
-            {subtitle && (
-              <p className="text-muted-foreground truncate text-xs">
-                {subtitle}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("common.close")}
-            className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+    <Drawer.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      swipeDirection={wide ? "right" : "down"}
+      onOpenChangeComplete={(isOpen) => {
+        if (!isOpen) onClosed?.();
+      }}
+    >
+      <Drawer.Portal>
+        <Drawer.Backdrop
+          data-drawer-overlay
+          className="bg-overlay-modal fixed inset-0 z-50 opacity-[calc(1-var(--drawer-swipe-progress,0))] backdrop-blur-[1px] transition-opacity duration-[var(--motion-panel)] ease-[var(--ease-standard)] data-ending-style:opacity-0 data-ending-style:duration-[var(--motion-panel-exit)] data-starting-style:opacity-0 data-swiping:duration-0"
+        />
+        <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-end">
+          {/* L5 glass: the drawer floats over work you'll return to, and the
+              blur is what says that work is still there. 32rem, not 26 — a
+              workspace needs room (design doc C+, §3). */}
+          <Drawer.Popup
+            data-drawer
+            className="glass-l5 flex max-h-[92dvh] w-full [transform:translate(var(--drawer-swipe-movement-x,0px),var(--drawer-swipe-movement-y,0px))] flex-col shadow-lg transition-[translate,transform] duration-[var(--motion-panel)] ease-[var(--ease-drawer)] outline-none data-ending-style:translate-y-full data-ending-style:duration-[var(--motion-panel-exit)] data-ending-style:ease-[var(--ease-exit)] data-starting-style:translate-y-full data-swiping:duration-0 data-swiping:select-none sm:h-full sm:max-h-none sm:w-[32rem] sm:pr-[env(safe-area-inset-right)] sm:data-ending-style:translate-x-full sm:data-ending-style:translate-y-0 sm:data-starting-style:translate-x-full sm:data-starting-style:translate-y-0"
           >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
-        <div className="flex-1 overflow-y-auto p-5">{children}</div>
-      </aside>
-    </div>
+            {/* The grab handle says "this moves" before anyone tries it. */}
+            <div
+              aria-hidden="true"
+              className="bg-muted-foreground/30 mx-auto mt-2.5 h-1 w-10 shrink-0 sm:hidden"
+            />
+            <header className="flex items-start justify-between gap-3 border-b p-5 pt-3 sm:pt-[max(1.25rem,env(safe-area-inset-top))]">
+              <div className="min-w-0">
+                <Drawer.Title className="font-display truncate text-lg font-bold">
+                  {title}
+                </Drawer.Title>
+                {subtitle && (
+                  <Drawer.Description className="text-muted-foreground truncate text-xs">
+                    {subtitle}
+                  </Drawer.Description>
+                )}
+              </div>
+              <Drawer.Close
+                aria-label={t("common.close")}
+                className="text-muted-foreground hover:text-foreground hover:bg-surface-hover hit-area relative -m-2 flex size-9 shrink-0 cursor-pointer items-center justify-center transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </Drawer.Close>
+            </header>
+            {/* The scroll body keeps clear of the home indicator. */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+              {children}
+            </div>
+          </Drawer.Popup>
+        </Drawer.Viewport>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }

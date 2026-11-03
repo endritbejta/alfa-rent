@@ -9,6 +9,7 @@ import type { TranslationKey } from "@/lib/i18n/translations";
 import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
 import {
   ConflictError,
+  IdempotencyKeyReusedError,
   NotFoundError,
   ValidationError,
   phrase,
@@ -166,15 +167,102 @@ export async function getVehicleBookingCalendar(
 }
 
 /**
+ * Whether a failed write was the unique index on `field` refusing a
+ * duplicate. Prisma reports the target as field names or, with some drivers,
+ * as the index name; both contain the field.
+ */
+function isUniqueViolationOn(error: unknown, field: string): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+  const target = error.meta?.target;
+  return Array.isArray(target)
+    ? target.includes(field)
+    : typeof target === "string" && target.includes(field);
+}
+
+/**
+ * Whether a stored reservation is the booking a retried request describes.
+ *
+ * The client mints a new key whenever any detail changes, so a key arriving
+ * with a different car or different dates is a buggy or hostile client. It is
+ * refused rather than answered with whatever reservation the key points at.
+ */
+function assertSameBooking(
+  existing: Pick<Reservation, "vehicleId" | "pickupDate" | "returnDate">,
+  input: { vehicleId: string; pickupDate: Date; returnDate: Date }
+) {
+  if (
+    existing.vehicleId !== input.vehicleId ||
+    existing.pickupDate.getTime() !== input.pickupDate.getTime() ||
+    existing.returnDate.getTime() !== input.returnDate.getTime()
+  ) {
+    throw new IdempotencyKeyReusedError();
+  }
+}
+
+/**
+ * The reservation an earlier public request with this key made, if any.
+ *
+ * The payment token is rotated rather than repeated: only its hash is stored,
+ * and the raw token left in the response that never arrived — which is the
+ * reason this request exists at all. Rotating also means the one token that
+ * works is the one in the answer the customer actually received.
+ */
+async function replayBooking(
+  key: string,
+  input: CreateBookingInput
+): Promise<{ reservation: Reservation; paymentAccessToken: string } | null> {
+  const existing = await prisma.reservation.findUnique({
+    where: { idempotencyKey: key },
+    include: { customer: { select: { email: true } } },
+  });
+  if (!existing) return null;
+  assertSameBooking(existing, input);
+  if (
+    existing.customer.email.toLowerCase() !==
+      input.customer.email.toLowerCase() ||
+    (existing.notes ?? "") !== (input.notes ?? "")
+  ) {
+    throw new IdempotencyKeyReusedError();
+  }
+
+  const paymentAccess = createPaymentAccessToken();
+  const reservation = await prisma.reservation.update({
+    where: { id: existing.id },
+    data: { paymentAccessTokenHash: paymentAccess.hash },
+  });
+  return { reservation, paymentAccessToken: paymentAccess.token };
+}
+
+/**
  * Public booking request. Created as PENDING — staff confirm it in the
  * dashboard. The availability check here is advisory UX; the authoritative
  * guard is the DB exclusion constraint, enforced when a reservation
  * becomes CONFIRMED.
+ *
+ * With an idempotency key, a retry of a request that already landed returns
+ * that reservation (`replayed: true`) instead of queueing a second one. The
+ * key is looked up before anything else, so a retry still succeeds after
+ * staff have confirmed the original — its own confirmation would otherwise
+ * make the availability check below refuse it.
  */
-export async function createReservation(input: CreateBookingInput): Promise<{
+export async function createReservation(
+  input: CreateBookingInput,
+  { idempotencyKey }: { idempotencyKey?: string } = {}
+): Promise<{
   reservation: Reservation;
   paymentAccessToken: string;
+  replayed: boolean;
 }> {
+  if (idempotencyKey) {
+    const replay = await replayBooking(idempotencyKey, input);
+    if (replay) return { ...replay, replayed: true };
+  }
+
   const { available } = await checkAvailability(input);
   if (!available) {
     throw new ConflictError(
@@ -186,39 +274,56 @@ export async function createReservation(input: CreateBookingInput): Promise<{
   const customer = await findOrCreateCustomerByEmail(input.customer);
 
   const paymentAccess = createPaymentAccessToken();
-  const reservation = await prisma.$transaction(async (tx) => {
-    const vehicle = await tx.vehicle.findUnique({
-      where: { id: input.vehicleId },
-      select: {
-        pricePerDay: true,
-        status: true,
-      },
-    });
-    if (!vehicle) throw new NotFoundError("Vehicle");
-    if (!isPublicBookableVehicleStatus(vehicle.status)) {
-      throw new ConflictError("Vehicle is not available for booking", {
-        key: "err.notBookable",
+  let reservation: Reservation;
+  try {
+    reservation = await prisma.$transaction(async (tx) => {
+      const vehicle = await tx.vehicle.findUnique({
+        where: { id: input.vehicleId },
+        select: {
+          pricePerDay: true,
+          status: true,
+        },
       });
-    }
+      if (!vehicle) throw new NotFoundError("Vehicle");
+      if (!isPublicBookableVehicleStatus(vehicle.status)) {
+        throw new ConflictError("Vehicle is not available for booking", {
+          key: "err.notBookable",
+        });
+      }
 
-    return tx.reservation.create({
-      data: {
-        vehicleId: input.vehicleId,
-        customerId: customer.id,
-        pickupDate: input.pickupDate,
-        returnDate: input.returnDate,
-        totalPrice: calculateTotalPrice(
-          vehicle.pricePerDay,
-          input.pickupDate,
-          input.returnDate
-        ),
-        notes: input.notes,
-        status: "PENDING",
-        paymentAccessTokenHash: paymentAccess.hash,
-      },
+      return tx.reservation.create({
+        data: {
+          vehicleId: input.vehicleId,
+          customerId: customer.id,
+          pickupDate: input.pickupDate,
+          returnDate: input.returnDate,
+          totalPrice: calculateTotalPrice(
+            vehicle.pricePerDay,
+            input.pickupDate,
+            input.returnDate
+          ),
+          notes: input.notes,
+          status: "PENDING",
+          paymentAccessTokenHash: paymentAccess.hash,
+          idempotencyKey,
+        },
+      });
     });
-  });
-  return { reservation, paymentAccessToken: paymentAccess.token };
+  } catch (error) {
+    // Two requests with one key both got past the lookup above. The unique
+    // index let one insert through and held the other until it committed;
+    // the loser answers with the winner's reservation.
+    if (idempotencyKey && isUniqueViolationOn(error, "idempotencyKey")) {
+      const replay = await replayBooking(idempotencyKey, input);
+      if (replay) return { ...replay, replayed: true };
+    }
+    throw error;
+  }
+  return {
+    reservation,
+    paymentAccessToken: paymentAccess.token,
+    replayed: false,
+  };
 }
 
 /**
@@ -226,8 +331,55 @@ export async function createReservation(input: CreateBookingInput): Promise<{
  * one entered on the spot. Customer and reservation are written in one
  * transaction so a double-booking rejection (the DB exclusion constraint, for
  * CONFIRMED/ACTIVE) rolls back the new customer instead of orphaning it.
+ *
+ * A retry carrying the dialog's idempotency key returns the reservation the
+ * first attempt made. Without it a CONFIRMED retry was refused as a
+ * double-booking — of itself — and a PENDING one was simply made twice, a
+ * walk-in customer and all.
  */
 export async function createManualReservation(
+  input: ManualReservationInput
+): Promise<Reservation> {
+  const key = input.idempotencyKey;
+  if (key) {
+    const earlier = await findManualReplay(key, input);
+    if (earlier) return earlier;
+  }
+  try {
+    return await insertManualReservation(input);
+  } catch (error) {
+    if (key && isUniqueViolationOn(error, "idempotencyKey")) {
+      const earlier = await findManualReplay(key, input);
+      if (earlier) return earlier;
+    }
+    throw error;
+  }
+}
+
+/**
+ * The reservation an earlier staff request with this key made, checked to be
+ * the same booking. Status is not compared: a colleague may already have
+ * moved it on, and that is not a reason to refuse the retry.
+ */
+async function findManualReplay(
+  key: string,
+  input: ManualReservationInput
+): Promise<Reservation | null> {
+  const existing = await prisma.reservation.findUnique({
+    where: { idempotencyKey: key },
+  });
+  if (!existing) return null;
+  assertSameBooking(existing, input);
+  if (
+    input.customer.kind === "existing" &&
+    existing.customerId !== input.customer.id
+  ) {
+    throw new IdempotencyKeyReusedError();
+  }
+  return existing;
+}
+
+async function insertManualReservation(
   input: ManualReservationInput
 ): Promise<Reservation> {
   return prisma.$transaction(async (tx) => {
@@ -263,6 +415,7 @@ export async function createManualReservation(
           input.returnDate
         ),
         notes: input.notes,
+        idempotencyKey: input.idempotencyKey,
       },
     });
   });

@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { useI18n } from "@/components/shared/locale-provider";
 import { PendingStatus } from "@/components/shared/pending-status";
+import { formatNumber } from "@/lib/number-format";
 import { toasts } from "@/components/dashboard/toaster";
 
 export function InspectionAction({
@@ -168,7 +169,7 @@ export function InspectionAction({
                 {type === "RETURN" && pickupMileage !== null && (
                   <p className="text-muted-foreground text-xs tabular-nums">
                     {t("admin.pickupMileage", {
-                      km: pickupMileage.toLocaleString(locale),
+                      km: formatNumber(pickupMileage, locale),
                     })}
                   </p>
                 )}

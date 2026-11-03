@@ -1,8 +1,16 @@
 import { cn } from "@/lib/utils";
 import type { SeriesPoint } from "@/services/analytics.service";
+import { getI18n } from "@/lib/i18n/server";
+import { formatNumber } from "@/lib/number-format";
 
-/** Horizontal breakdown bars — distributions, top-N lists, status splits. */
-export function BarList({
+/**
+ * Horizontal breakdown bars — distributions, top-N lists, status splits.
+ *
+ * Values are whole numbers (the analytics service rounds them) and are
+ * written in the app's locale, like every other figure: they used to print
+ * raw, so top spenders read "12345 EUR" beside "12 345 EUR" elsewhere.
+ */
+export async function BarList({
   items,
   suffix = "",
   barClassName = "bg-brand",
@@ -11,6 +19,7 @@ export function BarList({
   suffix?: string;
   barClassName?: string;
 }) {
+  const { locale } = await getI18n();
   const max = Math.max(...items.map((i) => i.value), 1);
   return (
     <ul className="space-y-3">
@@ -19,7 +28,7 @@ export function BarList({
           <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
             <span className="truncate">{item.label}</span>
             <span className="text-muted-foreground text-xs font-semibold tabular-nums">
-              {item.value}
+              {formatNumber(item.value, locale)}
               {suffix}
             </span>
           </div>

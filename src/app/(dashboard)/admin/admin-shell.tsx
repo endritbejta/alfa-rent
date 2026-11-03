@@ -1,8 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, LogOut, Menu, X } from "lucide-react";
+import { Tooltip } from "@base-ui/react/tooltip";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Menu,
+  Search,
+  X,
+} from "lucide-react";
 import { AdminNav } from "./admin-nav";
 import { CommandPalette } from "./command-palette";
 import { ReservationDetailProvider } from "./reservation-detail";
@@ -16,6 +24,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { LanguageSelector } from "@/components/shared/language-selector";
 import { useI18n } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
+import { ShortcutHint } from "@/components/shared/shortcut-hint";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 
@@ -27,14 +36,19 @@ function SidebarChrome({
   pendingCount,
   collapsed = false,
   onToggleCollapsed,
+  onSearch,
 }: {
   user: ShellUser;
   signOutAction: () => Promise<void>;
   pendingCount: number;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  onSearch: () => void;
 }) {
   const { t } = useI18n();
+  const collapseLabel = collapsed
+    ? t("admin.expandSidebar")
+    : t("admin.collapseSidebar");
   return (
     <>
       <div
@@ -62,27 +76,65 @@ function SidebarChrome({
           )}
         </div>
         {onToggleCollapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            aria-label={
-              collapsed ? t("admin.expandSidebar") : t("admin.collapseSidebar")
-            }
-            title={`${
-              collapsed ? t("admin.expandSidebar") : t("admin.collapseSidebar")
-            }  [`}
-            className={cn(
-              "border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground relative flex shrink-0 cursor-pointer items-center justify-center rounded-none border transition-colors hover:bg-white/8",
-              collapsed ? "h-6 w-6" : "h-7 w-7"
-            )}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </button>
+          // The `[` shortcut used to hide at the end of a title attribute,
+          // after two spaces. A tooltip says it properly, and
+          // aria-keyshortcuts says it to a screen reader.
+          <Tooltip.Provider delay={400}>
+            <Tooltip.Root>
+              <Tooltip.Trigger
+                render={
+                  <button
+                    type="button"
+                    onClick={onToggleCollapsed}
+                    aria-label={collapseLabel}
+                    aria-keyshortcuts="["
+                    className={cn(
+                      "border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground hit-area relative flex shrink-0 cursor-pointer items-center justify-center rounded-none border transition-colors hover:bg-white/8",
+                      collapsed ? "h-6 w-6" : "h-7 w-7"
+                    )}
+                  />
+                }
+              >
+                {collapsed ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Positioner side="right" sideOffset={10}>
+                  <Tooltip.Popup className="bg-popover text-popover-foreground flex items-center gap-2 rounded-none border px-2.5 py-1.5 text-xs font-medium shadow-md">
+                    {collapseLabel}
+                    <ShortcutHint keys={["["]} />
+                  </Tooltip.Popup>
+                </Tooltip.Positioner>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         )}
+      </div>
+
+      {/* The palette's front door. ⌘K alone left it undiscoverable, and on
+          a phone, with no keyboard, unreachable. */}
+      <div className={cn("px-3 pt-3", collapsed && "px-2")}>
+        <button
+          type="button"
+          onClick={onSearch}
+          aria-label={collapsed ? t("admin.search") : undefined}
+          aria-keyshortcuts="Meta+K Control+K"
+          className={cn(
+            "border-sidebar-border text-sidebar-foreground/65 hover:text-sidebar-foreground flex w-full cursor-pointer items-center rounded-none border text-sm transition-colors hover:bg-white/5",
+            collapsed ? "h-10 justify-center" : "h-10 gap-3 px-3"
+          )}
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left">{t("admin.search")}</span>
+              <ShortcutHint keys={["mod", "K"]} />
+            </>
+          )}
+        </button>
       </div>
 
       <AdminNav pendingCount={pendingCount} collapsed={collapsed} />
@@ -156,6 +208,11 @@ export function AdminShell({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  // Search chosen from the phone menu waits for the menu to finish closing:
+  // the closing sheet hands focus back to its trigger, which would pull it
+  // straight out of the palette's input and drop the keyboard.
+  const searchAfterMenu = useRef(false);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
 
@@ -199,7 +256,11 @@ export function AdminShell({
   return (
     <Toaster>
       <ReservationDetailProvider>
-        <CommandPalette pendingCount={pendingCount} />
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          pendingCount={pendingCount}
+        />
         <div className="tabular-shell flex min-h-screen">
           {/*
           The floating rail. The aside is a transparent, sticky, full-height
@@ -223,16 +284,25 @@ export function AdminShell({
                 pendingCount={pendingCount}
                 collapsed={collapsed}
                 onToggleCollapsed={toggleCollapsed}
+                onSearch={() => setPaletteOpen(true)}
               />
             </div>
           </aside>
 
           {/* Mobile drawer — never collapsed; on a phone there is no in-between. */}
-          <Sheet open={open} onOpenChange={setOpen}>
+          <Sheet
+            side="left"
+            open={open}
+            onOpenChange={setOpen}
+            onOpenChangeComplete={(isOpen) => {
+              if (isOpen || !searchAfterMenu.current) return;
+              searchAfterMenu.current = false;
+              setPaletteOpen(true);
+            }}
+          >
             <SheetContent
-              side="left"
               showCloseButton={false}
-              className="bg-sidebar text-sidebar-foreground border-sidebar-border w-72 gap-0 p-0 lg:hidden"
+              className="bg-sidebar text-sidebar-foreground border-sidebar-border w-72 gap-0 lg:hidden"
             >
               <SheetClose
                 aria-label={t("admin.closeMenu")}
@@ -244,6 +314,10 @@ export function AdminShell({
                 user={user}
                 signOutAction={signOutAction}
                 pendingCount={pendingCount}
+                onSearch={() => {
+                  searchAfterMenu.current = true;
+                  setOpen(false);
+                }}
               />
             </SheetContent>
           </Sheet>
@@ -253,23 +327,37 @@ export function AdminShell({
               it here (unlike the desktop rail). Translucent charcoal, not the
               light popover glass: the bar is the brand surface and its text is
               near-white, which would vanish on a light frost. */}
-            <header className="text-sidebar-foreground border-sidebar-border sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-[color-mix(in_srgb,var(--sidebar)_88%,transparent)] px-4 backdrop-blur-xl lg:hidden">
+            {/* content-box, so the bar keeps its 56px of content and grows
+                by the top inset where the page runs under the status bar.
+                Both buttons are full 44px targets; the menu button was the
+                bare 20px icon. */}
+            <header className="text-sidebar-foreground border-sidebar-border sticky top-0 z-40 box-content flex h-14 items-center justify-between border-b bg-[color-mix(in_srgb,var(--sidebar)_88%,transparent)] px-4 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
               <p className="font-display font-bold">
                 ALFA <span className="text-sidebar-primary">RENT</span>
               </p>
-              <button
-                type="button"
-                aria-label={t("admin.openMenu")}
-                onClick={() => setOpen(true)}
-                className="relative"
-              >
-                <Menu className="h-5 w-5" />
-                {pendingCount > 0 && (
-                  <span className="bg-brand absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-none px-1 text-[10px] font-bold text-white">
-                    {pendingCount}
-                  </span>
-                )}
-              </button>
+              <div className="-mr-2 flex items-center">
+                <button
+                  type="button"
+                  aria-label={t("admin.search")}
+                  onClick={() => setPaletteOpen(true)}
+                  className="flex h-11 w-11 cursor-pointer items-center justify-center"
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("admin.openMenu")}
+                  onClick={() => setOpen(true)}
+                  className="relative flex h-11 w-11 cursor-pointer items-center justify-center"
+                >
+                  <Menu className="h-5 w-5" />
+                  {pendingCount > 0 && (
+                    <span className="bg-brand absolute top-1.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-none px-1 text-[10px] font-bold text-white tabular-nums">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              </div>
             </header>
 
             {/* The ceiling moved into PageBody (per page). The banner keeps it

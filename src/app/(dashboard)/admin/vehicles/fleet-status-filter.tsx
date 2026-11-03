@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { VehicleStatus } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { useOptimisticParams } from "@/lib/use-optimistic-params";
 import { useI18n } from "@/components/shared/locale-provider";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -37,8 +37,8 @@ export function FleetStatusFilter({
   counts: Record<string, number>;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const params = useSearchParams();
+  // Optimistic: the pill pressed is the pill shown, before the fleet reloads.
+  const { params, navigate } = useOptimisticParams("/admin/vehicles");
   const active = params.get("status");
 
   // Whole-fleet figures from a groupBy, not the current page — the stat card
@@ -51,10 +51,7 @@ export function FleetStatusFilter({
     if (status === null) next.delete("status");
     else next.set("status", status);
     next.delete("page");
-    const qs = next.toString();
-    router.push(qs ? `/admin/vehicles?${qs}` : "/admin/vehicles", {
-      scroll: false,
-    });
+    navigate(next);
   };
 
   return (

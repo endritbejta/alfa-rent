@@ -80,7 +80,7 @@ export function Pagination({
               aria-current={entry === page ? "page" : undefined}
               onClick={() => go(entry)}
               className={cn(
-                "h-8 min-w-8 cursor-pointer rounded-none border px-2 text-xs font-semibold tabular-nums transition-colors",
+                "hit-area relative h-8 min-w-8 cursor-pointer rounded-none border px-2 text-xs font-semibold tabular-nums transition-colors",
                 entry === page
                   ? "border-foreground bg-foreground text-background"
                   : "text-muted-foreground hover:bg-surface-hover hover:text-foreground bg-transparent"
@@ -119,7 +119,7 @@ function Arrow({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="text-muted-foreground hover:bg-surface-hover hover:text-foreground disabled:border-border disabled:bg-skeleton disabled:text-muted-foreground h-8 cursor-pointer rounded-none border bg-transparent px-2 transition-colors disabled:cursor-not-allowed"
+      className="text-muted-foreground hover:bg-surface-hover hover:text-foreground disabled:border-border disabled:bg-skeleton disabled:text-muted-foreground hit-area relative h-8 cursor-pointer rounded-none border bg-transparent px-2 transition-colors disabled:cursor-not-allowed"
     >
       <Icon className="h-4 w-4" />
     </button>

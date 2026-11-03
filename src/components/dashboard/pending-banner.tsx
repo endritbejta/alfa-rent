@@ -4,8 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BellRing, ArrowRight, X } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
+import { toasts } from "@/components/dashboard/toaster";
 
 const STORAGE_KEY = "alfa.alerts.dismissed";
+
+/** Best effort: private browsing can refuse storage, and that is fine. */
+function remember(signatures: string[]) {
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(signatures.slice(-8))
+    );
+  } catch {}
+}
 
 /**
  * Operational alerts that follow staff across every page.
@@ -34,10 +45,21 @@ export function PendingBanner({ pendingCount }: { pendingCount: number }) {
     return () => clearTimeout(timer);
   }, []);
 
+  // Hiding an alert loses nothing, so it happens at once rather than
+  // behind a confirm — and one click brings it back if it was a slip.
   const dismiss = (sig: string) => {
     const next = [...dismissed, sig];
     setDismissed(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next.slice(-8)));
+    remember(next);
+    toasts.undoable(t("admin.notificationDismissed"), {
+      undoLabel: t("common.undo"),
+      onUndo: () =>
+        setDismissed((current) => {
+          const restored = current.filter((entry) => entry !== sig);
+          remember(restored);
+          return restored;
+        }),
+    });
   };
 
   if (pendingCount === 0 || dismissed.includes(pendingSig)) return null;
@@ -103,7 +125,7 @@ function Alert({
       </Link>
       <Link
         href={href}
-        className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${style.cta}`}
+        className={`hit-area relative flex shrink-0 items-center gap-1 text-xs font-semibold ${style.cta}`}
       >
         {cta}
         <ArrowRight className="h-3.5 w-3.5" />
@@ -112,7 +134,7 @@ function Alert({
         type="button"
         aria-label={t("admin.dismissNotification")}
         onClick={onDismiss}
-        className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer transition-colors"
+        className="text-muted-foreground hover:text-foreground hit-area relative shrink-0 cursor-pointer transition-colors"
       >
         <X className="h-4 w-4" />
       </button>

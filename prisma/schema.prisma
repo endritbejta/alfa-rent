@@ -185,6 +185,10 @@ model Reservation {
   /// Hash of the customer-held capability token required to start payment.
   /// The raw token is returned once and is never stored.
   paymentAccessTokenHash String?           @unique
+  /// The Idempotency-Key the creating request carried. A retry with the same
+  /// key gets this reservation back instead of making a second one. Null for
+  /// requests that sent none and for everything created before the column.
+  idempotencyKey         String?           @unique
   /// Actual handover and return timestamps. Scheduled dates remain unchanged
   /// so punctuality and overdue rentals can be audited later.
   startedAt              DateTime?

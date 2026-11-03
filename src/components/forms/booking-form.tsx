@@ -29,6 +29,7 @@ import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatPrice } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { IDEMPOTENCY_HEADER, keyForPayload } from "@/lib/idempotency";
 import { PendingStatus } from "@/components/shared/pending-status";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import {
@@ -102,6 +103,12 @@ export function BookingForm({
   );
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const confirmationHeading = useRef<HTMLHeadingElement>(null);
+  // State, not a ref: handleSubmit(onSubmit) is built during render, and the
+  // compiler cannot see that onSubmit only reads this later.
+  const [submission, setSubmission] = useState<{
+    payload: string;
+    key: string;
+  } | null>(null);
   const now = new Date();
   const minDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -170,24 +177,33 @@ export function BookingForm({
    */
   const onSubmit = async (data: FormValues) => {
     setServerError(null);
+    const body = JSON.stringify({
+      vehicleId: data.vehicleId,
+      pickupDate: `${data.from}T10:00:00Z`,
+      returnDate: `${data.to}T10:00:00Z`,
+      customer: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+      },
+    });
+    // The timeout below can fire after the booking has already been saved.
+    // Pressing Send again with the same details then reuses this key, and the
+    // server hands back that booking instead of queueing a second one.
+    const attempt = keyForPayload(submission, body);
+    setSubmission(attempt);
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
         // Without this a stalled connection never settles, so the catch below
         // never runs and the form sits in "Sending…" indefinitely.
         signal: AbortSignal.timeout(BOOKING_REQUEST_TIMEOUT_MS),
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vehicleId: data.vehicleId,
-          pickupDate: `${data.from}T10:00:00Z`,
-          returnDate: `${data.to}T10:00:00Z`,
-          customer: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            phone: data.phone,
-          },
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          [IDEMPOTENCY_HEADER]: attempt.key,
+        },
+        body,
       });
       const json: ApiResponse<Confirmation> = await response.json();
       if (!json.success) {
@@ -465,7 +481,9 @@ export function BookingForm({
             <span aria-hidden="true">·</span>
             {vehicle.transmission}
           </p>
-          <div className="border-divider mt-4 space-y-3 border-t pt-4 text-sm">
+          {/* Dates, day count and the total re-render as the customer picks;
+              tabular figures keep them from shifting sideways each time. */}
+          <div className="border-divider mt-4 space-y-3 border-t pt-4 text-sm tabular-nums">
             {(pickedFrom || pickedTo) && (
               <p className="text-muted-foreground flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" />

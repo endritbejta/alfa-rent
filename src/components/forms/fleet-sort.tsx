@@ -1,9 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { ListFilter } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useOptimisticParams } from "@/lib/use-optimistic-params";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
@@ -13,19 +12,17 @@ import { useI18n } from "@/components/shared/locale-provider";
  */
 export function FleetSort({ fill = false }: { fill?: boolean }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const params = useSearchParams();
-  const [pending, startTransition] = useTransition();
+  // The select is controlled, so with the real params it snapped back to the
+  // old order until the server answered; the optimistic ones hold the new
+  // choice from the moment it is made.
+  const { params, navigate, pending } = useOptimisticParams("/car");
 
   const change = (value: string) => {
     const next = new URLSearchParams(params.toString());
     if (value === "newest") next.delete("sort");
     else next.set("sort", value);
     next.delete("page");
-    const search = next.toString();
-    startTransition(() => {
-      router.push(search ? `/car?${search}` : "/car", { scroll: false });
-    });
+    navigate(next);
   };
 
   return (

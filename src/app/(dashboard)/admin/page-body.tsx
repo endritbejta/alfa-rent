@@ -14,12 +14,13 @@ import { cn } from "@/lib/utils";
 export function PageBody({
   className,
   children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
+  ...props
+}: React.ComponentProps<"div">) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1440px] space-y-6", className)}>
+    <div
+      className={cn("mx-auto w-full max-w-[1440px] space-y-6", className)}
+      {...props}
+    >
       {children}
     </div>
   );

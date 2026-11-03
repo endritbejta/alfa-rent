@@ -27,6 +27,7 @@ const en = {
   "common.reservations": "reservations",
   "common.customers": "customers",
   "common.close": "Close",
+  "common.undo": "Undo",
   "vehicle.automatic": "Automatic",
   "vehicle.manual": "Manual",
   "vehicle.petrol": "Petrol",
@@ -178,6 +179,8 @@ const en = {
   "err.notPayableStatus":
     "Only pending or confirmed reservations can be paid online",
   "err.duplicateValue": "Something with this value already exists",
+  "err.idempotencyKeyReused":
+    "This request was already sent with different details. Please try again.",
   "err.relationshipViolated":
     "Another record depends on this one, so it cannot be changed",
   "err.tooManyRequests":
@@ -424,6 +427,9 @@ const en = {
   "admin.search": "Search",
   "admin.searchPlaceholder": "Search reservations, vehicles, customers…",
   "admin.searching": "Searching…",
+  "admin.refreshing": "Refreshing…",
+  "admin.goTo": "Go to",
+  "admin.shortcuts": "Keyboard shortcut",
   "admin.noSearchResults": "Nothing matches “{query}”.",
   "admin.filterFleet": "Filter fleet",
   "admin.fleetShown": "{count} of the fleet shown",
@@ -486,6 +492,8 @@ const en = {
   "admin.conditionPhotos": "Condition photos",
   "admin.addPhotos": "Add photos",
   "admin.removePhoto": "Remove photo",
+  "admin.photoRemoved": "Photo removed",
+  "admin.notificationDismissed": "Notification dismissed",
   "admin.uploadFailed": "Upload failed",
   "admin.networkError": "Network error",
   "admin.photosNotAttached":
@@ -769,6 +777,7 @@ const sq: TranslationDictionary = {
   "common.reservations": "rezervime",
   "common.customers": "klientë",
   "common.close": "Mbyll",
+  "common.undo": "Zhbëj",
   "vehicle.automatic": "Automatik",
   "vehicle.manual": "Manual",
   "vehicle.petrol": "Benzinë",
@@ -920,6 +929,8 @@ const sq: TranslationDictionary = {
   "err.notPayableStatus":
     "Vetëm rezervimet në pritje ose të konfirmuara mund të paguhen online",
   "err.duplicateValue": "Diçka me këtë vlerë ekziston tashmë",
+  "err.idempotencyKeyReused":
+    "Kjo kërkesë është dërguar tashmë me të dhëna të tjera. Provo përsëri.",
   "err.relationshipViolated":
     "Një regjistrim tjetër varet nga ky, kështu që nuk mund të ndryshohet",
   "err.tooManyRequests": "Shumë kërkesa. Prit një moment dhe provo përsëri.",
@@ -1160,6 +1171,9 @@ const sq: TranslationDictionary = {
   "admin.search": "Kërkimi",
   "admin.searchPlaceholder": "Kërko rezervime, vetura dhe klientë…",
   "admin.searching": "Duke kërkuar…",
+  "admin.refreshing": "Duke rifreskuar…",
+  "admin.goTo": "Shko te",
+  "admin.shortcuts": "Shkurtore tastiere",
   "admin.noSearchResults": "Asgjë nuk përputhet me “{query}”.",
   "admin.filterFleet": "Filtro flotën",
   "admin.fleetShown": "{count} nga flota të shfaqura",
@@ -1224,6 +1238,8 @@ const sq: TranslationDictionary = {
   "admin.conditionPhotos": "Fotot e gjendjes",
   "admin.addPhotos": "Shto foto",
   "admin.removePhoto": "Hiq foton",
+  "admin.photoRemoved": "Fotoja u hoq",
+  "admin.notificationDismissed": "Njoftimi u fsheh",
   "admin.uploadFailed": "Ngarkimi dështoi",
   "admin.networkError": "Gabim në rrjet",
   "admin.photosNotAttached":

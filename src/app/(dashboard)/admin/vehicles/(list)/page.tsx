@@ -13,12 +13,13 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { ViewSwitcher } from "@/components/dashboard/view-switcher";
 import { readView } from "@/components/dashboard/view";
 import { ToastOnArrival } from "@/components/dashboard/toast-on-arrival";
-import { VehicleGrid } from "./vehicle-grid";
-import { VehicleFilters } from "./vehicle-filters";
-import { FleetStatusFilter } from "./fleet-status-filter";
+import { VehicleGrid } from "../vehicle-grid";
+import { VehicleFilters } from "../vehicle-filters";
+import { FleetStatusFilter } from "../fleet-status-filter";
 import { Pagination } from "@/components/dashboard/pagination";
+import { OptimisticParamsProvider } from "@/lib/use-optimistic-params";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { DeleteVehicleButton } from "./delete-vehicle-button";
+import { DeleteVehicleButton } from "../delete-vehicle-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -200,56 +201,60 @@ export default async function VehiclesPage({
 
       {/* Fleet-by-category and most-booked live on Analytics; duplicating
           them here pushed the fleet itself below the fold. */}
-      <FleetStatusFilter counts={insights.statusCounts} />
+      {/* One optimistic query for the status pills, the filter panel and
+          the view switcher, so a second click never undoes the first. */}
+      <OptimisticParamsProvider basePath="/admin/vehicles">
+        <FleetStatusFilter counts={insights.statusCounts} />
 
-      <VehicleFilters brands={brands} total={total} />
+        <VehicleFilters brands={brands} total={total} />
 
-      {items.length === 0 ? (
-        <div className="border-y px-6 py-14 text-center">
-          <p className="font-display text-lg font-bold">
-            {t("admin.noVehicles")}
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {t("admin.noVehiclesHint")}
-          </p>
-        </div>
-      ) : (
-        <>
-          <ViewSwitcher active={view} basePath="/admin/vehicles" />
-          {view === "grid" ? (
-            <VehicleGrid
-              items={items.map((v) => ({
-                id: v.id,
-                brand: v.brand,
-                model: v.model,
-                plate: v.plate,
-                year: v.year,
-                category: v.category,
-                transmission: v.transmission,
-                fuelType: v.fuelType,
-                seats: v.seats,
-                pricePerDay: toMoney(v.pricePerDay),
-                status: v.status,
-                image: v.images[0]?.url ?? null,
-              }))}
+        {items.length === 0 ? (
+          <div className="border-y px-6 py-14 text-center">
+            <p className="font-display text-lg font-bold">
+              {t("admin.noVehicles")}
+            </p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {t("admin.noVehiclesHint")}
+            </p>
+          </div>
+        ) : (
+          <>
+            <ViewSwitcher active={view} basePath="/admin/vehicles" />
+            {view === "grid" ? (
+              <VehicleGrid
+                items={items.map((v) => ({
+                  id: v.id,
+                  brand: v.brand,
+                  model: v.model,
+                  plate: v.plate,
+                  year: v.year,
+                  category: v.category,
+                  transmission: v.transmission,
+                  fuelType: v.fuelType,
+                  seats: v.seats,
+                  pricePerDay: toMoney(v.pricePerDay),
+                  status: v.status,
+                  image: v.images[0]?.url ?? null,
+                }))}
+              />
+            ) : (
+              <VehicleTable
+                vehicles={items}
+                isAdmin={isAdmin}
+                dense={view === "compact"}
+              />
+            )}
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              perPage={perPage}
+              basePath="/admin/vehicles"
+              labelKey="common.vehicles"
             />
-          ) : (
-            <VehicleTable
-              vehicles={items}
-              isAdmin={isAdmin}
-              dense={view === "compact"}
-            />
-          )}
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            total={total}
-            perPage={perPage}
-            basePath="/admin/vehicles"
-            labelKey="common.vehicles"
-          />
-        </>
-      )}
+          </>
+        )}
+      </OptimisticParamsProvider>
     </PageBody>
   );
 }

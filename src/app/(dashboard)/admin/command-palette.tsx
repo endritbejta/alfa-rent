@@ -17,6 +17,7 @@ import {
   ClipboardList,
   CornerDownLeft,
   Hourglass,
+  KeyRound,
   Languages,
   LayoutDashboard,
   Moon,
@@ -99,6 +100,11 @@ const ROUTE_DEFS: {
     href: "/admin/staff",
     icon: UserCog,
     adminOnly: true,
+  },
+  {
+    labelKey: "admin.changePassword",
+    href: "/account/password",
+    icon: KeyRound,
   },
 ];
 

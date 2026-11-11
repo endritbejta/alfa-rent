@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth";
 import { SIDEBAR_COLLAPSED, SIDEBAR_COOKIE } from "./sidebar-state";
@@ -15,6 +16,10 @@ export default async function AdminLayout({
   // Defense in depth: the middleware already gates /admin, but layouts
   // render independently — never rely on a single boundary.
   const user = await requireUser();
+  // An admin set this password and knows it, so nothing in the admin opens
+  // until its holder has replaced it. /account/password sits outside this
+  // layout, which is what keeps this from redirecting in a circle.
+  if (user.mustChangePassword) redirect("/account/password");
   // Operational alerts live in the layout so they follow staff everywhere.
   const [pendingCount, cookieStore, i18n] = await Promise.all([
     getPendingCount(),

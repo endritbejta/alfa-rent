@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { Tooltip } from "@base-ui/react/tooltip";
 import {
   ChevronLeft,
   ChevronRight,
+  KeyRound,
   LogOut,
   Menu,
   Search,
@@ -170,6 +172,22 @@ function SidebarChrome({
             collapsed && "justify-center px-1"
           )}
         />
+        {/* Outside /admin, so it is a plain link: the page has its own frame,
+            like sign-in, and works for a temporary password too. */}
+        <Link
+          href="/account/password"
+          aria-label={collapsed ? t("admin.changePassword") : undefined}
+          title={collapsed ? t("admin.changePassword") : undefined}
+          className={cn(
+            "border-sidebar-border text-sidebar-foreground/65 hover:text-sidebar-foreground hit-area relative mb-2 flex h-8 w-full items-center gap-2 rounded-none border transition-colors hover:bg-white/8",
+            collapsed
+              ? "justify-center px-0"
+              : "justify-start px-2.5 text-xs font-semibold"
+          )}
+        >
+          <KeyRound className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>{t("admin.changePassword")}</span>}
+        </Link>
         <form action={signOutAction}>
           <Button
             type="submit"

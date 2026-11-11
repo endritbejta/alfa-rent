@@ -822,9 +822,26 @@ const en = {
     "Too long: at most {max} plain letters, fewer if it has ë, ç or emoji.",
   "err.currentPasswordWrong": "Your current password is not correct.",
   "err.passwordUnchanged": "Choose a password different from your current one.",
+  "err.passwordMismatch": "The two passwords do not match.",
   "err.passwordChangedElsewhere":
     "Your password was just changed somewhere else. Sign in again.",
   "err.resource.staff": "staff account",
+  "account.changeTitle": "Change your password",
+  "account.changeLede":
+    "Afterwards you are signed out everywhere, this device included, and sign in again with the new password.",
+  "account.chooseTitle": "Choose your own password",
+  "account.chooseLede":
+    "An admin set a temporary password for this account. Replace it with one only you know to continue.",
+  "account.asideTitle": "Your password is yours alone",
+  "account.asideBody": "Nobody at Alfa Rent needs to know it, admins included.",
+  "account.currentPassword": "Current password",
+  "account.newPassword": "New password",
+  "account.confirmPassword": "Repeat the new password",
+  "account.newPasswordHint":
+    "At least {min} characters. A few words together are easier to remember than one odd one.",
+  "account.submit": "Change password",
+  "account.submitting": "Changing…",
+  "auth.passwordChanged": "Password changed. Sign in with the new one.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1653,9 +1670,27 @@ const sq: TranslationDictionary = {
     "Shumë i gjatë: deri në {max} shkronja të thjeshta, më pak nëse ka ë, ç ose emoji.",
   "err.currentPasswordWrong": "Fjalëkalimi aktual nuk është i saktë.",
   "err.passwordUnchanged": "Zgjidh një fjalëkalim të ndryshëm nga ai aktual.",
+  "err.passwordMismatch": "Dy fjalëkalimet nuk përputhen.",
   "err.passwordChangedElsewhere":
     "Fjalëkalimi sapo u ndryshua diku tjetër. Kyçu përsëri.",
   "err.resource.staff": "llogari",
+  "account.changeTitle": "Ndrysho fjalëkalimin",
+  "account.changeLede":
+    "Pas ndryshimit del nga të gjitha pajisjet, përfshirë këtë, dhe kyçesh përsëri me fjalëkalimin e ri.",
+  "account.chooseTitle": "Zgjidh fjalëkalimin tënd",
+  "account.chooseLede":
+    "Një administrator ka vendosur një fjalëkalim të përkohshëm për këtë llogari. Zëvendësoje me një që e di vetëm ti për të vazhduar.",
+  "account.asideTitle": "Fjalëkalimi yt është vetëm i yti",
+  "account.asideBody":
+    "Askush në Alfa Rent nuk ka nevojë ta dijë, as administratorët.",
+  "account.currentPassword": "Fjalëkalimi aktual",
+  "account.newPassword": "Fjalëkalimi i ri",
+  "account.confirmPassword": "Përsërit fjalëkalimin e ri",
+  "account.newPasswordHint":
+    "Të paktën {min} karaktere. Disa fjalë bashkë mbahen mend më lehtë se një fjalë e çuditshme.",
+  "account.submit": "Ndrysho fjalëkalimin",
+  "account.submitting": "Duke ndryshuar…",
+  "auth.passwordChanged": "Fjalëkalimi u ndryshua. Kyçu me fjalëkalimin e ri.",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

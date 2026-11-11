@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { CircleCheck, ShieldCheck } from "lucide-react";
 import { LoginForm } from "@/components/forms/login-form";
 import {
-  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -9,9 +9,8 @@ import {
 } from "@/components/ui/card";
 import { getI18n } from "@/lib/i18n/server";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
-import { LanguageSelector } from "@/components/shared/language-selector";
+import { AuthFrame } from "@/components/shared/auth-frame";
 import { BrandLogo } from "@/components/shared/brand-logo";
-import { ShieldCheck } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -21,49 +20,39 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; notice?: string }>;
 }) {
   const { t } = await getI18n();
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, notice } = await searchParams;
   const target = safeCallbackUrl(callbackUrl);
 
   return (
-    <main className="bg-band text-band-foreground relative flex min-h-screen items-center justify-center overflow-hidden p-5">
-      <LanguageSelector className="text-band-muted absolute top-5 right-5" />
-      <div className="bg-card text-card-foreground grid w-full max-w-4xl overflow-hidden rounded-none shadow-lg md:grid-cols-[1.05fr_.95fr]">
-        <section className="bg-sidebar text-sidebar-foreground relative hidden min-h-[34rem] flex-col justify-between overflow-hidden p-10 md:flex">
-          <div
-            aria-hidden="true"
-            className="bg-brand/15 absolute -top-32 -left-32 h-80 w-80 rounded-none blur-3xl"
-          />
-          <BrandLogo className="relative text-xl" preload />
-          <div className="relative">
-            <span className="bg-sidebar-accent text-sidebar-accent-foreground mb-6 flex h-12 w-12 items-center justify-center rounded-none">
-              <ShieldCheck className="h-6 w-6" />
-            </span>
-            <h1 className="font-display max-w-sm text-3xl leading-tight font-bold">
-              {t("auth.staffOnly")}
-            </h1>
-            <p className="text-sidebar-foreground/65 mt-4 max-w-sm text-sm leading-relaxed">
-              {t("auth.welcome")}
-            </p>
-          </div>
-          <p className="text-sidebar-foreground/45 text-xs">
-            Alfa Rent · {new Date().getFullYear()}
+    <AuthFrame
+      icon={ShieldCheck}
+      asideTitle={t("auth.staffOnly")}
+      asideBody={t("auth.welcome")}
+    >
+      <CardHeader>
+        <BrandLogo className="mb-8 md:hidden" preload />
+        <CardTitle className="text-2xl">{t("auth.staffSignIn")}</CardTitle>
+        <CardDescription>{t("auth.staffOnly")}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Changing a password signs you out everywhere, this browser
+            included, so sign-in is where you land. Without a word it looks
+            like the change failed. Only a known value is read: the param
+            selects a message, it is never shown. */}
+        {notice === "password-changed" && (
+          <p
+            role="status"
+            className="border-success/40 bg-success/10 flex items-start gap-2 border p-3 text-sm"
+          >
+            <CircleCheck className="text-success mt-0.5 h-4 w-4 shrink-0" />
+            {t("auth.passwordChanged")}
           </p>
-        </section>
-
-        <Card className="flex min-h-[34rem] flex-col justify-center rounded-none border-0 p-2 shadow-none">
-          <CardHeader>
-            <BrandLogo className="mb-8 md:hidden" preload />
-            <CardTitle className="text-2xl">{t("auth.staffSignIn")}</CardTitle>
-            <CardDescription>{t("auth.staffOnly")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LoginForm callbackUrl={target} />
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+        )}
+        <LoginForm callbackUrl={target} />
+      </CardContent>
+    </AuthFrame>
   );
 }

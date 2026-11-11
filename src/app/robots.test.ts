@@ -12,7 +12,7 @@ describe("robots.txt", () => {
     expect(robots()).toEqual({ rules: { userAgent: "*", disallow: "/" } });
   });
 
-  it("keeps staff, API and sign-in out of production crawls", () => {
+  it("keeps staff, API, sign-in and account pages out of production crawls", () => {
     vi.stubEnv("SITE_INDEXING", "");
     vi.stubEnv("VERCEL_ENV", "production");
     vi.stubEnv("SITE_URL", "https://alfarent.example");
@@ -20,7 +20,7 @@ describe("robots.txt", () => {
       rules: {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api/", "/login"],
+        disallow: ["/admin", "/api/", "/login", "/account"],
       },
       sitemap: "https://alfarent.example/sitemap.xml",
     });

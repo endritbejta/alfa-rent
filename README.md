@@ -128,10 +128,18 @@ database on your laptop, so production needs a hosted one.
    The pooled URL serves requests; the direct URL exists because
    migrations cannot run through PgBouncer.
 
-3. **Deploy.** Vercel runs `vercel-build`, which runs `prisma migrate deploy`
-   before `next build`, so the schema reaches the production database
-   automatically. Plain `npm run build` is deliberately database-free, so CI
-   can run it without one.
+   Scope `DATABASE_URL` and `DIRECT_URL` to **Production** only. If previews
+   need a database, give the Preview environment one of its own, never the
+   production URLs.
+
+3. **Deploy.** Vercel runs `vercel-build` (`scripts/vercel-build.sh`). For
+   the production deployment it runs `prisma migrate deploy` before
+   `next build`, so the schema reaches the production database automatically.
+   Preview deployments build without migrating, so pushing a branch can never
+   change the production schema. A preview with a database of its own can opt
+   in with `MIGRATE_PREVIEW_DATABASE=true` on the Preview environment. Plain
+   `npm run build` is deliberately database-free, so CI can run it without
+   one.
 4. **Seed once** (optional, for a new disposable demo database) from your machine:
 
    ```bash

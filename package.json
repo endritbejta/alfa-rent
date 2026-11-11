@@ -16,7 +16,7 @@
     "db:setup": "bash scripts/db-setup.sh",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && bash scripts/db-setup.sh --seed",
-    "vercel-build": "prisma migrate deploy && next build"
+    "vercel-build": "bash scripts/vercel-build.sh"
   },
   "engines": {
     "node": ">=20"

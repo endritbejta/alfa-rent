@@ -745,6 +745,22 @@ const en = {
   "email.footer":
     "The request stays pending until you confirm or cancel it in the admin. Reply to this email to write to the customer.",
   "car.metaTitle": "{car} for rent — {price} EUR/day",
+  "err.staffEmailTaken": "Another staff account already uses this email.",
+  "err.lastActiveAdmin":
+    "At least one active admin has to remain, so this was not changed.",
+  "err.cannotDemoteSelf":
+    "You cannot remove your own admin role. Ask another admin.",
+  "err.cannotDeactivateSelf": "You cannot deactivate your own account.",
+  "err.resetOwnPassword":
+    "Change your own password from “Change password”, which asks for the current one.",
+  "err.passwordTooShort": "Use at least {min} characters.",
+  "err.passwordTooLong":
+    "Too long: at most {max} plain letters, fewer if it has ë, ç or emoji.",
+  "err.currentPasswordWrong": "Your current password is not correct.",
+  "err.passwordUnchanged": "Choose a password different from your current one.",
+  "err.passwordChangedElsewhere":
+    "Your password was just changed somewhere else. Sign in again.",
+  "err.resource.staff": "staff account",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1493,6 +1509,23 @@ const sq: TranslationDictionary = {
   "email.footer":
     "Kërkesa mbetet në pritje derisa ta konfirmoni ose anuloni në panel. Përgjigjuni këtij emaili për t'i shkruar klientit.",
   "car.metaTitle": "{car} me qira — {price} EUR/ditë",
+  "err.staffEmailTaken":
+    "Një llogari tjetër e stafit e përdor tashmë këtë email.",
+  "err.lastActiveAdmin":
+    "Duhet të mbetet të paktën një administrator aktiv, ndaj kjo nuk u ndryshua.",
+  "err.cannotDemoteSelf":
+    "Nuk mund ta heqësh vetë rolin tënd të administratorit. Kërkoji një administratori tjetër.",
+  "err.cannotDeactivateSelf": "Nuk mund ta çaktivizosh llogarinë tënde.",
+  "err.resetOwnPassword":
+    "Fjalëkalimin tënd ndryshoje te “Ndrysho fjalëkalimin”, që kërkon fjalëkalimin aktual.",
+  "err.passwordTooShort": "Përdor të paktën {min} karaktere.",
+  "err.passwordTooLong":
+    "Shumë i gjatë: deri në {max} shkronja të thjeshta, më pak nëse ka ë, ç ose emoji.",
+  "err.currentPasswordWrong": "Fjalëkalimi aktual nuk është i saktë.",
+  "err.passwordUnchanged": "Zgjidh një fjalëkalim të ndryshëm nga ai aktual.",
+  "err.passwordChangedElsewhere":
+    "Fjalëkalimi sapo u ndryshua diku tjetër. Kyçu përsëri.",
+  "err.resource.staff": "llogari",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

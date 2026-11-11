@@ -9,6 +9,7 @@ import {
   CalendarDays,
   ClipboardList,
   Users,
+  UserCog,
   ChartNoAxesColumn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,22 +35,38 @@ const NAV = [
     label: "admin.analytics",
     icon: ChartNoAxesColumn,
   },
-] satisfies { href: string; label: TranslationKey; icon: typeof Car }[];
+  // Hidden from employees: every action behind it would refuse them. Hiding
+  // it is courtesy, not access control; the page and its actions check too.
+  {
+    href: "/admin/staff",
+    label: "admin.staffNav",
+    icon: UserCog,
+    adminOnly: true,
+  },
+] satisfies {
+  href: string;
+  label: TranslationKey;
+  icon: typeof Car;
+  adminOnly?: boolean;
+}[];
 
 export function AdminNav({
   pendingCount = 0,
   collapsed = false,
+  isAdmin = false,
 }: {
   pendingCount?: number;
   collapsed?: boolean;
+  isAdmin?: boolean;
 }) {
   const { t } = useI18n();
   const pathname = usePathname();
+  const items = NAV.filter((item) => isAdmin || !("adminOnly" in item));
 
   return (
     <Tooltip.Provider delay={400}>
       <nav className={cn("flex-1 space-y-1 p-3", collapsed && "px-2")}>
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           const badge = href === "/admin/reservations" && pendingCount > 0;
 

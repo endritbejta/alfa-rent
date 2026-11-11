@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import type { Role } from "@prisma/client";
 import { Tooltip } from "@base-ui/react/tooltip";
 import {
   ChevronLeft,
@@ -26,9 +27,10 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
 import { ShortcutHint } from "@/components/shared/shortcut-hint";
 import { cn } from "@/lib/utils";
+import { ROLE_KEYS } from "@/lib/status-labels";
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 
-type ShellUser = { name: string; role: string };
+type ShellUser = { name: string; role: Role };
 
 function SidebarChrome({
   user,
@@ -137,7 +139,11 @@ function SidebarChrome({
         </button>
       </div>
 
-      <AdminNav pendingCount={pendingCount} collapsed={collapsed} />
+      <AdminNav
+        pendingCount={pendingCount}
+        collapsed={collapsed}
+        isAdmin={user.role === "ADMIN"}
+      />
 
       <div
         className={cn(
@@ -149,7 +155,7 @@ function SidebarChrome({
           <>
             <p className="truncate text-sm">{user.name}</p>
             <p className="text-sidebar-foreground/50 mb-3 text-xs">
-              {user.role}
+              {t(ROLE_KEYS[user.role])}
             </p>
           </>
         )}
@@ -260,6 +266,7 @@ export function AdminShell({
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
           pendingCount={pendingCount}
+          isAdmin={user.role === "ADMIN"}
         />
         <div className="tabular-shell flex min-h-screen">
           {/*

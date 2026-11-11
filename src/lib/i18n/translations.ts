@@ -745,6 +745,70 @@ const en = {
   "email.footer":
     "The request stays pending until you confirm or cancel it in the admin. Reply to this email to write to the customer.",
   "car.metaTitle": "{car} for rent — {price} EUR/day",
+  "admin.staffNav": "Staff",
+  "admin.changePassword": "Change password",
+  "staff.description":
+    "Who can sign in to the admin, and what they can do there.",
+  "staff.add": "Add staff",
+  "staff.accounts": "Accounts",
+  "staff.accountsHint":
+    "When someone leaves, deactivate them. It ends every session at once.",
+  "staff.role": "Role",
+  "staff.status": "Status",
+  "staff.added": "Added",
+  "staff.roleAdmin": "Admin",
+  "staff.roleEmployee": "Employee",
+  "staff.roleAdminHint":
+    "Everything, including the fleet, merging customers and staff accounts.",
+  "staff.roleEmployeeHint":
+    "Reservations, customers and the calendar. Not the fleet or staff accounts.",
+  "staff.active": "Active",
+  "staff.deactivated": "Deactivated",
+  "staff.mustChange": "Temporary password",
+  "staff.you": "You",
+  "staff.actionsFor": "Actions for {name}",
+  "staff.makeAdmin": "Make admin",
+  "staff.makeEmployee": "Make employee",
+  "staff.resetPassword": "Reset password",
+  "staff.signOutEverywhere": "Sign out everywhere",
+  "staff.deactivate": "Deactivate",
+  "staff.reactivate": "Reactivate",
+  "staff.makeAdminTitle": "Make {name} an admin?",
+  "staff.makeAdminBody":
+    "Admins can change the fleet, merge customers and manage staff accounts, yours included.",
+  "staff.makeEmployeeTitle": "Make {name} an employee?",
+  "staff.makeEmployeeBody":
+    "{name} stays signed in, but from the next click loses access to the fleet and to staff accounts.",
+  "staff.deactivateTitle": "Deactivate {name}?",
+  "staff.deactivateBody":
+    "{name} is signed out everywhere and can no longer sign in. Anything they recorded stays, and you can reactivate the account later.",
+  "staff.signOutTitle": "Sign {name} out everywhere?",
+  "staff.signOutBody":
+    "Every device {name} is signed in on goes back to the sign-in page at its next request. The password stays the same.",
+  "staff.signOutSelfTitle": "Sign out everywhere?",
+  "staff.signOutSelfBody":
+    "Every device you are signed in on goes back to the sign-in page, this one included.",
+  "staff.resetTitle": "Reset {name}’s password?",
+  "staff.resetBody":
+    "{name} is signed out everywhere, signs in next with this temporary password, and then chooses their own.",
+  "staff.addBody":
+    "They sign in with the temporary password and are asked to choose their own straight away.",
+  "staff.temporaryPassword": "Temporary password",
+  "staff.temporaryPasswordHint":
+    "At least {min} characters. Hand it over in person rather than by email or chat.",
+  "staff.generate": "Generate",
+  "staff.nameRequired": "Enter a name",
+  "staff.adminsOnly": "Only admins can manage staff accounts",
+  "staff.adminsOnlyHint": "Ask an admin if your access needs to change.",
+  "toast.staffAdded": "{name} added",
+  "toast.staffAddedWhy":
+    "Hand over the temporary password. They choose their own at first sign-in.",
+  "toast.staffRoleChanged": "Role changed",
+  "toast.staffDeactivated": "{name} deactivated",
+  "toast.staffReactivated": "{name} reactivated",
+  "toast.staffPasswordReset": "Password reset",
+  "toast.staffPasswordResetWhy": "{name} chooses a new one at next sign-in.",
+  "toast.staffSignedOut": "{name} signed out everywhere",
   "err.staffEmailTaken": "Another staff account already uses this email.",
   "err.lastActiveAdmin":
     "At least one active admin has to remain, so this was not changed.",
@@ -1509,6 +1573,72 @@ const sq: TranslationDictionary = {
   "email.footer":
     "Kërkesa mbetet në pritje derisa ta konfirmoni ose anuloni në panel. Përgjigjuni këtij emaili për t'i shkruar klientit.",
   "car.metaTitle": "{car} me qira — {price} EUR/ditë",
+  "admin.staffNav": "Stafi",
+  "admin.changePassword": "Ndrysho fjalëkalimin",
+  "staff.description":
+    "Kush mund të kyçet në panel dhe çfarë mund të bëjë aty.",
+  "staff.add": "Shto staf",
+  "staff.accounts": "Llogaritë",
+  "staff.accountsHint":
+    "Kur dikush largohet, çaktivizoje. Kjo i mbyll menjëherë të gjitha seancat.",
+  "staff.role": "Roli",
+  "staff.status": "Statusi",
+  "staff.added": "Shtuar më",
+  "staff.roleAdmin": "Administrator",
+  "staff.roleEmployee": "Punonjës",
+  "staff.roleAdminHint":
+    "Gjithçka, përfshirë flotën, bashkimin e klientëve dhe llogaritë e stafit.",
+  "staff.roleEmployeeHint":
+    "Rezervimet, klientët dhe kalendari. Jo flota ose llogaritë e stafit.",
+  "staff.active": "Aktiv",
+  "staff.deactivated": "Çaktivizuar",
+  "staff.mustChange": "Fjalëkalim i përkohshëm",
+  "staff.you": "Ti",
+  "staff.actionsFor": "Veprimet për {name}",
+  "staff.makeAdmin": "Bëje administrator",
+  "staff.makeEmployee": "Bëje punonjës",
+  "staff.resetPassword": "Rivendos fjalëkalimin",
+  "staff.signOutEverywhere": "Mbyll të gjitha seancat",
+  "staff.deactivate": "Çaktivizo",
+  "staff.reactivate": "Riaktivizo",
+  "staff.makeAdminTitle": "{name} të bëhet administrator?",
+  "staff.makeAdminBody":
+    "Administratorët mund ta ndryshojnë flotën, të bashkojnë klientë dhe të menaxhojnë llogaritë e stafit, përfshirë tënden.",
+  "staff.makeEmployeeTitle": "{name} të bëhet punonjës?",
+  "staff.makeEmployeeBody":
+    "{name} nuk del nga llogaria, por që nga klikimi i radhës humb qasjen te flota dhe te llogaritë e stafit.",
+  "staff.deactivateTitle": "Të çaktivizohet {name}?",
+  "staff.deactivateBody":
+    "{name} del nga të gjitha pajisjet dhe nuk mund të kyçet më. Çdo gjë që ka regjistruar mbetet, dhe llogarinë mund ta riaktivizosh më vonë.",
+  "staff.signOutTitle": "Të dalë {name} nga të gjitha pajisjet?",
+  "staff.signOutBody":
+    "Çdo pajisje ku {name} është kyçur kthehet te faqja e kyçjes në kërkesën e radhës. Fjalëkalimi mbetet i njëjtë.",
+  "staff.signOutSelfTitle": "Të dalësh nga të gjitha pajisjet?",
+  "staff.signOutSelfBody":
+    "Çdo pajisje ku je kyçur kthehet te faqja e kyçjes, përfshirë këtë.",
+  "staff.resetTitle": "Të rivendoset fjalëkalimi?",
+  "staff.resetBody":
+    "{name} del nga të gjitha pajisjet, kyçet herën tjetër me këtë fjalëkalim të përkohshëm dhe pastaj zgjedh një të vetin.",
+  "staff.addBody":
+    "Kyçet me fjalëkalimin e përkohshëm dhe i kërkohet menjëherë të zgjedhë një të vetin.",
+  "staff.temporaryPassword": "Fjalëkalimi i përkohshëm",
+  "staff.temporaryPasswordHint":
+    "Të paktën {min} karaktere. Jepe personalisht, jo me email ose mesazh.",
+  "staff.generate": "Gjenero",
+  "staff.nameRequired": "Shkruaj emrin",
+  "staff.adminsOnly":
+    "Vetëm administratorët mund t’i menaxhojnë llogaritë e stafit",
+  "staff.adminsOnlyHint":
+    "Pyet një administrator nëse duhet ndryshuar qasja jote.",
+  "toast.staffAdded": "{name} u shtua",
+  "toast.staffAddedWhy":
+    "Jepja fjalëkalimin e përkohshëm. Në kyçjen e parë zgjedh një të vetin.",
+  "toast.staffRoleChanged": "Roli u ndryshua",
+  "toast.staffDeactivated": "{name} u çaktivizua",
+  "toast.staffReactivated": "{name} u riaktivizua",
+  "toast.staffPasswordReset": "Fjalëkalimi u rivendos",
+  "toast.staffPasswordResetWhy": "{name} zgjedh një të ri në kyçjen e radhës.",
+  "toast.staffSignedOut": "{name} doli nga të gjitha pajisjet",
   "err.staffEmailTaken":
     "Një llogari tjetër e stafit e përdor tashmë këtë email.",
   "err.lastActiveAdmin":

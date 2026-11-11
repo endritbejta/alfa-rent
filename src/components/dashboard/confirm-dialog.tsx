@@ -10,7 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { useI18n } from "@/components/shared/locale-provider";
 
-/** Shared, focus-managed confirmation for irreversible actions. */
+/**
+ * Shared, focus-managed confirmation for irreversible actions.
+ *
+ * `children` sits between the explanation and the buttons, for the one thing
+ * a confirmation sometimes has to collect, such as the temporary password a
+ * reset hands over. Anything larger belongs in a dialog of its own.
+ */
 export function ConfirmDialog({
   open,
   title,
@@ -21,6 +27,7 @@ export function ConfirmDialog({
   pending = false,
   onConfirm,
   onCancel,
+  children,
 }: {
   open: boolean;
   title: string;
@@ -31,6 +38,7 @@ export function ConfirmDialog({
   pending?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  children?: React.ReactNode;
 }) {
   const { t } = useI18n();
   return (
@@ -64,6 +72,7 @@ export function ConfirmDialog({
             </DialogDescription>
           </div>
         </div>
+        {children}
         <div className="mt-2 flex justify-end gap-2">
           <Button
             variant="outline"

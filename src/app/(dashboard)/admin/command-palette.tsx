@@ -23,6 +23,7 @@ import {
   Plus,
   Search,
   Sun,
+  UserCog,
   Users,
 } from "lucide-react";
 import { searchAdminAction } from "./search-actions";
@@ -62,6 +63,8 @@ const ROUTE_DEFS: {
   labelKey: TranslationKey;
   href: string;
   icon: React.ElementType;
+  /** Offered only to admins, as the sidebar only shows it to them. */
+  adminOnly?: boolean;
 }[] = [
   {
     labelKey: "admin.dashboard",
@@ -90,6 +93,12 @@ const ROUTE_DEFS: {
     labelKey: "admin.addVehicle",
     href: "/admin/vehicles/new",
     icon: Plus,
+  },
+  {
+    labelKey: "admin.staffNav",
+    href: "/admin/staff",
+    icon: UserCog,
+    adminOnly: true,
   },
 ];
 
@@ -128,10 +137,12 @@ export function CommandPalette({
   open,
   onOpenChange,
   pendingCount,
+  isAdmin = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   pendingCount: number;
+  isAdmin?: boolean;
 }) {
   const { locale, t } = useI18n();
   const router = useRouter();
@@ -154,16 +165,18 @@ export function CommandPalette({
   const dark = resolvedTheme === "dark";
   const nextLocale: Locale = locale === "sq" ? "en" : "sq";
   const commands: Row[] = [
-    ...ROUTE_DEFS.map((route): Row => ({
-      type: "route",
-      label: t(route.labelKey),
-      href: route.href,
-      icon: route.icon,
-      badge:
-        route.href.startsWith("/admin/reservations") && pendingCount > 0
-          ? pendingCount
-          : undefined,
-    })),
+    ...ROUTE_DEFS.filter((route) => isAdmin || !route.adminOnly).map(
+      (route): Row => ({
+        type: "route",
+        label: t(route.labelKey),
+        href: route.href,
+        icon: route.icon,
+        badge:
+          route.href.startsWith("/admin/reservations") && pendingCount > 0
+            ? pendingCount
+            : undefined,
+      })
+    ),
     {
       type: "action",
       label: dark ? t("theme.toLight") : t("theme.toDark"),

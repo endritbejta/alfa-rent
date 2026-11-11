@@ -1,6 +1,42 @@
 import { NextResponse } from "next/server";
-import { normalizeError, TooManyRequestsError } from "@/lib/errors";
+import {
+  ForbiddenError,
+  normalizeError,
+  TooManyRequestsError,
+  UnsupportedMediaTypeError,
+} from "@/lib/errors";
 import type { ApiSuccess } from "@/types/api";
+
+const JSON_CONTENT_TYPE = /^application\/json\s*(;|$)/i;
+
+/**
+ * Refuses a public write that a browser could have been made to send from
+ * another site.
+ *
+ * `request.json()` parses a body whatever its Content-Type. A `text/plain`
+ * POST, which browsers send cross-origin with no preflight, was therefore
+ * processed in full: any web page could make each of its visitors file a
+ * booking request, every one under that visitor's own IP and so its own
+ * rate-limit bucket.
+ *
+ * Either check alone stops that in current browsers:
+ * - `Sec-Fetch-Site: cross-site` is refused outright. Same-origin and
+ *   same-site requests pass, as do clients that send no such header (curl,
+ *   server-to-server).
+ * - The body must be declared as JSON. That makes a cross-origin request
+ *   preflighted, and the preflight fails because no CORS headers are sent.
+ *
+ * Call it first, before the rate limiter or anything else that writes, so a
+ * refused request costs nothing and spends nobody's quota.
+ */
+export function assertSameSiteJson(request: Request): void {
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    throw new ForbiddenError("Cross-site requests are not accepted");
+  }
+  if (!JSON_CONTENT_TYPE.test(request.headers.get("content-type") ?? "")) {
+    throw new UnsupportedMediaTypeError();
+  }
+}
 
 export function ok<T>(
   data: T,

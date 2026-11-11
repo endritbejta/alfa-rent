@@ -122,6 +122,18 @@ export class IdempotencyKeyReusedError extends AppError {
   }
 }
 
+/**
+ * A write whose body is not declared as JSON. Refused rather than parsed: a
+ * `text/plain` POST is a CORS "simple request" that any web page can make a
+ * visitor's browser send without a preflight. Requiring application/json is
+ * what forces the preflight, and a foreign origin then fails it.
+ */
+export class UnsupportedMediaTypeError extends AppError {
+  constructor(message = "Send the request body as application/json") {
+    super(message, "UNSUPPORTED_MEDIA_TYPE", 415);
+  }
+}
+
 export class ServiceUnavailableError extends AppError {
   constructor(message = "This service is not available yet") {
     super(message, "SERVICE_UNAVAILABLE", 503);

@@ -1,14 +1,17 @@
 /**
- * Server-side authorization guards for server actions and route handlers.
+ * Server-side authorization guards for pages, layouts and server actions.
  * UI hiding is not access control — every mutation must call one of these
- * regardless of what the client renders. Thrown errors map to 401/403
- * through normalizeError.
+ * regardless of what the client renders. A missing or revoked session
+ * redirects to sign-in; a role that is not enough throws ForbiddenError,
+ * which maps to 403 through normalizeError.
  */
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import type { Role } from "@prisma/client";
 import { auth } from "@/lib/auth";
+import { authConfig } from "@/lib/auth/config";
 import { prisma } from "@/lib/db/prisma";
-import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { ForbiddenError } from "@/lib/errors";
 
 /**
  * Memoised per request, not across requests. The layout and the page each
@@ -20,10 +23,23 @@ import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
  * for still happens on the very next one — a deactivated user is still locked
  * out immediately. Outside a render it does not memoise at all, which only
  * means no saving, never a stale answer.
+ *
+ * Signed out, deactivated and revoked (a bumped sessionVersion) all go to
+ * sign-in through redirect(). Next carries that through every context this
+ * runs in: a layout or page answers with a redirect, and a Server Action with
+ * one the client turns into a navigation. Throwing an error instead left a
+ * layout's throw to global-error.tsx, because an error.tsx does not wrap its
+ * own segment's layout. It also rejected an action's transition into the
+ * admin error boundary. Either way the result was a crash screen with no way
+ * back to sign-in, which is what every employee would have met right after a
+ * credential rotation.
+ *
+ * The redirect must not be swallowed. Keep the guard outside a try, or route
+ * the catch through errorMessage(), which rethrows it.
  */
 export const requireUser = cache(async () => {
   const session = await auth();
-  if (!session?.user) throw new UnauthorizedError();
+  if (!session?.user) redirect(authConfig.pages.signIn);
 
   // Proxy performs only the fast optimistic JWT check. Every protected
   // server read/action revalidates the user so deactivation, deletion, role
@@ -44,7 +60,7 @@ export const requireUser = cache(async () => {
     !current?.active ||
     current.sessionVersion !== session.user.sessionVersion
   ) {
-    throw new UnauthorizedError("Session is no longer valid");
+    redirect(authConfig.pages.signIn);
   }
   return current;
 });

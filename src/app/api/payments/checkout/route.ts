@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { ok, withErrorHandling } from "@/lib/api";
+import { assertSameSiteJson, ok, withErrorHandling } from "@/lib/api";
 import { TooManyRequestsError } from "@/lib/errors";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { createPaymentCheckout } from "@/services/payment.service";
@@ -14,6 +14,8 @@ const CHECKOUTS_PER_HOUR = 5;
 const WINDOW_SECONDS = 60 * 60;
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
+  assertSameSiteJson(request);
+
   const { reservationId, accessToken } = checkoutSchema.parse(
     await request.json()
   );

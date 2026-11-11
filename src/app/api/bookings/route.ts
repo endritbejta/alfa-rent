@@ -1,5 +1,5 @@
 import { after, type NextRequest } from "next/server";
-import { ok, withErrorHandling } from "@/lib/api";
+import { assertSameSiteJson, ok, withErrorHandling } from "@/lib/api";
 import { TooManyRequestsError } from "@/lib/errors";
 import {
   IDEMPOTENCY_HEADER,
@@ -21,6 +21,8 @@ const BOOKINGS_PER_HOUR = 8;
 const WINDOW_SECONDS = 60 * 60;
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
+  assertSameSiteJson(request);
+
   const { allowed, retryAfter } = await consumeRateLimit(
     `bookings:${clientIp(request.headers)}`,
     BOOKINGS_PER_HOUR,

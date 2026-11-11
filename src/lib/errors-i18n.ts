@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { AppError, normalizeError, type ErrorText } from "@/lib/errors";
 import { getI18n } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/translations";
@@ -14,8 +15,16 @@ import { translate } from "@/lib/i18n/translations";
  * before — so wiring a call site up costs nothing until the throw it catches
  * is given a key, and an untranslated message shows its English sentence
  * rather than nothing at all.
+ *
+ * Next's own control flow is never turned into a message. A redirect() (the
+ * sign-in redirect requireUser issues for an expired session) or a notFound()
+ * thrown inside a try has to reach Next, or the operator gets "An unexpected
+ * error occurred" where they should have been sent to sign in. Every server
+ * action's catch goes through here, so rethrowing in this one place covers
+ * them all.
  */
 export async function errorMessage(error: unknown): Promise<string> {
+  unstable_rethrow(error);
   const text = error instanceof AppError ? error.text : undefined;
   if (!text) return normalizeError(error).body.error.message;
 

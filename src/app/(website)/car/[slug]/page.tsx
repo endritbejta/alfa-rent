@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { cache } from "react";
 import {
   ArrowLeft,
   Users,
@@ -11,9 +9,7 @@ import {
   Gauge,
   ShieldCheck,
 } from "lucide-react";
-import { getPublicVehicleBySlug } from "@/services/vehicle.service";
 import { getVehicleBookingCalendar } from "@/services/reservation.service";
-import { NotFoundError } from "@/lib/errors";
 import { AvailabilityWidget } from "@/components/forms/availability-widget";
 import { MobileBookingBar } from "@/components/forms/mobile-booking-bar";
 import { getI18n } from "@/lib/i18n/server";
@@ -21,6 +17,7 @@ import type { TranslationKey } from "@/lib/i18n/translations";
 import { getVehicleDescription } from "@/lib/i18n/vehicle-content";
 import { isBookingRangeAvailable } from "@/lib/booking-calendar";
 import { VehicleGallery } from "./vehicle-gallery";
+import { loadVehicle } from "./load-vehicle";
 import { cloudinaryJpegCrop } from "@/lib/cloudinary/image-loader";
 import { formatAmount, formatPrice } from "@/lib/money";
 import { openGraphLocale } from "@/lib/site-url";
@@ -42,15 +39,6 @@ const FUEL_KEYS = {
 } as const satisfies Record<string, TranslationKey>;
 
 export const dynamic = "force-dynamic";
-
-const loadVehicle = cache(async (slug: string) => {
-  try {
-    return await getPublicVehicleBySlug(slug);
-  } catch (error) {
-    if (error instanceof NotFoundError) notFound();
-    throw error;
-  }
-});
 
 export async function generateMetadata({
   params,

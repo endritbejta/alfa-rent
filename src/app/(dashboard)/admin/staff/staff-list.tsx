@@ -150,12 +150,15 @@ export function StaffList({
         ))}
       </ul>
 
+      {/* The email sits under the name rather than in a column of its own.
+          With its own column the table outgrew the panel at 1024px, where
+          the sidebar opens, and the row menus scrolled out of sight the
+          moment an account showed its temporary-password flag. */}
       <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>{t("admin.name")}</TableHead>
-              <TableHead>{t("admin.email")}</TableHead>
               <TableHead>{t("staff.role")}</TableHead>
               <TableHead>{t("staff.status")}</TableHead>
               <TableHead>{t("staff.added")}</TableHead>
@@ -170,12 +173,14 @@ export function StaffList({
                 key={member.id}
                 className={cn(!member.active && "text-muted-foreground")}
               >
-                <TableCell className="font-medium">
-                  <Name member={member} self={member.id === currentUserId} />
-                </TableCell>
-                <TableCell>{member.email}</TableCell>
-                <TableCell>{t(ROLE_KEYS[member.role])}</TableCell>
                 <TableCell>
+                  <Name member={member} self={member.id === currentUserId} />
+                  <span className="text-muted-foreground block text-xs">
+                    {member.email}
+                  </span>
+                </TableCell>
+                <TableCell>{t(ROLE_KEYS[member.role])}</TableCell>
+                <TableCell className="whitespace-normal">
                   <Status member={member} />
                 </TableCell>
                 <TableCell className="tabular-nums">

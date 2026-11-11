@@ -44,7 +44,13 @@ export default async function StaffPage() {
       >
         <AddStaffDialog />
       </PageHeader>
-      <Panel title={t("staff.accounts")} subtitle={t("staff.accountsHint")}>
+      {/* Straight under the header, whose own rule already divides them;
+          the panel's would draw a second line a gap below the first. */}
+      <Panel
+        title={t("staff.accounts")}
+        subtitle={t("staff.accountsHint")}
+        className="border-t-0 pt-0"
+      >
         <StaffList staff={staff} currentUserId={user.id} />
       </Panel>
     </PageBody>

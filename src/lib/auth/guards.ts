@@ -53,6 +53,7 @@ export const requireUser = cache(async () => {
       role: true,
       active: true,
       sessionVersion: true,
+      mustChangePassword: true,
     },
   });
   if (

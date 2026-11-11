@@ -64,17 +64,21 @@ enum PaymentStatus {
 }
 
 model User {
-  id             String             @id @default(cuid())
-  name           String
-  email          String             @unique
-  password       String
-  role           Role               @default(EMPLOYEE)
-  active         Boolean            @default(true)
+  id                 String             @id @default(cuid())
+  name               String
+  email              String             @unique
+  password           String
+  role               Role               @default(EMPLOYEE)
+  active             Boolean            @default(true)
   /// Incrementing this immediately invalidates every previously issued JWT.
-  sessionVersion Int                @default(0)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  inspections    RentalInspection[]
+  sessionVersion     Int                @default(0)
+  /// Set when an admin creates the account or resets its password. The
+  /// admin knows that temporary password, so the admin layout sends the
+  /// holder to /account/password until they have chosen their own.
+  mustChangePassword Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  inspections        RentalInspection[]
 
   @@map("users")
 }

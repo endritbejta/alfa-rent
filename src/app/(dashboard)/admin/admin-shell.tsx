@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Role } from "@prisma/client";
 import { Tooltip } from "@base-ui/react/tooltip";
 import {
   ChevronLeft,
   ChevronRight,
+  KeyRound,
   LogOut,
   Menu,
   Search,
@@ -26,9 +29,10 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { Button } from "@/components/ui/button";
 import { ShortcutHint } from "@/components/shared/shortcut-hint";
 import { cn } from "@/lib/utils";
+import { ROLE_KEYS } from "@/lib/status-labels";
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 
-type ShellUser = { name: string; role: string };
+type ShellUser = { name: string; role: Role };
 
 function SidebarChrome({
   user,
@@ -137,7 +141,11 @@ function SidebarChrome({
         </button>
       </div>
 
-      <AdminNav pendingCount={pendingCount} collapsed={collapsed} />
+      <AdminNav
+        pendingCount={pendingCount}
+        collapsed={collapsed}
+        isAdmin={user.role === "ADMIN"}
+      />
 
       <div
         className={cn(
@@ -149,7 +157,7 @@ function SidebarChrome({
           <>
             <p className="truncate text-sm">{user.name}</p>
             <p className="text-sidebar-foreground/50 mb-3 text-xs">
-              {user.role}
+              {t(ROLE_KEYS[user.role])}
             </p>
           </>
         )}
@@ -164,6 +172,22 @@ function SidebarChrome({
             collapsed && "justify-center px-1"
           )}
         />
+        {/* Outside /admin, so it is a plain link: the page has its own frame,
+            like sign-in, and works for a temporary password too. */}
+        <Link
+          href="/account/password"
+          aria-label={collapsed ? t("admin.changePassword") : undefined}
+          title={collapsed ? t("admin.changePassword") : undefined}
+          className={cn(
+            "border-sidebar-border text-sidebar-foreground/65 hover:text-sidebar-foreground hit-area relative mb-2 flex h-8 w-full items-center gap-2 rounded-none border transition-colors hover:bg-white/8",
+            collapsed
+              ? "justify-center px-0"
+              : "justify-start px-2.5 text-xs font-semibold"
+          )}
+        >
+          <KeyRound className="h-4 w-4 shrink-0" />
+          {!collapsed && <span>{t("admin.changePassword")}</span>}
+        </Link>
         <form action={signOutAction}>
           <Button
             type="submit"
@@ -260,6 +284,7 @@ export function AdminShell({
           open={paletteOpen}
           onOpenChange={setPaletteOpen}
           pendingCount={pendingCount}
+          isAdmin={user.role === "ADMIN"}
         />
         <div className="tabular-shell flex min-h-screen">
           {/*

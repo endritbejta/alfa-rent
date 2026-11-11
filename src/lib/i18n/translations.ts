@@ -745,6 +745,103 @@ const en = {
   "email.footer":
     "The request stays pending until you confirm or cancel it in the admin. Reply to this email to write to the customer.",
   "car.metaTitle": "{car} for rent — {price} EUR/day",
+  "admin.staffNav": "Staff",
+  "admin.changePassword": "Change password",
+  "staff.description":
+    "Who can sign in to the admin, and what they can do there.",
+  "staff.add": "Add staff",
+  "staff.accounts": "Accounts",
+  "staff.accountsHint":
+    "When someone leaves, deactivate them. It ends every session at once.",
+  "staff.role": "Role",
+  "staff.status": "Status",
+  "staff.added": "Added",
+  "staff.roleAdmin": "Admin",
+  "staff.roleEmployee": "Employee",
+  "staff.roleAdminHint":
+    "Everything, including the fleet, merging customers and staff accounts.",
+  "staff.roleEmployeeHint":
+    "Reservations, customers and the calendar. Not the fleet or staff accounts.",
+  "staff.active": "Active",
+  "staff.deactivated": "Deactivated",
+  "staff.mustChange": "Temporary password",
+  "staff.you": "You",
+  "staff.actionsFor": "Actions for {name}",
+  "staff.makeAdmin": "Make admin",
+  "staff.makeEmployee": "Make employee",
+  "staff.resetPassword": "Reset password",
+  "staff.signOutEverywhere": "Sign out everywhere",
+  "staff.deactivate": "Deactivate",
+  "staff.reactivate": "Reactivate",
+  "staff.makeAdminTitle": "Make {name} an admin?",
+  "staff.makeAdminBody":
+    "Admins can change the fleet, merge customers and manage staff accounts, yours included.",
+  "staff.makeEmployeeTitle": "Make {name} an employee?",
+  "staff.makeEmployeeBody":
+    "{name} stays signed in, but from the next click loses access to the fleet and to staff accounts.",
+  "staff.deactivateTitle": "Deactivate {name}?",
+  "staff.deactivateBody":
+    "{name} is signed out everywhere and can no longer sign in. Anything they recorded stays, and you can reactivate the account later.",
+  "staff.signOutTitle": "Sign {name} out everywhere?",
+  "staff.signOutBody":
+    "Every device {name} is signed in on goes back to the sign-in page at its next request. The password stays the same.",
+  "staff.signOutSelfTitle": "Sign out everywhere?",
+  "staff.signOutSelfBody":
+    "Every device you are signed in on goes back to the sign-in page, this one included.",
+  "staff.resetTitle": "Reset {name}’s password?",
+  "staff.resetBody":
+    "{name} is signed out everywhere, signs in next with this temporary password, and then chooses their own.",
+  "staff.addBody":
+    "They sign in with the temporary password and are asked to choose their own straight away.",
+  "staff.temporaryPassword": "Temporary password",
+  "staff.temporaryPasswordHint":
+    "At least {min} characters. Hand it over in person rather than by email or chat.",
+  "staff.generate": "Generate",
+  "staff.nameRequired": "Enter a name",
+  "staff.adminsOnly": "Only admins can manage staff accounts",
+  "staff.adminsOnlyHint": "Ask an admin if your access needs to change.",
+  "toast.staffAdded": "{name} added",
+  "toast.staffAddedWhy":
+    "Hand over the temporary password. They choose their own at first sign-in.",
+  "toast.staffRoleChanged": "Role changed",
+  "toast.staffDeactivated": "{name} deactivated",
+  "toast.staffReactivated": "{name} reactivated",
+  "toast.staffPasswordReset": "Password reset",
+  "toast.staffPasswordResetWhy": "{name} chooses a new one at next sign-in.",
+  "toast.staffSignedOut": "{name} signed out everywhere",
+  "err.staffEmailTaken": "Another staff account already uses this email.",
+  "err.lastActiveAdmin":
+    "At least one active admin has to remain, so this was not changed.",
+  "err.cannotDemoteSelf":
+    "You cannot remove your own admin role. Ask another admin.",
+  "err.cannotDeactivateSelf": "You cannot deactivate your own account.",
+  "err.resetOwnPassword":
+    "Change your own password from “Change password”, which asks for the current one.",
+  "err.passwordTooShort": "Use at least {min} characters.",
+  "err.passwordTooLong":
+    "Too long: at most {max} plain letters, fewer if it has ë, ç or emoji.",
+  "err.currentPasswordWrong": "Your current password is not correct.",
+  "err.passwordUnchanged": "Choose a password different from your current one.",
+  "err.passwordMismatch": "The two passwords do not match.",
+  "err.passwordChangedElsewhere":
+    "Your password was just changed somewhere else. Sign in again.",
+  "err.resource.staff": "staff account",
+  "account.changeTitle": "Change your password",
+  "account.changeLede":
+    "Afterwards you are signed out everywhere, this device included, and sign in again with the new password.",
+  "account.chooseTitle": "Choose your own password",
+  "account.chooseLede":
+    "An admin set a temporary password for this account. Replace it with one only you know to continue.",
+  "account.asideTitle": "Your password is yours alone",
+  "account.asideBody": "Nobody at Alfa Rent needs to know it, admins included.",
+  "account.currentPassword": "Current password",
+  "account.newPassword": "New password",
+  "account.confirmPassword": "Repeat the new password",
+  "account.newPasswordHint":
+    "At least {min} characters. A few words together are easier to remember than one odd one.",
+  "account.submit": "Change password",
+  "account.submitting": "Changing…",
+  "auth.passwordChanged": "Password changed. Sign in with the new one.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1493,6 +1590,107 @@ const sq: TranslationDictionary = {
   "email.footer":
     "Kërkesa mbetet në pritje derisa ta konfirmoni ose anuloni në panel. Përgjigjuni këtij emaili për t'i shkruar klientit.",
   "car.metaTitle": "{car} me qira — {price} EUR/ditë",
+  "admin.staffNav": "Stafi",
+  "admin.changePassword": "Ndrysho fjalëkalimin",
+  "staff.description":
+    "Kush mund të kyçet në panel dhe çfarë mund të bëjë aty.",
+  "staff.add": "Shto staf",
+  "staff.accounts": "Llogaritë",
+  "staff.accountsHint":
+    "Kur dikush largohet, çaktivizoje. Kjo i mbyll menjëherë të gjitha seancat.",
+  "staff.role": "Roli",
+  "staff.status": "Statusi",
+  "staff.added": "Shtuar më",
+  "staff.roleAdmin": "Administrator",
+  "staff.roleEmployee": "Punonjës",
+  "staff.roleAdminHint":
+    "Gjithçka, përfshirë flotën, bashkimin e klientëve dhe llogaritë e stafit.",
+  "staff.roleEmployeeHint":
+    "Rezervimet, klientët dhe kalendari. Jo flota ose llogaritë e stafit.",
+  "staff.active": "Aktiv",
+  "staff.deactivated": "Çaktivizuar",
+  "staff.mustChange": "Fjalëkalim i përkohshëm",
+  "staff.you": "Ti",
+  "staff.actionsFor": "Veprimet për {name}",
+  "staff.makeAdmin": "Bëje administrator",
+  "staff.makeEmployee": "Bëje punonjës",
+  "staff.resetPassword": "Rivendos fjalëkalimin",
+  "staff.signOutEverywhere": "Mbyll të gjitha seancat",
+  "staff.deactivate": "Çaktivizo",
+  "staff.reactivate": "Riaktivizo",
+  "staff.makeAdminTitle": "{name} të bëhet administrator?",
+  "staff.makeAdminBody":
+    "Administratorët mund ta ndryshojnë flotën, të bashkojnë klientë dhe të menaxhojnë llogaritë e stafit, përfshirë tënden.",
+  "staff.makeEmployeeTitle": "{name} të bëhet punonjës?",
+  "staff.makeEmployeeBody":
+    "{name} nuk del nga llogaria, por që nga klikimi i radhës humb qasjen te flota dhe te llogaritë e stafit.",
+  "staff.deactivateTitle": "Të çaktivizohet {name}?",
+  "staff.deactivateBody":
+    "{name} del nga të gjitha pajisjet dhe nuk mund të kyçet më. Çdo gjë që ka regjistruar mbetet, dhe llogarinë mund ta riaktivizosh më vonë.",
+  "staff.signOutTitle": "Të dalë {name} nga të gjitha pajisjet?",
+  "staff.signOutBody":
+    "Çdo pajisje ku {name} është kyçur kthehet te faqja e kyçjes në kërkesën e radhës. Fjalëkalimi mbetet i njëjtë.",
+  "staff.signOutSelfTitle": "Të dalësh nga të gjitha pajisjet?",
+  "staff.signOutSelfBody":
+    "Çdo pajisje ku je kyçur kthehet te faqja e kyçjes, përfshirë këtë.",
+  "staff.resetTitle": "Të rivendoset fjalëkalimi?",
+  "staff.resetBody":
+    "{name} del nga të gjitha pajisjet, kyçet herën tjetër me këtë fjalëkalim të përkohshëm dhe pastaj zgjedh një të vetin.",
+  "staff.addBody":
+    "Kyçet me fjalëkalimin e përkohshëm dhe i kërkohet menjëherë të zgjedhë një të vetin.",
+  "staff.temporaryPassword": "Fjalëkalimi i përkohshëm",
+  "staff.temporaryPasswordHint":
+    "Të paktën {min} karaktere. Jepe personalisht, jo me email ose mesazh.",
+  "staff.generate": "Gjenero",
+  "staff.nameRequired": "Shkruaj emrin",
+  "staff.adminsOnly":
+    "Vetëm administratorët mund t’i menaxhojnë llogaritë e stafit",
+  "staff.adminsOnlyHint":
+    "Pyet një administrator nëse duhet ndryshuar qasja jote.",
+  "toast.staffAdded": "{name} u shtua",
+  "toast.staffAddedWhy":
+    "Jepja fjalëkalimin e përkohshëm. Në kyçjen e parë zgjedh një të vetin.",
+  "toast.staffRoleChanged": "Roli u ndryshua",
+  "toast.staffDeactivated": "{name} u çaktivizua",
+  "toast.staffReactivated": "{name} u riaktivizua",
+  "toast.staffPasswordReset": "Fjalëkalimi u rivendos",
+  "toast.staffPasswordResetWhy": "{name} zgjedh një të ri në kyçjen e radhës.",
+  "toast.staffSignedOut": "{name} doli nga të gjitha pajisjet",
+  "err.staffEmailTaken":
+    "Një llogari tjetër e stafit e përdor tashmë këtë email.",
+  "err.lastActiveAdmin":
+    "Duhet të mbetet të paktën një administrator aktiv, ndaj kjo nuk u ndryshua.",
+  "err.cannotDemoteSelf":
+    "Nuk mund ta heqësh vetë rolin tënd të administratorit. Kërkoji një administratori tjetër.",
+  "err.cannotDeactivateSelf": "Nuk mund ta çaktivizosh llogarinë tënde.",
+  "err.resetOwnPassword":
+    "Fjalëkalimin tënd ndryshoje te “Ndrysho fjalëkalimin”, që kërkon fjalëkalimin aktual.",
+  "err.passwordTooShort": "Përdor të paktën {min} karaktere.",
+  "err.passwordTooLong":
+    "Shumë i gjatë: deri në {max} shkronja të thjeshta, më pak nëse ka ë, ç ose emoji.",
+  "err.currentPasswordWrong": "Fjalëkalimi aktual nuk është i saktë.",
+  "err.passwordUnchanged": "Zgjidh një fjalëkalim të ndryshëm nga ai aktual.",
+  "err.passwordMismatch": "Dy fjalëkalimet nuk përputhen.",
+  "err.passwordChangedElsewhere":
+    "Fjalëkalimi sapo u ndryshua diku tjetër. Kyçu përsëri.",
+  "err.resource.staff": "llogari",
+  "account.changeTitle": "Ndrysho fjalëkalimin",
+  "account.changeLede":
+    "Pas ndryshimit del nga të gjitha pajisjet, përfshirë këtë, dhe kyçesh përsëri me fjalëkalimin e ri.",
+  "account.chooseTitle": "Zgjidh fjalëkalimin tënd",
+  "account.chooseLede":
+    "Një administrator ka vendosur një fjalëkalim të përkohshëm për këtë llogari. Zëvendësoje me një që e di vetëm ti për të vazhduar.",
+  "account.asideTitle": "Fjalëkalimi yt është vetëm i yti",
+  "account.asideBody":
+    "Askush në Alfa Rent nuk ka nevojë ta dijë, as administratorët.",
+  "account.currentPassword": "Fjalëkalimi aktual",
+  "account.newPassword": "Fjalëkalimi i ri",
+  "account.confirmPassword": "Përsërit fjalëkalimin e ri",
+  "account.newPasswordHint":
+    "Të paktën {min} karaktere. Disa fjalë bashkë mbahen mend më lehtë se një fjalë e çuditshme.",
+  "account.submit": "Ndrysho fjalëkalimin",
+  "account.submitting": "Duke ndryshuar…",
+  "auth.passwordChanged": "Fjalëkalimi u ndryshua. Kyçu me fjalëkalimin e ri.",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

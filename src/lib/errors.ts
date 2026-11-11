@@ -61,6 +61,7 @@ const RESOURCE_KEYS = {
   Reservation: "err.resource.reservation",
   Customer: "err.resource.customer",
   Payment: "err.resource.payment",
+  Staff: "err.resource.staff",
   Record: "err.resource.record",
 } as const satisfies Record<string, TranslationKey>;
 

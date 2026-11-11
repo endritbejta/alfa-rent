@@ -1,4 +1,4 @@
-import type { ReservationStatus, VehicleStatus } from "@prisma/client";
+import type { ReservationStatus, Role, VehicleStatus } from "@prisma/client";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 /**
@@ -29,3 +29,9 @@ export const STATUS_KEYS = {
   ...VEHICLE_STATUS_KEYS,
   ...RESERVATION_STATUS_KEYS,
 } as const satisfies Record<VehicleStatus | ReservationStatus, TranslationKey>;
+
+/** A staff role as staff read it, rather than the enum's ADMIN. */
+export const ROLE_KEYS = {
+  ADMIN: "staff.roleAdmin",
+  EMPLOYEE: "staff.roleEmployee",
+} as const satisfies Record<Role, TranslationKey>;

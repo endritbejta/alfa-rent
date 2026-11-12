@@ -125,17 +125,23 @@ export type CustomerDetail = Omit<RawCustomerDetail, "reservations"> & {
     RawCustomerDetail["reservations"][number],
     "totalPrice"
   > & { totalPrice: number })[];
+  /**
+   * Whether to offer ADMIN-only actions. A hint for the UI, never access
+   * control: the actions themselves call requireRole.
+   */
+  viewerIsAdmin: boolean;
 };
 
 export async function getCustomerDetailAction(
   id: string
 ): Promise<{ data: CustomerDetail } | { error: string }> {
-  await requireUser();
+  const user = await requireUser();
   try {
     const customer = await getCustomerById(id);
     return {
       data: {
         ...customer,
+        viewerIsAdmin: user.role === "ADMIN",
         reservations: customer.reservations.map((r) => ({
           ...r,
           totalPrice: Number(r.totalPrice),

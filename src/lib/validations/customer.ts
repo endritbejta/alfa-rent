@@ -65,3 +65,25 @@ export function normalizePhone(phone: string): string {
 export function looksLikePhone(query: string): boolean {
   return /^[\d\s+()./-]+$/.test(query) && normalizePhone(query).length >= 4;
 }
+
+/**
+ * What an anonymised customer is left with.
+ *
+ * Email is the one unique column, so each record gets its own placeholder,
+ * built from its id, used as it is so two ids can never collide (a cuid is
+ * lower-case already). `.invalid` is reserved by RFC 2606: it can never be a
+ * real mailbox, so nothing is ever sent to it and no real customer can book
+ * under it by accident. The last name keeps the tail of the id so two
+ * anonymised rows can still be told apart in a reservation list without
+ * saying anything about the person.
+ */
+export const ANONYMISED_FIRST_NAME = "Anonymised";
+export const ANONYMISED_EMAIL = /^anonymised\.[^@]+@anonymised\.invalid$/;
+
+export function anonymisedEmail(customerId: string): string {
+  return `anonymised.${customerId}@anonymised.invalid`;
+}
+
+export function anonymisedLastName(customerId: string): string {
+  return `#${customerId.slice(-6)}`;
+}

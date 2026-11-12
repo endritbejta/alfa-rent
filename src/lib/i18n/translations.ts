@@ -859,6 +859,148 @@ const en = {
   "email.contactDiffers":
     "These details differ from the customer on file. Call the number above, the one given in the request.",
   "email.contactOnFile": "On file",
+  // Privacy notice, rental terms and anonymisation. Needs legal review.
+  "legal.draftTitle": "Draft awaiting legal review",
+  "legal.draftBody":
+    "Some details below are still being confirmed by Alfa Rent and its legal adviser. Items marked “To be confirmed” are not final yet.",
+  "legal.toBeConfirmed": "To be confirmed",
+  "legal.effectiveDate": "Effective from",
+  "footer.privacy": "Privacy notice",
+  "footer.terms": "Rental terms",
+  "footer.legal": "Legal",
+  "booking.privacyBefore":
+    "Sending this request means we process your details as described in our ",
+  "booking.privacyLink": "privacy notice",
+  "booking.privacyAfter": ".",
+  "privacy.metaTitle": "Privacy notice",
+  "privacy.metaDescription":
+    "How Alfa Rent collects, uses and keeps the personal data you give us when you request a rental, and how to exercise your rights.",
+  "privacy.eyebrow": "Privacy",
+  "privacy.title": "Privacy notice",
+  "privacy.intro":
+    "What we collect when you request a rental, why, who else handles it, how long we keep it, and what you can ask of us.",
+  "privacy.controllerTitle": "Who is responsible for your data",
+  "privacy.controllerBody":
+    "The business below decides how your personal data is used, and is responsible for it under Kosovo's Law No. 06/L-082 on Protection of Personal Data.",
+  "privacy.fact.legalName": "Business name",
+  "privacy.fact.registrationNumber": "Registration number",
+  "privacy.fact.address": "Address",
+  "privacy.fact.privacyEmail": "Privacy requests",
+  "privacy.fact.privacyContact": "Handled by",
+  "privacy.collectTitle": "What we collect",
+  "privacy.collectBooking":
+    "Your first and last name, email address and phone number, which you enter in the booking form.",
+  "privacy.collectRental":
+    "The vehicle and dates you ask for, and the price of the rental.",
+  "privacy.collectInspection":
+    "At pickup and return: the name of the person who signs the vehicle inspection, the mileage, the fuel level and the vehicle's condition, including photos of the vehicle.",
+  "privacy.collectNotes":
+    "Notes our staff add while arranging your rental, for example during a phone call.",
+  "privacy.collectTechnical":
+    "Your device's IP address, used to limit repeated requests, and the technical logs our hosting provider keeps.",
+  "privacy.purposeTitle": "Why we use it, and on what legal basis",
+  "privacy.purposeBooking":
+    "To answer your booking request, confirm availability and provide the rental. This is necessary to take the steps you ask for before a contract, and to perform it.",
+  "privacy.purposeAccounting":
+    "To keep the accounting and tax records of rentals and payments that the law requires.",
+  "privacy.purposeSecurity":
+    "To keep the website secure and protect it from abuse, which is our legitimate interest.",
+  "privacy.purposeNoConsent":
+    "Because a booking request cannot be handled without these details, we do not ask for separate consent to use them for it. We use them only for the purposes above.",
+  "privacy.recipientsTitle": "Who else handles it",
+  "privacy.recipientsBody":
+    "We use these service providers to run the website. They process data on our behalf, and only for the purposes above.",
+  "privacy.recipientSupabase":
+    "Supabase hosts the database where requests and rentals are stored.",
+  "privacy.recipientVercel":
+    "Vercel hosts the website and keeps its technical logs.",
+  "privacy.recipientCloudinary":
+    "Cloudinary stores vehicle photos, including those taken at pickup and return.",
+  "privacy.recipientResend":
+    "Resend delivers the email that tells our staff about a new request. It contains your name and contact details.",
+  "privacy.fact.processorLocations": "Where they store data",
+  "privacy.retentionTitle": "How long we keep it",
+  "privacy.retentionBody":
+    "When a period below ends, the customer record is anonymised: the name, email, phone and notes are erased, and only the dates and amounts of the rentals remain for our accounts.",
+  "privacy.fact.rentalRecords": "Rental and payment records",
+  "privacy.fact.customerContact":
+    "Your contact details, after your last rental",
+  "privacy.fact.unconfirmedRequests": "Requests never confirmed, or cancelled",
+  "privacy.fact.technicalRecords": "Technical records",
+  "privacy.rightsTitle": "Your rights",
+  "privacy.rightsBody": "You can ask us to:",
+  "privacy.rightAccess":
+    "tell you what data we hold about you, and give you a copy;",
+  "privacy.rightRectify": "correct details that are wrong;",
+  "privacy.rightErase":
+    "erase your data. Records the law requires us to keep are anonymised instead, so your name and contact details are still removed;",
+  "privacy.rightRestrict":
+    "restrict how we use it, or stop using it where you object.",
+  "privacy.rightsHow":
+    "To make a request, write to the privacy address above. We may ask you to confirm who you are before acting on it.",
+  "privacy.fact.responseTime": "We reply within",
+  "privacy.complaint":
+    "If you think we have handled your data unlawfully, you can complain to Kosovo's Information and Privacy Agency.",
+  "privacy.cookiesTitle": "Cookies",
+  "privacy.cookiesBody":
+    "The website sets one cookie, which remembers the language you chose, and keeps your light or dark theme choice in your browser's own storage. It uses no advertising or analytics cookies. Staff who sign in to the admin also get a sign-in cookie.",
+  "terms.metaTitle": "Rental terms",
+  "terms.metaDescription":
+    "The terms that apply when you rent a vehicle from Alfa Rent.",
+  "terms.eyebrow": "Terms",
+  "terms.title": "Rental terms",
+  "terms.intro":
+    "How a booking works, and what applies once you rent a vehicle from us.",
+  "terms.provider": "Rental provider",
+  "terms.bookingTitle": "Booking requests",
+  "terms.bookingRequest":
+    "A request sent through this website is not yet a rental. Our team checks availability and contacts you to confirm it during business hours.",
+  "terms.bookingPrice":
+    "The price shown is an estimate for the dates you chose. It is confirmed together with the rental.",
+  "terms.bookingPayment": "No payment is taken on the website.",
+  "terms.driverTitle": "Driver requirements",
+  "terms.fact.driverAge": "Driver age",
+  "terms.fact.licence": "Licence held for",
+  "terms.fact.documents": "Documents to bring",
+  "terms.paymentTitle": "Payment and deposit",
+  "terms.fact.payment": "Payment",
+  "terms.fact.deposit": "Deposit",
+  "terms.handoverTitle": "Pickup and return",
+  "terms.handoverInspection":
+    "At pickup and at return we record the mileage, the fuel level and the vehicle's condition, with photos, and the driver signs the record.",
+  "terms.fact.fuel": "Fuel",
+  "terms.fact.mileage": "Mileage",
+  "terms.fact.lateReturn": "Late return",
+  "terms.insuranceTitle": "Insurance and damage",
+  "terms.fact.insurance": "Insurance",
+  "terms.fact.damage": "Damage",
+  "terms.cancellationTitle": "Cancellation",
+  "terms.fact.cancellation": "Cancellation",
+  "terms.travelTitle": "Travel outside Kosovo",
+  "terms.fact.crossBorder": "Crossing the border",
+  "terms.liabilityTitle": "Liability and governing law",
+  "terms.fact.liability": "Liability and law",
+  "terms.privacyTitle": "Personal data",
+  "terms.privacyBody":
+    "How we handle your personal data is described in the privacy notice.",
+  "admin.privacySection": "Personal data",
+  "admin.anonymise": "Anonymise customer",
+  "admin.anonymiseHelp":
+    "For an erasure request, or when the retention period ends. Rentals and amounts are kept.",
+  "admin.anonymiseTitle": "Anonymise this customer?",
+  "admin.anonymiseBody":
+    "The name, email, phone and notes are erased, together with the notes on the customer's reservations and the signer's name on their inspections. Reservations and amounts are kept for the accounts. This cannot be undone.",
+  "admin.anonymiseConfirm": "Anonymise",
+  "admin.anonymiseBlocked":
+    "Complete or cancel this customer's open reservations before anonymising them.",
+  "admin.anonymisedName": "Anonymised customer",
+  "admin.anonymisedNote":
+    "Anonymised on {date}. The personal data has been erased; the rentals are kept for the accounts.",
+  "toast.customerAnonymised": "Customer anonymised",
+  "err.customerAnonymised":
+    "This customer has been anonymised, so the record can no longer be changed or used for new bookings.",
+  "err.customerHasOpenReservations":
+    "This customer still has pending, confirmed or active reservations. Complete or cancel them first.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1725,6 +1867,148 @@ const sq: TranslationDictionary = {
   "email.contactDiffers":
     "Këto të dhëna ndryshojnë nga klienti në regjistër. Telefono numrin më sipër, atë të dhënë në kërkesë.",
   "email.contactOnFile": "Në regjistër",
+  // Njoftimi për privatësinë, kushtet e qirasë dhe anonimizimi. Kërkon shqyrtim ligjor.
+  "legal.draftTitle": "Version pune në pritje të shqyrtimit ligjor",
+  "legal.draftBody":
+    "Disa të dhëna më poshtë ende po konfirmohen nga Alfa Rent dhe këshilltari i saj ligjor. Pikat e shënuara “Për t'u konfirmuar” nuk janë ende përfundimtare.",
+  "legal.toBeConfirmed": "Për t'u konfirmuar",
+  "legal.effectiveDate": "Në fuqi nga",
+  "footer.privacy": "Njoftimi për privatësinë",
+  "footer.terms": "Kushtet e qirasë",
+  "footer.legal": "Informacione ligjore",
+  "booking.privacyBefore":
+    "Duke e dërguar këtë kërkesë, të dhënat tuaja përpunohen siç përshkruhet në ",
+  "booking.privacyLink": "njoftimin për privatësinë",
+  "booking.privacyAfter": ".",
+  "privacy.metaTitle": "Njoftimi për privatësinë",
+  "privacy.metaDescription":
+    "Si i mbledh, i përdor dhe i ruan Alfa Rent të dhënat personale që na jepni kur kërkoni një qira, dhe si t'i ushtroni të drejtat tuaja.",
+  "privacy.eyebrow": "Privatësia",
+  "privacy.title": "Njoftimi për privatësinë",
+  "privacy.intro":
+    "Çfarë mbledhim kur kërkoni një qira, pse, kush tjetër i trajton, sa kohë i ruajmë dhe çfarë mund të kërkoni nga ne.",
+  "privacy.controllerTitle": "Kush është përgjegjës për të dhënat tuaja",
+  "privacy.controllerBody":
+    "Biznesi i mëposhtëm vendos si përdoren të dhënat tuaja personale dhe është përgjegjës për to sipas Ligjit Nr. 06/L-082 për Mbrojtjen e të Dhënave Personale.",
+  "privacy.fact.legalName": "Emri i biznesit",
+  "privacy.fact.registrationNumber": "Numri i regjistrimit",
+  "privacy.fact.address": "Adresa",
+  "privacy.fact.privacyEmail": "Kërkesat për privatësi",
+  "privacy.fact.privacyContact": "I trajton",
+  "privacy.collectTitle": "Çfarë mbledhim",
+  "privacy.collectBooking":
+    "Emrin dhe mbiemrin, adresën e email-it dhe numrin e telefonit, që i shkruani në formularin e rezervimit.",
+  "privacy.collectRental":
+    "Veturën dhe datat që kërkoni, si dhe çmimin e qirasë.",
+  "privacy.collectInspection":
+    "Gjatë marrjes dhe kthimit: emrin e personit që nënshkruan kontrollin e veturës, kilometrazhin, nivelin e karburantit dhe gjendjen e veturës, përfshirë fotot e saj.",
+  "privacy.collectNotes":
+    "Shënimet që stafi ynë shton gjatë organizimit të qirasë, për shembull gjatë një telefonate.",
+  "privacy.collectTechnical":
+    "Adresën IP të pajisjes suaj, që përdoret për të kufizuar kërkesat e përsëritura, dhe regjistrat teknikë që mban ofruesi ynë i hostimit.",
+  "privacy.purposeTitle": "Pse i përdorim dhe mbi çfarë baze ligjore",
+  "privacy.purposeBooking":
+    "Për t'iu përgjigjur kërkesës suaj për rezervim, për të konfirmuar disponueshmërinë dhe për të ofruar qiranë. Kjo është e nevojshme për hapat që kërkoni para lidhjes së kontratës dhe për zbatimin e saj.",
+  "privacy.purposeAccounting":
+    "Për të mbajtur evidencat kontabël dhe tatimore të qirave dhe pagesave, siç e kërkon ligji.",
+  "privacy.purposeSecurity":
+    "Për ta mbajtur faqen të sigurt dhe për ta mbrojtur nga abuzimi, që është interesi ynë i ligjshëm.",
+  "privacy.purposeNoConsent":
+    "Meqë kërkesa për rezervim nuk mund të trajtohet pa këto të dhëna, nuk kërkojmë pëlqim të veçantë për t'i përdorur për të. I përdorim vetëm për qëllimet e mësipërme.",
+  "privacy.recipientsTitle": "Kush tjetër i trajton",
+  "privacy.recipientsBody":
+    "Përdorim këta ofrues shërbimesh për ta mbajtur faqen në punë. Ata i përpunojnë të dhënat në emrin tonë dhe vetëm për qëllimet e mësipërme.",
+  "privacy.recipientSupabase":
+    "Supabase hoston bazën e të dhënave ku ruhen kërkesat dhe qiratë.",
+  "privacy.recipientVercel":
+    "Vercel hoston faqen dhe mban regjistrat e saj teknikë.",
+  "privacy.recipientCloudinary":
+    "Cloudinary ruan fotot e veturave, përfshirë ato që bëhen gjatë marrjes dhe kthimit.",
+  "privacy.recipientResend":
+    "Resend dërgon email-in që e njofton stafin tonë për një kërkesë të re. Ai përmban emrin dhe kontaktet tuaja.",
+  "privacy.fact.processorLocations": "Ku i ruajnë të dhënat",
+  "privacy.retentionTitle": "Sa kohë i ruajmë",
+  "privacy.retentionBody":
+    "Kur mbaron një nga afatet më poshtë, kartela e klientit anonimizohet: emri, email-i, telefoni dhe shënimet fshihen, dhe për kontabilitetin mbeten vetëm datat dhe shumat e qirave.",
+  "privacy.fact.rentalRecords": "Evidencat e qirave dhe pagesave",
+  "privacy.fact.customerContact": "Kontaktet tuaja, pas qirasë së fundit",
+  "privacy.fact.unconfirmedRequests":
+    "Kërkesat e pakonfirmuara ose të anuluara",
+  "privacy.fact.technicalRecords": "Regjistrat teknikë",
+  "privacy.rightsTitle": "Të drejtat tuaja",
+  "privacy.rightsBody": "Mund të na kërkoni:",
+  "privacy.rightAccess":
+    "t'ju tregojmë çfarë të dhënash kemi për ju dhe t'ju japim një kopje;",
+  "privacy.rightRectify": "të korrigjojmë të dhënat e pasakta;",
+  "privacy.rightErase":
+    "t'i fshijmë të dhënat tuaja. Evidencat që ligji na detyron t'i mbajmë anonimizohen, kështu që emri dhe kontaktet tuaja hiqen gjithsesi;",
+  "privacy.rightRestrict":
+    "ta kufizojmë përdorimin e tyre, ose të ndalojmë përdorimin kur ju e kundërshtoni.",
+  "privacy.rightsHow":
+    "Për të bërë një kërkesë, shkruani në adresën për privatësi më sipër. Mund t'ju kërkojmë të konfirmoni identitetin para se ta trajtojmë.",
+  "privacy.fact.responseTime": "Përgjigjemi brenda",
+  "privacy.complaint":
+    "Nëse mendoni se i kemi trajtuar të dhënat tuaja në kundërshtim me ligjin, mund të ankoheni në Agjencinë për Informim dhe Privatësi të Kosovës.",
+  "privacy.cookiesTitle": "Cookies",
+  "privacy.cookiesBody":
+    "Faqja vendos vetëm një cookie, që mban mend gjuhën që keni zgjedhur, dhe e ruan zgjedhjen e temës së çelët ose të errët në hapësirën ruajtëse të shfletuesit tuaj. Nuk përdor cookies për reklama apo analitikë. Stafi që hyn në panelin e administrimit merr edhe një cookie për hyrjen.",
+  "terms.metaTitle": "Kushtet e qirasë",
+  "terms.metaDescription":
+    "Kushtet që zbatohen kur merrni me qira një veturë nga Alfa Rent.",
+  "terms.eyebrow": "Kushtet",
+  "terms.title": "Kushtet e qirasë",
+  "terms.intro":
+    "Si funksionon një rezervim dhe çfarë vlen pasi të merrni me qira një veturë nga ne.",
+  "terms.provider": "Ofruesi i qirasë",
+  "terms.bookingTitle": "Kërkesat për rezervim",
+  "terms.bookingRequest":
+    "Një kërkesë e dërguar përmes kësaj faqeje nuk është ende qira. Ekipi ynë kontrollon disponueshmërinë dhe ju kontakton për konfirmim gjatë orarit të punës.",
+  "terms.bookingPrice":
+    "Çmimi i shfaqur është një vlerësim për datat që keni zgjedhur. Ai konfirmohet bashkë me qiranë.",
+  "terms.bookingPayment": "Në faqe nuk merret asnjë pagesë.",
+  "terms.driverTitle": "Kërkesat për shoferin",
+  "terms.fact.driverAge": "Mosha e shoferit",
+  "terms.fact.licence": "Patentë shoferi prej",
+  "terms.fact.documents": "Dokumentet që duhen sjellë",
+  "terms.paymentTitle": "Pagesa dhe depozita",
+  "terms.fact.payment": "Pagesa",
+  "terms.fact.deposit": "Depozita",
+  "terms.handoverTitle": "Marrja dhe kthimi",
+  "terms.handoverInspection":
+    "Gjatë marrjes dhe kthimit regjistrojmë kilometrazhin, nivelin e karburantit dhe gjendjen e veturës, me foto, dhe shoferi e nënshkruan procesverbalin.",
+  "terms.fact.fuel": "Karburanti",
+  "terms.fact.mileage": "Kilometrazhi",
+  "terms.fact.lateReturn": "Kthimi me vonesë",
+  "terms.insuranceTitle": "Sigurimi dhe dëmet",
+  "terms.fact.insurance": "Sigurimi",
+  "terms.fact.damage": "Dëmet",
+  "terms.cancellationTitle": "Anulimi",
+  "terms.fact.cancellation": "Anulimi",
+  "terms.travelTitle": "Udhëtimi jashtë Kosovës",
+  "terms.fact.crossBorder": "Kalimi i kufirit",
+  "terms.liabilityTitle": "Përgjegjësia dhe ligji i zbatueshëm",
+  "terms.fact.liability": "Përgjegjësia dhe ligji",
+  "terms.privacyTitle": "Të dhënat personale",
+  "terms.privacyBody":
+    "Si i trajtojmë të dhënat tuaja personale përshkruhet në njoftimin për privatësinë.",
+  "admin.privacySection": "Të dhënat personale",
+  "admin.anonymise": "Anonimizo klientin",
+  "admin.anonymiseHelp":
+    "Për një kërkesë për fshirje, ose kur mbaron afati i ruajtjes. Qiratë dhe shumat ruhen.",
+  "admin.anonymiseTitle": "Ta anonimizojmë këtë klient?",
+  "admin.anonymiseBody":
+    "Fshihen emri, email-i, telefoni dhe shënimet, bashkë me shënimet në rezervimet e klientit dhe emrin e nënshkruesit në kontrollet e veturës. Rezervimet dhe shumat ruhen për kontabilitetin. Ky veprim nuk mund të zhbëhet.",
+  "admin.anonymiseConfirm": "Anonimizo",
+  "admin.anonymiseBlocked":
+    "Përfundoni ose anuloni rezervimet e hapura të këtij klienti para se ta anonimizoni.",
+  "admin.anonymisedName": "Klient i anonimizuar",
+  "admin.anonymisedNote":
+    "U anonimizua më {date}. Të dhënat personale janë fshirë; qiratë ruhen për kontabilitetin.",
+  "toast.customerAnonymised": "Klienti u anonimizua",
+  "err.customerAnonymised":
+    "Ky klient është anonimizuar, prandaj kartela nuk mund të ndryshohet më dhe nuk mund të përdoret për rezervime të reja.",
+  "err.customerHasOpenReservations":
+    "Ky klient ka ende rezervime në pritje, të konfirmuara ose aktive. Përfundojini ose anulojini ato më parë.",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

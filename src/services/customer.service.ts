@@ -5,8 +5,11 @@ import type { Customer } from "@prisma/client";
 import type { Paginated } from "@/types/api";
 import type { PaginationInput } from "@/lib/validations/common";
 import {
+  ANONYMISED_FIRST_NAME,
   MISSING_PHONE,
   WALK_IN_EMAIL,
+  anonymisedEmail,
+  anonymisedLastName,
   looksLikePhone,
   normalizePhone,
   type CustomerFormInput,
@@ -114,8 +117,20 @@ export async function getCustomers({
   page,
   perPage,
   q,
-}: PaginationInput & { q?: string }): Promise<Paginated<Customer>> {
-  const where = await customerSearchWhere(q);
+  includeAnonymised = true,
+}: PaginationInput & {
+  q?: string;
+  /**
+   * False for the booking dialog's lookup: a new rental attached to an
+   * anonymised record would be a booking for nobody, and would make the
+   * record "open" again.
+   */
+  includeAnonymised?: boolean;
+}): Promise<Paginated<Customer>> {
+  const search = await customerSearchWhere(q);
+  const where: Prisma.CustomerWhereInput = includeAnonymised
+    ? search
+    : { AND: [search, { anonymisedAt: null }] };
   const [items, total] = await prisma.$transaction([
     prisma.customer.findMany({
       where,
@@ -194,6 +209,7 @@ export async function updateCustomer(
   id: string,
   input: CustomerFormInput
 ): Promise<Customer> {
+  await assertNotAnonymised([id]);
   try {
     return await prisma.customer.update({ where: { id }, data: input });
   } catch (error) {
@@ -229,10 +245,12 @@ export async function findDuplicateCustomers(): Promise<DuplicateGroup[]> {
              ${NORMALIZED_PHONE_SQL} AS key
       FROM customers
       WHERE length(${NORMALIZED_PHONE_SQL}) >= 6
+        AND "anonymisedAt" IS NULL
       UNION ALL
       SELECT id, "createdAt", 'name' AS reason,
              lower(trim("firstName") || ' ' || trim("lastName")) AS key
       FROM customers
+      WHERE "anonymisedAt" IS NULL
     ) candidates
     GROUP BY reason, key
     HAVING count(*) > 1
@@ -289,6 +307,9 @@ export async function mergeCustomers({
     if (!keep || merged.length !== mergeIds.length) {
       throw new NotFoundError("Customer");
     }
+    // Folding an anonymised record into a real one would tie its rentals
+    // back to a named person, which is exactly what anonymising undid.
+    if (records.some((c) => c.anonymisedAt)) throw anonymisedError();
 
     const { count: moved } = await tx.reservation.updateMany({
       where: { customerId: { in: mergeIds } },
@@ -318,5 +339,113 @@ export async function mergeCustomers({
       },
     });
     return { moved };
+  });
+}
+
+function anonymisedError() {
+  return new ConflictError("This customer has been anonymised", {
+    key: "err.customerAnonymised",
+  });
+}
+
+async function assertNotAnonymised(ids: string[]): Promise<void> {
+  const count = await prisma.customer.count({
+    where: { id: { in: ids }, anonymisedAt: { not: null } },
+  });
+  if (count > 0) throw anonymisedError();
+}
+
+/**
+ * Reservations still in play. Anonymising is refused while any exist: staff
+ * would lose the name and number they need to hand over the car, and a
+ * pending request could no longer be confirmed with anyone.
+ */
+export const OPEN_RESERVATION_STATUSES = [
+  "PENDING",
+  "CONFIRMED",
+  "ACTIVE",
+] as const;
+
+/** Stands in for the customer's name on the handover and return records. */
+export const ANONYMISED_SIGNER = "Anonymised";
+
+/**
+ * Erases a customer's personal data while keeping the record of what they
+ * rented, when, and for how much, which the business has to keep for its
+ * accounts.
+ *
+ * Scrubbed, all in one transaction:
+ * - the customer's name, email, phone and notes, replaced with placeholders
+ *   (see ANONYMISED_FIRST_NAME and anonymisedEmail);
+ * - the contact details snapshotted on each of their reservations;
+ * - the notes on every one of their reservations. Notes are free text staff
+ *   type during a phone booking, and they hold exactly the things worth
+ *   erasing: a flight number, a hotel, who else will drive. Nothing can tell
+ *   those apart from harmless text, so all of it goes. That is safe because
+ *   it only ever touches closed rentals (open ones block the whole action),
+ *   whose notes no longer drive anything, and each reservation belongs to
+ *   this customer alone;
+ * - the signer's name on their handover and return inspections, which is
+ *   the customer's or another driver's name. The rest of an inspection
+ *   (mileage, fuel, damage) describes the car and is kept as evidence.
+ *
+ * Kept: every reservation with its dates, vehicle, status and total, and its
+ * payments.
+ *
+ * The customer row is locked first. A booking being attached to this
+ * customer takes a key-share lock on the same row for its foreign key, so
+ * one that is mid-flight finishes before the open-reservation count is
+ * taken, and one that starts later waits until this has committed.
+ */
+export async function anonymiseCustomer(
+  id: string
+): Promise<{ reservations: number }> {
+  return prisma.$transaction(async (tx) => {
+    const [row] = await tx.$queryRaw<{ anonymisedAt: Date | null }[]>`
+      SELECT "anonymisedAt" FROM customers WHERE id = ${id} FOR UPDATE
+    `;
+    if (!row) throw new NotFoundError("Customer");
+    if (row.anonymisedAt) throw anonymisedError();
+
+    const open = await tx.reservation.count({
+      where: { customerId: id, status: { in: [...OPEN_RESERVATION_STATUSES] } },
+    });
+    if (open > 0) {
+      throw new ConflictError("This customer still has open reservations", {
+        key: "err.customerHasOpenReservations",
+      });
+    }
+
+    await tx.customer.update({
+      where: { id },
+      data: {
+        firstName: ANONYMISED_FIRST_NAME,
+        lastName: anonymisedLastName(id),
+        email: anonymisedEmail(id),
+        phone: MISSING_PHONE,
+        notes: null,
+        anonymisedAt: new Date(),
+      },
+    });
+
+    // The contact snapshot each public booking keeps is this customer's
+    // name, email and phone again, so it goes too.
+    const { count: reservations } = await tx.reservation.updateMany({
+      where: { customerId: id },
+      data: {
+        notes: null,
+        contactFirstName: null,
+        contactLastName: null,
+        contactEmail: null,
+        contactPhone: null,
+      },
+    });
+
+    await tx.rentalInspection.updateMany({
+      where: { reservation: { customerId: id } },
+      data: { signerName: ANONYMISED_SIGNER },
+    });
+
+    return { reservations };
   });
 }

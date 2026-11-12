@@ -484,11 +484,18 @@ async function resolveManualCustomer(
   customer: ManualReservationInput["customer"]
 ): Promise<string> {
   if (customer.kind === "existing") {
-    const found = await tx.customer.findUnique({
-      where: { id: customer.id },
-      select: { id: true },
-    });
+    // FOR SHARE waits for an anonymisation of this customer that is in
+    // progress and then reads its result, so a booking cannot slip onto a
+    // record in the instant it is being erased.
+    const [found] = await tx.$queryRaw<
+      { id: string; anonymisedAt: Date | null }[]
+    >`SELECT id, "anonymisedAt" FROM customers WHERE id = ${customer.id} FOR SHARE`;
     if (!found) throw new NotFoundError("Customer");
+    if (found.anonymisedAt) {
+      throw new ConflictError("This customer has been anonymised", {
+        key: "err.customerAnonymised",
+      });
+    }
     return found.id;
   }
 

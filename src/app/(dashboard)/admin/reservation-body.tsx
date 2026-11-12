@@ -123,6 +123,7 @@ export function ReservationBody({
           returnDate={detail.returnDate}
           pricePerDay={detail.vehicle.pricePerDay}
           extension={detail.extension}
+          expired={detail.timing.attention === "REQUEST_EXPIRED"}
           onExtended={onChanged}
         />
 

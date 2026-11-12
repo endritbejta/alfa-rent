@@ -53,12 +53,18 @@ export function ExtendReservation({
   returnDate,
   pricePerDay,
   extension,
+  expired = false,
   onExtended,
 }: {
   reservationId: string;
   returnDate: Date;
   pricePerDay: number;
   extension: ExtensionWindow;
+  /**
+   * An expired request can never be confirmed, so "confirm before extending"
+   * would point staff at a step that is refused. Say nothing instead.
+   */
+  expired?: boolean;
   onExtended: () => void;
 }) {
   const { locale, t } = useI18n();
@@ -69,6 +75,7 @@ export function ExtendReservation({
   const [pending, startTransition] = useTransition();
 
   if (!extension.allowed) {
+    if (expired) return null;
     return (
       <p className="text-muted-foreground mt-3 flex items-start gap-1.5 text-xs">
         <Info className="mt-0.5 h-3 w-3 shrink-0" />

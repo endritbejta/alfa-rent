@@ -6,7 +6,7 @@ import {
 } from "@/services/analytics.service";
 
 /**
- * getDashboardData reads eleven queries out of one batched transaction by
+ * getDashboardData reads eight queries out of one batched transaction by
  * position. Most mis-alignments would fail to typecheck — a count is a number
  * and a findMany is an array — but two lists of reservations are
  * interchangeable to the compiler, and inserting a query in the middle of the

@@ -117,10 +117,12 @@ export default async function DashboardPage() {
           {
             label: t("admin.revenueWeek"),
             value: formatEur(kpis.revenueWeek, locale, { precision: 0 }),
+            hint: t("admin.revenueBasis"),
           },
           {
             label: t("admin.revenueMonth"),
             value: formatEur(kpis.revenueMonth, locale, { precision: 0 }),
+            hint: t("admin.revenueBasis"),
           },
         ]}
       />

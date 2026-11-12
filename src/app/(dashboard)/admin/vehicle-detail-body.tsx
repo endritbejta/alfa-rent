@@ -75,26 +75,37 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
       <section>
         <SectionTitle icon={Coins}>{t("admin.costOverview")}</SectionTitle>
         <div className="mb-3 grid grid-cols-2 gap-2">
-          <Metric label={t("admin.totalSpend")} value={eur(costs.total)} />
-          <Metric label={t("admin.earned")} value={eur(costs.earned)} />
           <Metric
-            label={t("admin.perYear")}
-            value={eur(costs.perYear)}
-            hint={t("admin.runningAverage")}
+            label={t("admin.earned")}
+            value={eur(costs.earned)}
+            hint={t("admin.earnedHint")}
+          />
+          <Metric
+            label={t("admin.recordedCosts")}
+            value={eur(costs.recorded)}
+            hint={t("admin.recordedCostsHint")}
+          />
+          <Metric
+            label={t("admin.repairsPerYear")}
+            value={eur(costs.repairsPerYear)}
+            hint={t("admin.averageSinceAdded")}
           />
           <Metric
             label={t("admin.net")}
             value={eur(costs.net)}
+            hint={t("admin.netHint")}
             tone={costs.net >= 0 ? "good" : "bad"}
           />
         </div>
         <div className="space-y-2 text-sm">
-          <Row label={t("admin.servicing")}>{eur(costs.service)}</Row>
+          <Row label={t("admin.lastServiceCost")}>{eur(costs.lastService)}</Row>
           <Row label={t("admin.repairs", { count: costs.repairCount })}>
             {eur(costs.repairs)}
           </Row>
           <Row label={t("admin.repairsYear")}>{eur(costs.repairsThisYear)}</Row>
-          <Row label={t("admin.perMonth")}>{eur(costs.perMonth)}</Row>
+          <Row label={t("admin.repairsPerMonth")}>
+            {eur(costs.repairsPerMonth)}
+          </Row>
         </div>
       </section>
 

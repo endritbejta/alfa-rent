@@ -8,7 +8,9 @@ import {
   customerSearchSchema,
   mergeCustomersSchema,
 } from "@/lib/validations/customer";
+import { z } from "zod";
 import {
+  anonymiseCustomer,
   getCustomers,
   mergeCustomers,
   updateCustomer,
@@ -59,6 +61,25 @@ export async function mergeCustomersAction(
   return result;
 }
 
+/**
+ * Erasing someone's personal data cannot be undone and answers a legal
+ * request, so it is ADMIN-only, like merging. The guard sits outside the try
+ * so its sign-in redirect reaches Next (see requireUser).
+ */
+export async function anonymiseCustomerAction(
+  customerId: unknown
+): Promise<{ reservations: number } | { error: string }> {
+  await requireRole("ADMIN");
+  let result: { reservations: number };
+  try {
+    result = await anonymiseCustomer(z.string().min(1).parse(customerId));
+  } catch (error) {
+    return { error: await errorMessage(error) };
+  }
+  revalidateCustomerViews();
+  return result;
+}
+
 export type CustomerHit = {
   id: string;
   firstName: string;
@@ -75,7 +96,12 @@ export async function searchCustomersAction(
     await requireUser();
     const q = customerSearchSchema.parse(query);
     if (!q || q.length < 2) return { hits: [] };
-    const { items } = await getCustomers({ page: 1, perPage: 8, q });
+    const { items } = await getCustomers({
+      page: 1,
+      perPage: 8,
+      q,
+      includeAnonymised: false,
+    });
     return {
       hits: items.map(({ id, firstName, lastName, phone, email }) => ({
         id,

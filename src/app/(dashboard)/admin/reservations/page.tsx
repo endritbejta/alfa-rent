@@ -6,6 +6,7 @@ import { getReservationInsights } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Panel } from "@/components/dashboard/panel";
 import { AreaChart } from "@/components/dashboard/area-chart";
+import { reservationContactDifference } from "@/lib/booking-contact";
 import { PendingQueue } from "./pending-queue";
 import { StatusFilter } from "./status-filter";
 import {
@@ -97,7 +98,14 @@ export default async function ReservationsPage({
             createdAt: r.createdAt,
             notes: r.notes,
             vehicle: r.vehicle,
-            customer: r.customer,
+            customerId: r.customerId,
+            customer: {
+              firstName: r.customer.firstName,
+              lastName: r.customer.lastName,
+              email: r.customer.email,
+            },
+            customerNotes: r.customer.notes,
+            contactDifference: reservationContactDifference(r),
           }))}
         />
       ) : (

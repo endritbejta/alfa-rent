@@ -607,7 +607,17 @@ export async function getReservations(filters: {
         vehicle: {
           select: { brand: true, model: true, plate: true, slug: true },
         },
-        customer: { select: { firstName: true, lastName: true, email: true } },
+        // Phone and notes too: the pending queue compares the request's
+        // submitted details with these, and can copy them onto the record.
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            notes: true,
+          },
+        },
       },
       orderBy: { pickupDate: "desc" },
       skip: (page - 1) * perPage,

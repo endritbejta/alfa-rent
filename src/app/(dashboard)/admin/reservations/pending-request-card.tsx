@@ -13,6 +13,8 @@ import { vehicleLabel } from "@/lib/vehicle-label";
 import { formatEur } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
+import type { ContactDifference } from "@/lib/booking-contact";
+import { ContactDifferenceNotice } from "../contact-difference";
 
 export type PendingRequest = {
   id: string;
@@ -22,7 +24,12 @@ export type PendingRequest = {
   createdAt: Date;
   notes: string | null;
   vehicle: { brand: string; model: string; plate: string | null };
+  customerId: string;
   customer: { firstName: string; lastName: string; email: string };
+  /** Kept when staff copy the submitted details onto the record. */
+  customerNotes: string | null;
+  /** Set only when the request's details differ from the customer on file. */
+  contactDifference: ContactDifference | null;
 };
 
 /**
@@ -127,6 +134,15 @@ export function PendingRequestCard({
           </dd>
         </div>
       </dl>
+
+      {request.contactDifference && (
+        <ContactDifferenceNotice
+          className="mt-3"
+          difference={request.contactDifference}
+          customerId={request.customerId}
+          customerNotes={request.customerNotes}
+        />
+      )}
 
       {request.notes && (
         <p className="bg-secondary text-muted-foreground mt-3 rounded-none px-3 py-2 text-xs">

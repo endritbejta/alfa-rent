@@ -22,6 +22,7 @@ import { InspectionAction } from "./reservations/inspection-action";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 import { formatNumber } from "@/lib/number-format";
+import { ContactDifferenceNotice } from "./contact-difference";
 
 export function ReservationBody({
   detail,
@@ -269,6 +270,15 @@ export function ReservationBody({
           <Row label={t("admin.lifetimeSpend")}>
             <span className="font-semibold">{eur(detail.customer.spend)}</span>
           </Row>
+          {detail.contactDifference && (
+            <ContactDifferenceNotice
+              difference={detail.contactDifference}
+              customerId={detail.customer.id}
+              customerNotes={detail.customer.notes}
+              // The record shown just above changes, so reload in place.
+              onApplied={onChanged}
+            />
+          )}
           {detail.customer.notes && (
             <p className="bg-secondary text-muted-foreground rounded-none p-3 text-xs">
               {detail.customer.notes === "Repeat customer, prefers automatic."

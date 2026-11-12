@@ -112,7 +112,11 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
                 timing={r.timing}
                 signerName={`${r.customer.firstName} ${r.customer.lastName}`}
               />
-              <StatusActions reservationId={r.id} status={r.status} />
+              <StatusActions
+                reservationId={r.id}
+                status={r.status}
+                expired={r.timing.attention === "REQUEST_EXPIRED"}
+              />
             </div>
           </TableCell>
         </TableRow>
@@ -198,7 +202,11 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                   timing={r.timing}
                   signerName={`${r.customer.firstName} ${r.customer.lastName}`}
                 />
-                <StatusActions reservationId={r.id} status={r.status} />
+                <StatusActions
+                  reservationId={r.id}
+                  status={r.status}
+                  expired={r.timing.attention === "REQUEST_EXPIRED"}
+                />
               </div>
             </div>
           </div>

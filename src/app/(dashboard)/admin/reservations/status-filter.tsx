@@ -18,9 +18,15 @@ const STATUSES = Object.values(ReservationStatus);
  */
 export async function StatusFilter({
   counts,
+  pendingActionable,
   active,
 }: {
   counts: Partial<Record<ReservationStatus, number>>;
+  /**
+   * Shown on the Pending tab instead of the raw PENDING count, so it agrees
+   * with the badge: expired requests are listed there but wait on no one.
+   */
+  pendingActionable: number;
   active?: ReservationStatus;
 }) {
   const { t } = await getI18n();
@@ -36,7 +42,7 @@ export async function StatusFilter({
     ...STATUSES.map((s) => ({
       key: s,
       text: t(STATUS_KEYS[s]),
-      count: counts[s] ?? 0,
+      count: s === "PENDING" ? pendingActionable : (counts[s] ?? 0),
       href: `/admin/reservations?status=${s}`,
     })),
   ];

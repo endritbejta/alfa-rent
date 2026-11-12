@@ -1,27 +1,14 @@
-import {
-  addDays,
-  addMonths,
-  differenceInCalendarDays,
-  endOfMonth,
-  format,
-  getDaysInMonth,
-  max,
-  min,
-  startOfMonth,
-} from "date-fns";
+import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { requireUser } from "@/lib/auth/guards";
-import {
-  getCalendarReservations,
-  getReservationDateBounds,
-} from "@/services/reservation.service";
+import { getCalendarReservations } from "@/services/reservation.service";
 import { getUpcomingSchedule } from "@/services/analytics.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Panel } from "@/components/dashboard/panel";
 import { ScheduleList } from "@/components/dashboard/schedule-list";
 import { CalendarTimeline } from "./calendar-timeline";
 import { vehicleIdentifier } from "@/lib/vehicle-label";
-import { isOverdueRental } from "@/lib/reservation-occupancy";
+import { calendarBar, calendarWindow } from "@/lib/calendar-window";
 import { getI18n } from "@/lib/i18n/server";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -33,78 +20,50 @@ const LEGEND: { status: TranslationKey; className: string }[] = [
   { status: "vehicle.active", className: "bg-status-rented/90" },
 ];
 
-/** Hard cap so a stray far-future booking can't render a decade of columns. */
-const MAX_MONTHS = 14;
+/** Noon UTC of a `yyyy-MM` month: formats as that month in any timezone. */
+const monthDate = (key: string) => new Date(`${key}-01T12:00:00.000Z`);
 
 export default async function CalendarPage() {
   await requireUser();
   const { locale, t } = await getI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
 
-  const today = new Date();
-  const bounds = await getReservationDateBounds();
-
-  // The strip spans every month that holds work, always including today.
-  const rangeStart = startOfMonth(min([bounds.min ?? today, today]));
-  let rangeEnd = endOfMonth(max([bounds.max ?? today, today]));
-  if (rangeEnd > addMonths(rangeStart, MAX_MONTHS)) {
-    rangeEnd = endOfMonth(addMonths(rangeStart, MAX_MONTHS));
-  }
+  const now = new Date();
+  // Anchored on today, so today is always on screen whatever the data holds.
+  const range = calendarWindow(now);
 
   const [vehicles, schedule] = await Promise.all([
-    getCalendarReservations(rangeStart, rangeEnd),
+    getCalendarReservations(range.start, range.end, now),
     // The side panels want the week's handovers, not the dashboard's
     // thirteen-query snapshot.
     getUpcomingSchedule(),
   ]);
 
-  const days = differenceInCalendarDays(rangeEnd, rangeStart) + 1;
-  const dayDates = Array.from({ length: days }, (_, i) =>
-    format(addDays(rangeStart, i), "yyyy-MM-dd")
-  );
-  const dayLabels = Array.from({ length: days }, (_, i) =>
-    format(addDays(rangeStart, i), "d")
-  );
-
-  const months = [];
-  for (
-    let cursor = rangeStart;
-    cursor <= rangeEnd;
-    cursor = addMonths(cursor, 1)
-  ) {
-    months.push({
-      key: format(cursor, "yyyy-MM"),
-      label: format(cursor, "MMMM yyyy", { locale: dateLocale }),
-      start: differenceInCalendarDays(cursor, rangeStart),
-      days: getDaysInMonth(cursor),
-    });
-  }
-
-  const todayIndex =
-    today >= rangeStart && today <= rangeEnd
-      ? differenceInCalendarDays(today, rangeStart)
-      : null;
+  const dayDates = range.days;
+  const dayLabels = range.days.map((day) => String(Number(day.slice(8))));
+  const months = range.months.map((m) => ({
+    ...m,
+    label: format(monthDate(m.key), "MMMM yyyy", { locale: dateLocale }),
+  }));
+  const firstMonth = range.months[0].key;
+  const lastMonth = range.months[range.months.length - 1].key;
 
   const rows = vehicles.map((vehicle) => ({
     id: vehicle.id,
     name: `${vehicle.brand} ${vehicle.model}`,
     sub: vehicleIdentifier(vehicle),
-    reservations: vehicle.reservations.map((r) => {
-      // The car is still out, so the bar runs to today rather than ending at
-      // a return date that has already passed.
-      const end = isOverdueRental(r, today) ? today : r.returnDate;
-      const from = max([r.pickupDate, rangeStart]);
-      const to = min([end, rangeEnd]);
-      return {
-        id: r.id,
-        customerName: `${r.customer.firstName} ${r.customer.lastName}`,
-        start: differenceInCalendarDays(from, rangeStart),
-        span: Math.max(
-          1,
-          differenceInCalendarDays(to, from) + (to === r.returnDate ? 0 : 1)
-        ),
-        status: r.status as "PENDING" | "CONFIRMED" | "ACTIVE",
-      };
+    reservations: vehicle.reservations.flatMap((r) => {
+      const bar = calendarBar(r, range);
+      if (!bar) return [];
+      return [
+        {
+          id: r.id,
+          customerName: `${r.customer.firstName} ${r.customer.lastName}`,
+          start: bar.start,
+          span: bar.span,
+          status: r.status as "PENDING" | "CONFIRMED" | "ACTIVE",
+        },
+      ];
     }),
   }));
 
@@ -118,8 +77,10 @@ export default async function CalendarPage() {
       <PageHeader
         title={t("admin.calendar")}
         description={t("admin.calendarDescription", {
-          from: format(rangeStart, "MMM yyyy", { locale: dateLocale }),
-          to: format(rangeEnd, "MMM yyyy", { locale: dateLocale }),
+          from: format(monthDate(firstMonth), "MMM yyyy", {
+            locale: dateLocale,
+          }),
+          to: format(monthDate(lastMonth), "MMM yyyy", { locale: dateLocale }),
         })}
       />
 
@@ -138,7 +99,7 @@ export default async function CalendarPage() {
         dayLabels={dayLabels}
         dayDates={dayDates}
         months={months}
-        todayIndex={todayIndex}
+        todayIndex={range.todayIndex}
         rows={rows}
         vehicleOptions={vehicleOptions}
       />

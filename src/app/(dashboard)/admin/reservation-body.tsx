@@ -123,6 +123,7 @@ export function ReservationBody({
           returnDate={detail.returnDate}
           pricePerDay={detail.vehicle.pricePerDay}
           extension={detail.extension}
+          expired={detail.timing.attention === "REQUEST_EXPIRED"}
           onExtended={onChanged}
         />
 
@@ -138,6 +139,7 @@ export function ReservationBody({
             <StatusActions
               reservationId={detail.id}
               status={detail.status}
+              expired={detail.timing.attention === "REQUEST_EXPIRED"}
               onSuccess={onDone}
             />
           </div>

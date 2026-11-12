@@ -16,7 +16,10 @@ import {
 } from "./reservation-rows";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
-import { getReservationTiming } from "@/lib/reservation-lifecycle";
+import {
+  getReservationTiming,
+  isExpiredRequest,
+} from "@/lib/reservation-lifecycle";
 import { parsePageParam } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
@@ -67,7 +70,7 @@ export default async function ReservationsPage({
 
   // The red badge means one thing everywhere: requests awaiting a decision.
   // Confirmed and active rentals are in flight, not waiting on staff.
-  const pendingCount = insights.statusCounts.PENDING ?? 0;
+  const pendingCount = insights.pendingActionable;
   const inFlight =
     (insights.statusCounts.CONFIRMED ?? 0) +
     (insights.statusCounts.ACTIVE ?? 0);
@@ -85,7 +88,11 @@ export default async function ReservationsPage({
         })}
       />
 
-      <StatusFilter counts={insights.statusCounts} active={statusFilter} />
+      <StatusFilter
+        counts={insights.statusCounts}
+        pendingActionable={insights.pendingActionable}
+        active={statusFilter}
+      />
 
       {/* Pending is a queue of decisions, so it renders as modules. */}
       {statusFilter === "PENDING" ? (
@@ -106,6 +113,7 @@ export default async function ReservationsPage({
             },
             customerNotes: r.customer.notes,
             contactDifference: reservationContactDifference(r),
+            expired: isExpiredRequest(r, now),
           }))}
         />
       ) : (

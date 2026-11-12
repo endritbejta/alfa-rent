@@ -13,6 +13,7 @@ const LABELS: Record<
   PICKUP_OVERDUE: "admin.pickupOverdue",
   RETURN_TODAY: "admin.returnToday",
   RETURN_OVERDUE: "admin.returnOverdue",
+  REQUEST_EXPIRED: "admin.requestExpired",
 };
 
 export function ReservationAttention({
@@ -23,12 +24,19 @@ export function ReservationAttention({
   const { t } = useI18n();
   if (!attention) return null;
   const overdue = attention.endsWith("OVERDUE");
+  // An expired request is no longer work to do, so it reads as inert rather
+  // than as an alarm competing with the overdue handovers.
+  const expired = attention === "REQUEST_EXPIRED";
 
   return (
     <span
       className={cn(
         "inline-flex text-xs font-medium whitespace-nowrap",
-        overdue ? "text-destructive" : "text-status-maint"
+        expired
+          ? "text-muted-foreground"
+          : overdue
+            ? "text-destructive"
+            : "text-status-maint"
       )}
     >
       {t(LABELS[attention])}

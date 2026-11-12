@@ -203,6 +203,8 @@ const en = {
    * languages and is arguably plainer for an operator.
    */
   "err.badTransition": "That change is not allowed: {from} → {to}.",
+  "err.requestExpired":
+    "This request's pickup day has passed, so it can no longer be confirmed. Create a new booking with current dates.",
   "err.pickupInspectionFirst":
     "Record the pickup inspection to start this rental",
   "err.returnInspectionFirst":
@@ -545,6 +547,10 @@ const en = {
   "admin.pickupOverdue": "Pickup overdue",
   "admin.returnToday": "Return today",
   "admin.returnOverdue": "Return overdue",
+  "admin.requestExpired": "Expired",
+  "admin.expiredRequests": "Expired requests",
+  "admin.expiredRequestsHint":
+    "Their pickup day has passed, so they can no longer be confirmed. Cancel them, or create a new booking with current dates.",
   "admin.thisReservation": "This reservation",
   "admin.pickup": "Pickup",
   "admin.return": "Return",
@@ -1195,6 +1201,8 @@ const sq: TranslationDictionary = {
   "err.resource.record": "e dhënë",
   "err.notBookable": "Kjo veturë nuk është e disponueshme për rezervim",
   "err.badTransition": "Ky kalim nuk lejohet: {from} → {to}.",
+  "err.requestExpired":
+    "Dita e marrjes për këtë kërkesë ka kaluar, prandaj nuk mund të konfirmohet më. Krijo një rezervim të ri me data aktuale.",
   "err.pickupInspectionFirst":
     "Regjistro inspektimin e marrjes për të nisur këtë qira",
   "err.returnInspectionFirst":
@@ -1540,6 +1548,10 @@ const sq: TranslationDictionary = {
   "admin.pickupOverdue": "Marrja me vonesë",
   "admin.returnToday": "Kthimi sot",
   "admin.returnOverdue": "Kthimi me vonesë",
+  "admin.requestExpired": "Ka skaduar",
+  "admin.expiredRequests": "Kërkesa të skaduara",
+  "admin.expiredRequestsHint":
+    "Dita e marrjes ka kaluar, prandaj nuk mund të konfirmohen më. Anuloji, ose krijo një rezervim të ri me data aktuale.",
   "admin.thisReservation": "Ky rezervim",
   "admin.pickup": "Marrja",
   "admin.return": "Kthimi",

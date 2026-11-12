@@ -80,6 +80,8 @@ export default async function DashboardPage() {
           },
           customerNotes: r.customer.notes,
           contactDifference: reservationContactDifference(r),
+          // The dashboard only lists requests that still need a decision.
+          expired: false,
         }))}
       />
 

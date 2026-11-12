@@ -10,6 +10,7 @@ export type ReservationTiming = {
     | "PICKUP_OVERDUE"
     | "RETURN_TODAY"
     | "RETURN_OVERDUE"
+    | "REQUEST_EXPIRED"
     | null;
 };
 
@@ -62,6 +63,51 @@ export function businessWeekStart(date: Date): Date {
   return businessCalendarStart(calendar.toISOString().slice(0, 10));
 }
 
+/**
+ * Today's business day expressed in the rental-date model: midnight "UTC" of
+ * the branch-local calendar day. Rental dates are naive calendar values
+ * (`T10:00:00Z` means 10:00 at the branch), so comparing one with this is a
+ * comparison of calendar days, not of instants.
+ */
+export function businessTodayAsRentalDate(now = new Date()): Date {
+  return new Date(`${businessDay(now)}T00:00:00.000Z`);
+}
+
+/**
+ * A request whose pickup day has passed without a decision. Nobody can hand
+ * the car over on a day that is gone, so it is no longer work to do: it leaves
+ * the badge and the counts, and it can no longer be confirmed. The pickup day
+ * itself still counts — a request for today can be confirmed this morning.
+ *
+ * Derived rather than stored, so no sweep has to run for it to be true, and
+ * the row stays PENDING for staff to cancel or delete as before.
+ */
+export function isExpiredRequest(
+  reservation: { status: ReservationStatus; pickupDate: Date },
+  now = new Date()
+): boolean {
+  return (
+    reservation.status === "PENDING" &&
+    rentalCalendarDay(reservation.pickupDate) < businessDay(now)
+  );
+}
+
+/** The database half of `isExpiredRequest`. */
+export function expiredRequestWhere(now = new Date()) {
+  return {
+    status: "PENDING" as const,
+    pickupDate: { lt: businessTodayAsRentalDate(now) },
+  };
+}
+
+/** PENDING requests that still await a decision — the queue's real work. */
+export function actionableRequestWhere(now = new Date()) {
+  return {
+    status: "PENDING" as const,
+    pickupDate: { gte: businessTodayAsRentalDate(now) },
+  };
+}
+
 function businessCalendarStart(key: string): Date {
   const [year, month, day] = key.split("-").map(Number);
   const noonUtc = new Date(Date.UTC(year, month - 1, day, 12));
@@ -112,6 +158,8 @@ export function getReservationTiming(
   if (reservation.status === "CONFIRMED") {
     if (afterReturn || today > pickup) attention = "PICKUP_OVERDUE";
     else if (today === pickup) attention = "PICKUP_TODAY";
+  } else if (reservation.status === "PENDING") {
+    if (today > pickup) attention = "REQUEST_EXPIRED";
   } else if (reservation.status === "ACTIVE") {
     if (afterReturn) attention = "RETURN_OVERDUE";
     else if (today === returnDay) attention = "RETURN_TODAY";

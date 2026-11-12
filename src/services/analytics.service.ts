@@ -2,6 +2,7 @@ import { addDays, format, subMonths, subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import {
+  actionableRequestWhere,
   businessDay,
   businessDayStart,
   businessMonthStart,
@@ -120,7 +121,8 @@ export async function getDashboardData() {
       prisma.vehicle.count({ where: { status: "AVAILABLE" } }),
       prisma.reservation.count({ where: { status: "ACTIVE" } }),
       prisma.vehicle.count({ where: { status: "SERVICE" } }),
-      prisma.reservation.count({ where: { status: "PENDING" } }),
+      // Expired requests are not waiting on anyone: their pickup day passed.
+      prisma.reservation.count({ where: actionableRequestWhere(now) }),
       prisma.reservation.aggregate({
         _sum: { totalPrice: true },
         where: {
@@ -144,9 +146,11 @@ export async function getDashboardData() {
         },
       }),
       // The queue that should be cleared before the day's numbers matter.
+      // Soonest pickup first: that is the decision that runs out of time
+      // first. Expired requests are left to the reservations page.
       prisma.reservation.findMany({
-        where: { status: "PENDING" },
-        orderBy: { createdAt: "asc" },
+        where: actionableRequestWhere(now),
+        orderBy: [{ pickupDate: "asc" }, { createdAt: "asc" }],
         take: 10,
         include: {
           vehicle: { select: { brand: true, model: true, plate: true } },
@@ -209,34 +213,41 @@ export async function getReservationInsights() {
   const todayEnd = addDays(todayStart, 1);
   const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
 
-  const [byStatus, activityRows, todaysPickups, todaysReturns, overdue] =
-    await Promise.all([
-      prisma.reservation.groupBy({ by: ["status"], _count: true }),
-      prisma.reservation.findMany({
-        where: { createdAt: { gte: subDays(todayStart, 13) } },
-        select: { createdAt: true },
-      }),
-      prisma.reservation.count({
-        where: {
-          status: "CONFIRMED",
-          pickupDate: { gte: todayStart, lt: todayEnd },
-        },
-      }),
-      prisma.reservation.count({
-        where: {
-          status: "ACTIVE",
-          returnDate: { gte: todayStart, lt: todayEnd },
-        },
-      }),
-      prisma.reservation.count({
-        where: {
-          OR: [
-            { status: "CONFIRMED", pickupDate: { lt: businessToday } },
-            { status: "ACTIVE", returnDate: { lt: businessToday } },
-          ],
-        },
-      }),
-    ]);
+  const [
+    byStatus,
+    activityRows,
+    todaysPickups,
+    todaysReturns,
+    overdue,
+    pendingActionable,
+  ] = await Promise.all([
+    prisma.reservation.groupBy({ by: ["status"], _count: true }),
+    prisma.reservation.findMany({
+      where: { createdAt: { gte: subDays(todayStart, 13) } },
+      select: { createdAt: true },
+    }),
+    prisma.reservation.count({
+      where: {
+        status: "CONFIRMED",
+        pickupDate: { gte: todayStart, lt: todayEnd },
+      },
+    }),
+    prisma.reservation.count({
+      where: {
+        status: "ACTIVE",
+        returnDate: { gte: todayStart, lt: todayEnd },
+      },
+    }),
+    prisma.reservation.count({
+      where: {
+        OR: [
+          { status: "CONFIRMED", pickupDate: { lt: businessToday } },
+          { status: "ACTIVE", returnDate: { lt: businessToday } },
+        ],
+      },
+    }),
+    prisma.reservation.count({ where: actionableRequestWhere(now) }),
+  ]);
 
   const statusCounts = Object.fromEntries(
     byStatus.map((row) => [row.status, row._count])
@@ -244,6 +255,8 @@ export async function getReservationInsights() {
 
   return {
     statusCounts,
+    /** PENDING minus expired: the requests that still need a decision. */
+    pendingActionable,
     activitySeries: dailySeries(activityRows, 14),
     todaysPickups,
     todaysReturns,

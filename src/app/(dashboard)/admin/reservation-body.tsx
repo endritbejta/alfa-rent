@@ -138,6 +138,7 @@ export function ReservationBody({
             <StatusActions
               reservationId={detail.id}
               status={detail.status}
+              expired={detail.timing.attention === "REQUEST_EXPIRED"}
               onSuccess={onDone}
             />
           </div>

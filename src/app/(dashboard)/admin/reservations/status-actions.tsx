@@ -25,10 +25,17 @@ const NEXT_ACTIONS: Partial<
 export function StatusActions({
   reservationId,
   status,
+  expired = false,
   onSuccess,
 }: {
   reservationId: string;
   status: ReservationStatus;
+  /**
+   * A PENDING request whose pickup day has passed. It can only be cancelled:
+   * the server refuses to confirm it, so the button would only lead to an
+   * error.
+   */
+  expired?: boolean;
   /** Fired once the transition lands — drawers use it to dismiss. */
   onSuccess?: () => void;
 }) {
@@ -38,7 +45,9 @@ export function StatusActions({
   // CANCELLED is terminal, so it is asked about first rather than applied on
   // a single click that sits right next to Confirm.
   const [confirmingCancel, setConfirmingCancel] = useState(false);
-  const actions = NEXT_ACTIONS[status] ?? [];
+  const actions = (NEXT_ACTIONS[status] ?? []).filter(
+    (action) => !(expired && action.to === "CONFIRMED")
+  );
 
   if (actions.length === 0) return null;
 

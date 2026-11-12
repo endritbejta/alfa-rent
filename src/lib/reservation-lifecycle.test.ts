@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  actionableRequestWhere,
   businessDay,
   businessDayStart,
+  expiredRequestWhere,
   getReservationTiming,
+  isExpiredRequest,
 } from "./reservation-lifecycle";
 
 const reservation = (
@@ -65,5 +68,79 @@ describe("reservation lifecycle timing", () => {
     expect(timing.canStart).toBe(false);
     expect(timing.startBlockedReason).toBe("Rental window has ended");
     expect(timing.attention).toBe("PICKUP_OVERDUE");
+  });
+});
+
+describe("an expired request", () => {
+  const request = (pickupDay: string) => ({
+    status: "PENDING" as const,
+    pickupDate: new Date(`${pickupDay}T10:00:00.000Z`),
+  });
+  const at = (iso: string) => new Date(iso);
+
+  /** Both halves must agree: the badge counts what the queue labels. */
+  const expectExpired = (pickupDay: string, now: Date, expired: boolean) => {
+    const r = request(pickupDay);
+    expect(isExpiredRequest(r, now)).toBe(expired);
+    const bound = expiredRequestWhere(now).pickupDate.lt;
+    expect(r.pickupDate < bound).toBe(expired);
+    expect(r.pickupDate >= actionableRequestWhere(now).pickupDate.gte).toBe(
+      !expired
+    );
+  };
+
+  it("is still actionable on its pickup day, up to local midnight", () => {
+    // Summer time (CEST, UTC+2): 23:59:59 on 24 July in Belgrade.
+    expectExpired("2026-07-24", at("2026-07-24T21:59:59.000Z"), false);
+  });
+
+  it("expires at local midnight, while the server clock is still on the previous UTC day", () => {
+    // 00:00 on 25 July in Belgrade is 22:00 on 24 July in UTC.
+    expectExpired("2026-07-24", at("2026-07-24T22:00:00.000Z"), true);
+  });
+
+  it("follows local midnight in winter time too", () => {
+    // CET, UTC+1.
+    expectExpired("2026-01-24", at("2026-01-24T22:59:59.000Z"), false);
+    expectExpired("2026-01-24", at("2026-01-24T23:00:00.000Z"), true);
+  });
+
+  it("moves its cut-off by an hour across the October clock change", () => {
+    // Clocks go back at 03:00 CEST on 25 October 2026, so midnight that night
+    // is 23:00 UTC rather than the 22:00 UTC of the night before.
+    expectExpired("2026-10-24", at("2026-10-24T21:59:59.000Z"), false);
+    expectExpired("2026-10-24", at("2026-10-24T22:00:00.000Z"), true);
+    expectExpired("2026-10-25", at("2026-10-25T22:59:59.000Z"), false);
+    expectExpired("2026-10-25", at("2026-10-25T23:00:00.000Z"), true);
+  });
+
+  it("moves its cut-off by an hour across the March clock change", () => {
+    // Clocks go forward at 02:00 CET on 29 March 2026.
+    expectExpired("2026-03-28", at("2026-03-28T22:59:59.000Z"), false);
+    expectExpired("2026-03-28", at("2026-03-28T23:00:00.000Z"), true);
+    expectExpired("2026-03-29", at("2026-03-29T21:59:59.000Z"), false);
+    expectExpired("2026-03-29", at("2026-03-29T22:00:00.000Z"), true);
+  });
+
+  it("applies only to requests", () => {
+    const now = at("2026-07-30T08:00:00.000Z");
+    for (const status of ["CONFIRMED", "ACTIVE", "CANCELLED"] as const) {
+      expect(isExpiredRequest({ ...request("2026-07-24"), status }, now)).toBe(
+        false
+      );
+    }
+  });
+
+  it("is called out on the reservation's timing", () => {
+    const pending = {
+      ...request("2026-07-24"),
+      returnDate: new Date("2026-07-27T10:00:00.000Z"),
+    };
+    expect(
+      getReservationTiming(pending, at("2026-07-24T08:00:00.000Z")).attention
+    ).toBeNull();
+    expect(
+      getReservationTiming(pending, at("2026-07-25T08:00:00.000Z")).attention
+    ).toBe("REQUEST_EXPIRED");
   });
 });

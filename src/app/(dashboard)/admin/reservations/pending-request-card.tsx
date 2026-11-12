@@ -6,7 +6,14 @@ import {
   formatDistanceToNow,
 } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
-import { CalendarRange, Clock, Mail, Phone, Car } from "lucide-react";
+import {
+  CalendarRange,
+  CalendarX,
+  Car,
+  Clock,
+  Mail,
+  Phone,
+} from "lucide-react";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/lib/vehicle-label";
@@ -30,6 +37,8 @@ export type PendingRequest = {
   customerNotes: string | null;
   /** Set only when the request's details differ from the customer on file. */
   contactDifference: ContactDifference | null;
+  /** Pickup day has passed: it can be cancelled, no longer confirmed. */
+  expired: boolean;
 };
 
 /**
@@ -59,7 +68,8 @@ export function PendingRequestCard({
     <article
       className={cn(
         "hover:bg-surface-hover border px-4 transition-colors duration-[var(--motion-hover)]",
-        emphasis ? "py-5 sm:px-6" : "py-4"
+        emphasis ? "py-5 sm:px-6" : "py-4",
+        request.expired && "bg-secondary/40"
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -82,16 +92,23 @@ export function PendingRequestCard({
           </p>
         </button>
 
-        <span
-          className={
-            stale
-              ? "bg-destructive/10 text-destructive flex items-center gap-1.5 rounded-none px-2.5 py-1 text-[11px] font-semibold"
-              : "bg-status-maint/12 text-status-maint flex items-center gap-1.5 rounded-none px-2.5 py-1 text-[11px] font-semibold"
-          }
-        >
-          <Clock className="h-3 w-3" />
-          {t("admin.waiting", { time: waiting })}
-        </span>
+        {request.expired ? (
+          <span className="bg-secondary text-muted-foreground flex items-center gap-1.5 rounded-none px-2.5 py-1 text-[11px] font-semibold">
+            <CalendarX className="h-3 w-3" />
+            {t("admin.requestExpired")}
+          </span>
+        ) : (
+          <span
+            className={
+              stale
+                ? "bg-destructive/10 text-destructive flex items-center gap-1.5 rounded-none px-2.5 py-1 text-[11px] font-semibold"
+                : "bg-status-maint/12 text-status-maint flex items-center gap-1.5 rounded-none px-2.5 py-1 text-[11px] font-semibold"
+            }
+          >
+            <Clock className="h-3 w-3" />
+            {t("admin.waiting", { time: waiting })}
+          </span>
+        )}
       </div>
 
       <dl
@@ -158,7 +175,11 @@ export function PendingRequestCard({
         >
           {t("admin.viewFullDetail")}
         </button>
-        <StatusActions reservationId={request.id} status="PENDING" />
+        <StatusActions
+          reservationId={request.id}
+          status="PENDING"
+          expired={request.expired}
+        />
       </div>
     </article>
   );

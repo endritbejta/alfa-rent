@@ -17,7 +17,10 @@ import {
 import { calculateTotalPrice, rentalDays } from "@/lib/pricing";
 import { latestUnder, withTimeOfDay } from "@/lib/rental-dates";
 import {
+  actionableRequestWhere,
+  expiredRequestWhere,
   getReservationTiming,
+  isExpiredRequest,
   rentalCalendarDay,
 } from "@/lib/reservation-lifecycle";
 import {
@@ -589,6 +592,23 @@ export async function previewManualReservation(
   };
 }
 
+const reservationListInclude = {
+  vehicle: {
+    select: { brand: true, model: true, plate: true, slug: true },
+  },
+  // Phone and notes too: the pending queue compares the request's
+  // submitted details with these, and can copy them onto the record.
+  customer: {
+    select: {
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      notes: true,
+    },
+  },
+} satisfies Prisma.ReservationInclude;
+
 export async function getReservations(filters: {
   status?: ReservationStatus;
   vehicleId?: string;
@@ -596,6 +616,8 @@ export async function getReservations(filters: {
   perPage: number;
 }) {
   const { status, vehicleId, page, perPage } = filters;
+  if (status === "PENDING") return getPendingQueue(filters);
+
   const where: Prisma.ReservationWhereInput = {
     ...(status && { status }),
     ...(vehicleId && { vehicleId }),
@@ -603,22 +625,8 @@ export async function getReservations(filters: {
   const [items, total] = await prisma.$transaction([
     prisma.reservation.findMany({
       where,
-      include: {
-        vehicle: {
-          select: { brand: true, model: true, plate: true, slug: true },
-        },
-        // Phone and notes too: the pending queue compares the request's
-        // submitted details with these, and can copy them onto the record.
-        customer: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            notes: true,
-          },
-        },
-      },
+      include: reservationListInclude,
+      // The full list is a record, browsed newest-first.
       orderBy: { pickupDate: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
@@ -627,6 +635,64 @@ export async function getReservations(filters: {
   ]);
   return {
     items,
+    total,
+    page,
+    perPage,
+    totalPages: Math.ceil(total / perPage),
+  };
+}
+
+/**
+ * The PENDING queue is a list of decisions, so it is ordered by urgency:
+ * requests still awaiting a decision come first, soonest pickup first, and
+ * expired ones (pickup day already passed) follow, most recently lapsed
+ * first. Furthest-future-first used to put the most urgent requests on the
+ * last page once more than a page was waiting.
+ *
+ * Two queries rather than one ORDER BY because "expired" depends on today and
+ * Prisma cannot order by an expression. Pagination runs across both: a page
+ * takes what is left of the actionable tier, then fills from the expired one.
+ */
+async function getPendingQueue(
+  filters: { vehicleId?: string; page: number; perPage: number },
+  now = new Date()
+) {
+  const { vehicleId, page, perPage } = filters;
+  const scope = vehicleId ? { vehicleId } : {};
+  const actionableWhere = { ...scope, ...actionableRequestWhere(now) };
+  const expiredWhere = { ...scope, ...expiredRequestWhere(now) };
+
+  const [actionableTotal, expiredTotal] = await Promise.all([
+    prisma.reservation.count({ where: actionableWhere }),
+    prisma.reservation.count({ where: expiredWhere }),
+  ]);
+
+  const skip = (page - 1) * perPage;
+  const actionable =
+    skip < actionableTotal
+      ? await prisma.reservation.findMany({
+          where: actionableWhere,
+          include: reservationListInclude,
+          orderBy: [{ pickupDate: "asc" }, { createdAt: "asc" }],
+          skip,
+          take: perPage,
+        })
+      : [];
+  const room = perPage - actionable.length;
+  const expired =
+    room > 0
+      ? await prisma.reservation.findMany({
+          where: expiredWhere,
+          include: reservationListInclude,
+          orderBy: [{ pickupDate: "desc" }, { createdAt: "asc" }],
+          skip: Math.max(0, skip - actionableTotal),
+          take: room,
+        })
+      : [];
+
+  const total = actionableTotal + expiredTotal;
+  return {
+    items: [...actionable, ...expired],
     total,
     page,
     perPage,
@@ -674,6 +740,15 @@ export async function updateReservationStatus(
               ? "err.pickupInspectionFirst"
               : "err.returnInspectionFirst",
         }
+      );
+    }
+
+    if (nextStatus === "CONFIRMED" && isExpiredRequest(reservation)) {
+      // The car cannot be handed over on a day that has gone. Confirming
+      // would turn a stale request into a booking that is overdue at birth.
+      throw new ValidationError(
+        "This request's pickup day has passed. Create a new booking with current dates.",
+        { key: "err.requestExpired" }
       );
     }
 
@@ -970,9 +1045,13 @@ export async function getReservationDetail(id: string) {
   };
 }
 
-/** Requests awaiting a staff decision — surfaced across the admin. */
-export async function getPendingCount(): Promise<number> {
-  return prisma.reservation.count({ where: { status: "PENDING" } });
+/**
+ * Requests awaiting a staff decision — surfaced across the admin. Expired
+ * requests are not counted: their pickup day has passed, so there is no
+ * decision left to make and they would only inflate the badge.
+ */
+export async function getPendingCount(now = new Date()): Promise<number> {
+  return prisma.reservation.count({ where: actionableRequestWhere(now) });
 }
 
 /**

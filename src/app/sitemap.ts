@@ -30,6 +30,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.5,
     },
+    {
+      url: absoluteUrl("/privacy"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: absoluteUrl("/terms"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     ...vehicles.map((vehicle) => ({
       url: absoluteUrl(`/car/${vehicle.slug}`),
       lastModified: vehicle.updatedAt,

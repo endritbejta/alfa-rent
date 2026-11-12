@@ -78,9 +78,20 @@ export async function SiteFooter() {
           <span>
             {new Date().getFullYear()} Alfa Rent a Car. {t("footer.rights")}
           </span>
-          <Link href="/login" className="hover:text-band-foreground">
-            {t("footer.staffLogin")}
-          </Link>
+          <nav
+            aria-label={t("footer.legal")}
+            className="flex flex-wrap items-center gap-x-5 gap-y-2"
+          >
+            <Link href="/privacy" className="hover:text-band-foreground">
+              {t("footer.privacy")}
+            </Link>
+            <Link href="/terms" className="hover:text-band-foreground">
+              {t("footer.terms")}
+            </Link>
+            <Link href="/login" className="hover:text-band-foreground">
+              {t("footer.staffLogin")}
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

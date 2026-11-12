@@ -528,6 +528,22 @@ export function BookingForm({
         <p className="text-muted-foreground mt-3 text-center text-xs leading-relaxed">
           {t("booking.noPayment")}
         </p>
+        {/* A notice, not a checkbox. The details are processed because the
+            request cannot be handled without them (steps before a contract),
+            not on consent, so a mandatory "I agree" box would misstate the
+            legal basis, and consent forced as a condition of the service is
+            not freely given anyway. */}
+        <p className="text-muted-foreground mt-2 text-center text-xs leading-relaxed">
+          {t("booking.privacyBefore")}
+          <Link
+            href="/privacy"
+            target="_blank"
+            className="text-foreground underline underline-offset-2"
+          >
+            {t("booking.privacyLink")}
+          </Link>
+          {t("booking.privacyAfter")}
+        </p>
       </aside>
     </form>
   );

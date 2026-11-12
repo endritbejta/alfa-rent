@@ -202,7 +202,9 @@ export function ReservationDetailProvider({
       : body?.kind === "vehicle"
         ? `${body.data.vehicle.brand} ${body.data.vehicle.model}`
         : body?.kind === "customer"
-          ? `${body.data.firstName} ${body.data.lastName}`
+          ? body.data.anonymisedAt
+            ? t("admin.anonymisedName")
+            : `${body.data.firstName} ${body.data.lastName}`
           : t("admin.details");
 
   const subtitle =
@@ -211,7 +213,9 @@ export function ReservationDetailProvider({
       : body?.kind === "vehicle"
         ? (body.data.vehicle.plate ?? String(body.data.vehicle.year))
         : body?.kind === "customer"
-          ? body.data.email
+          ? body.data.anonymisedAt
+            ? undefined
+            : body.data.email
           : undefined;
 
   return (

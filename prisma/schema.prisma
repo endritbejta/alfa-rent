@@ -162,14 +162,17 @@ model VehicleImage {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String    @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String    @unique
+  phone        String
+  notes        String?
+  /// Set when the personal data above was replaced with placeholders. The
+  /// row stays so its reservations, and their amounts, stay for accounting.
+  anonymisedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   reservations Reservation[]
 

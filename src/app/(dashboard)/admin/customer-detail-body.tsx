@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
-import { Mail, Pencil, Phone, Receipt, IdCard } from "lucide-react";
+import { Mail, Pencil, Phone, Receipt, IdCard, ShieldOff } from "lucide-react";
 import type { CustomerDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { vehicleLabel } from "@/lib/vehicle-label";
@@ -12,6 +13,9 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { CustomerEditForm } from "./customer-edit-form";
+import { anonymiseCustomerAction } from "./customers/actions";
+import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
+import { toasts } from "@/components/dashboard/toaster";
 import { MISSING_PHONE, WALK_IN_EMAIL } from "@/lib/validations/customer";
 
 export function CustomerDetailBody({
@@ -24,8 +28,10 @@ export function CustomerDetailBody({
 }) {
   const { locale, t } = useI18n();
   const [editing, setEditing] = useState(false);
+  const anonymised = detail.anonymisedAt !== null;
   const contactMissing =
-    detail.phone === MISSING_PHONE || WALK_IN_EMAIL.test(detail.email);
+    !anonymised &&
+    (detail.phone === MISSING_PHONE || WALK_IN_EMAIL.test(detail.email));
   const dateLocale = locale === "sq" ? sq : enUS;
   const eur = (v: number | string) => formatEur(v, locale);
   const all = detail.reservations;
@@ -45,7 +51,7 @@ export function CustomerDetailBody({
       <section>
         <div className="flex items-center justify-between gap-2">
           <SectionTitle icon={Mail}>{t("admin.contact")}</SectionTitle>
-          {!editing && (
+          {!editing && !anonymised && (
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
               <Pencil className="h-3.5 w-3.5" />
               {t("admin.editCustomer")}
@@ -63,6 +69,18 @@ export function CustomerDetailBody({
           />
         ) : (
           <>
+            {detail.anonymisedAt && (
+              <p
+                role="note"
+                className="bg-secondary text-muted-foreground mb-2 rounded-none p-3 text-xs"
+              >
+                {t("admin.anonymisedNote", {
+                  date: format(detail.anonymisedAt, "dd MMM yyyy", {
+                    locale: dateLocale,
+                  }),
+                })}
+              </p>
+            )}
             {contactMissing && (
               <p
                 role="note"
@@ -128,7 +146,81 @@ export function CustomerDetailBody({
           ))}
         </ul>
       </section>
+
+      {detail.viewerIsAdmin && !anonymised && (
+        <AnonymiseSection detail={detail} onDone={onChanged} />
+      )}
     </div>
+  );
+}
+
+const OPEN_STATUSES = new Set(["PENDING", "CONFIRMED", "ACTIVE"]);
+
+/**
+ * The erasure request's answer. The button is disabled while the loaded
+ * history shows an open reservation, to say why up front; the server checks
+ * every reservation, not just the 50 loaded, and refuses on its own.
+ */
+function AnonymiseSection({
+  detail,
+  onDone,
+}: {
+  detail: CustomerDetail;
+  onDone: () => void;
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const blocked = detail.reservations.some((r) => OPEN_STATUSES.has(r.status));
+
+  const anonymise = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await anonymiseCustomerAction(detail.id);
+      setConfirming(false);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      toasts.success(t("toast.customerAnonymised"));
+      // Names behind the drawer, in the lists and the calendar, change too.
+      router.refresh();
+      onDone();
+    });
+  };
+
+  return (
+    <section>
+      <SectionTitle icon={ShieldOff}>{t("admin.privacySection")}</SectionTitle>
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        {blocked ? t("admin.anonymiseBlocked") : t("admin.anonymiseHelp")}
+      </p>
+      {error && (
+        <p role="alert" className="text-destructive mt-2 text-xs">
+          {error}
+        </p>
+      )}
+      <Button
+        size="sm"
+        variant="destructive"
+        className="mt-3"
+        disabled={blocked || pending}
+        onClick={() => setConfirming(true)}
+      >
+        {t("admin.anonymise")}
+      </Button>
+      <ConfirmDialog
+        open={confirming}
+        title={t("admin.anonymiseTitle")}
+        body={t("admin.anonymiseBody")}
+        confirmLabel={t("admin.anonymiseConfirm")}
+        pending={pending}
+        onConfirm={anonymise}
+        onCancel={() => setConfirming(false)}
+      />
+    </section>
   );
 }
 

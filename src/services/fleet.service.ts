@@ -1,7 +1,10 @@
 import { Prisma, type Repair } from "@prisma/client";
-import { startOfMonth, startOfYear } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { NotFoundError } from "@/lib/errors";
+import {
+  businessMonthStart,
+  businessYearStart,
+} from "@/lib/reservation-lifecycle";
 import type { RepairInput } from "@/lib/validations/repair";
 
 export async function addRepair(
@@ -53,8 +56,13 @@ export async function getVehicleFleetProfile(vehicleId: string) {
   if (!vehicle) throw new NotFoundError("Vehicle");
 
   const now = new Date();
-  const yearStart = startOfYear(now);
-  const monthStart = startOfMonth(now);
+  // Repair dates are calendar values (a picked date stored at 00:00 UTC). The
+  // branch-local boundary is an instant at or before that midnight — Belgrade
+  // is ahead of UTC — and after the previous day's, so comparing one with the
+  // other is a comparison of calendar days. startOfYear/startOfMonth followed
+  // the server's timezone instead: UTC on Vercel, Belgrade locally.
+  const yearStart = businessYearStart(now);
+  const monthStart = businessMonthStart(now);
   const sum = (rows: { cost: Prisma.Decimal }[]) =>
     rows.reduce((total, r) => total + Number(r.cost), 0);
 
@@ -80,47 +88,82 @@ export async function getVehicleFleetProfile(vehicleId: string) {
 }
 
 /**
+ * Reservation states whose price the car has actually earned. Narrower than
+ * analytics' revenue statuses, which also count CONFIRMED: a rental that has
+ * not started has earned nothing yet. Same rule as customer spend.
+ */
+const EARNED_STATUSES = ["ACTIVE", "COMPLETED"] as const;
+
+/**
  * Full drawer payload for a vehicle: identity, gallery, upkeep, and the
- * financial profile that answers "is this car still worth keeping?". Service
- * cost is a separate line from repairs so upkeep never masquerades as
- * breakage.
+ * financial profile that answers "is this car still worth keeping?".
+ *
+ * Every money figure here is aggregated in SQL over all of the car's rows.
+ * `earned` used to reduce over the 12 reservations the drawer lists, so a
+ * car's takings stopped growing after its twelfth rental while its costs kept
+ * climbing — the exact car the owner most needs an honest number for.
+ *
+ * Costs are reported as what they are. Repairs are a full history; servicing
+ * is only the cost of the *last* service, because services are not recorded
+ * as rows. Adding the two and annualising the result produced a "per year"
+ * figure that meant nothing, so only the repair history is averaged over
+ * time, and "recorded costs" says plainly that it is repairs plus one service.
  */
 export async function getVehicleDetail(vehicleId: string) {
   const now = new Date();
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { id: vehicleId },
-    include: {
-      images: { orderBy: { sortOrder: "asc" } },
-      repairs: { orderBy: { date: "desc" } },
-      reservations: {
-        where: {
-          status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
-        },
-        orderBy: { pickupDate: "desc" },
-        take: 12,
-        select: {
-          id: true,
-          status: true,
-          pickupDate: true,
-          returnDate: true,
-          totalPrice: true,
-          customer: { select: { firstName: true, lastName: true } },
+  const yearStart = businessYearStart(now);
+
+  const [vehicle, earnedSum, repairSum, repairYearSum] = await Promise.all([
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        repairs: { orderBy: { date: "desc" } },
+        // Display only — the drawer lists recent bookings. Never sum these.
+        reservations: {
+          where: {
+            status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
+          },
+          orderBy: { pickupDate: "desc" },
+          take: 12,
+          select: {
+            id: true,
+            status: true,
+            pickupDate: true,
+            returnDate: true,
+            totalPrice: true,
+            customer: { select: { firstName: true, lastName: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.reservation.aggregate({
+      _sum: { totalPrice: true },
+      where: { vehicleId, status: { in: [...EARNED_STATUSES] } },
+    }),
+    prisma.repair.aggregate({
+      _sum: { cost: true },
+      _count: true,
+      where: { vehicleId },
+    }),
+    prisma.repair.aggregate({
+      _sum: { cost: true },
+      // See getVehicleFleetProfile: calendar-dated rows against a
+      // branch-local boundary.
+      where: { vehicleId, date: { gte: yearStart } },
+    }),
+  ]);
   if (!vehicle) throw new NotFoundError("Vehicle");
 
-  const yearStart = startOfYear(now);
-  const sum = (rows: { cost: Prisma.Decimal }[]) =>
-    rows.reduce((t, r) => t + Number(r.cost), 0);
+  // Summed as Decimal in the database, converted once here at the edge.
+  const earned = Number(earnedSum._sum.totalPrice ?? 0);
+  const repairs = Number(repairSum._sum.cost ?? 0);
+  const repairsThisYear = Number(repairYearSum._sum.cost ?? 0);
+  const lastService = Number(vehicle.serviceCost ?? 0);
+  const recorded = repairs + lastService;
 
-  const repairsTotal = sum(vehicle.repairs);
-  const repairsYear = sum(vehicle.repairs.filter((r) => r.date >= yearStart));
-  const serviceCost = Number(vehicle.serviceCost ?? 0);
-  const totalCost = repairsTotal + serviceCost;
-
-  // Months on the books, floored at 1 so a new arrival isn't divided by zero.
+  // Months in the system, floored at 1 so a new arrival isn't divided by
+  // zero. createdAt is when the car was added here, not when it was bought.
   const monthsOwned = Math.max(
     1,
     Math.round(
@@ -128,22 +171,23 @@ export async function getVehicleDetail(vehicleId: string) {
     )
   );
 
-  const earned = vehicle.reservations
-    .filter((r) => r.status === "ACTIVE" || r.status === "COMPLETED")
-    .reduce((t, r) => t + Number(r.totalPrice), 0);
-
   return {
     vehicle,
     costs: {
-      service: serviceCost,
-      repairs: repairsTotal,
-      repairsThisYear: repairsYear,
-      total: totalCost,
-      perYear: (totalCost / monthsOwned) * 12,
-      perMonth: totalCost / monthsOwned,
-      repairCount: vehicle.repairs.length,
+      /** Cost of the most recent service only — not a history. */
+      lastService,
+      /** Every recorded repair, lifetime. */
+      repairs,
+      repairsThisYear,
+      repairCount: repairSum._count,
+      /** Lifetime repairs averaged over the car's time in the system. */
+      repairsPerYear: (repairs / monthsOwned) * 12,
+      repairsPerMonth: repairs / monthsOwned,
+      /** Repairs plus the last service: everything the system has a cost for. */
+      recorded,
+      /** All ACTIVE and COMPLETED rentals, lifetime. */
       earned,
-      net: earned - totalCost,
+      net: earned - recorded,
     },
   };
 }

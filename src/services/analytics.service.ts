@@ -1,34 +1,123 @@
+import { Prisma } from "@prisma/client";
 import { addDays, format, subMonths, subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import {
+  BUSINESS_TIME_ZONE,
   actionableRequestWhere,
   businessDay,
   businessDayStart,
   businessMonthStart,
-  businessWeekStart,
-  businessYearStart,
 } from "@/lib/reservation-lifecycle";
+import {
+  type BucketUnit,
+  bucketLabel,
+  businessBuckets,
+} from "@/lib/business-buckets";
 
 export type SeriesPoint = { label: string; value: number };
 
 const REVENUE_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
 
-/** Bucket reservations into calendar months for trend charts. */
-function monthlySeries(
-  rows: { createdAt: Date; totalPrice: unknown; status: string }[],
-  months: number,
-  pick: (row: { totalPrice: unknown; status: string }) => number
-): SeriesPoint[] {
-  const now = new Date();
-  return Array.from({ length: months }, (_, i) => {
-    const month = businessMonthStart(subMonths(now, months - 1 - i));
-    const next = businessMonthStart(subMonths(now, months - 2 - i));
-    const value = rows
-      .filter((r) => r.createdAt >= month && r.createdAt < next)
-      .reduce((sum, r) => sum + pick(r), 0);
-    return { label: format(month, "MMM"), value: Math.round(value) };
-  });
+/**
+ * Revenue, recognised per rental day.
+ *
+ * A reservation's price is spread evenly over the days it covers, and each
+ * day's share counts in the period that day falls in. A rental from 28 Feb to
+ * 3 Mar is part February and part March; an extension's money lands on the
+ * days it adds. Revenue used to be counted in full on the day the booking was
+ * *created*, so a March rental booked in November was November revenue.
+ *
+ * The days are the ones the price was billed for (`rentalDays` in
+ * lib/pricing): `n` started 24-hour periods from pickup, minimum one, so the
+ * covered days are the pickup day and the `n − 1` after it.
+ *
+ * Rental dates are naive calendar values — `T10:00:00Z` means 10:00 at the
+ * branch — so `"pickupDate"::date` already is the branch-local day and needs
+ * no timezone conversion; converting it would shift it by the UTC offset.
+ *
+ * Everything is summed as numeric in Postgres, never as float, and the
+ * buckets come back keyed by their first day to match business-buckets.
+ */
+async function revenueByBucket(
+  unit: BucketUnit,
+  from: string,
+  to: string
+): Promise<Map<string, number>> {
+  const rows = await prisma.$queryRaw<
+    { bucket: string; revenue: Prisma.Decimal }[]
+  >(Prisma.sql`
+    SELECT to_char(date_trunc(${unit}, d.day), 'YYYY-MM-DD') AS bucket,
+           ROUND(SUM(r.share), 2) AS revenue
+    FROM (
+      SELECT x."totalPrice" / x.n AS share, x."pickupDate"::date AS first_day, x.n
+      FROM (
+        SELECT "totalPrice", "pickupDate",
+               GREATEST(1, CEIL(EXTRACT(EPOCH FROM ("returnDate" - "pickupDate")) / 86400))::int AS n
+        FROM reservations
+        WHERE status::text = ANY(${[...REVENUE_STATUSES]})
+          -- Coarse range filter: no day of a rental outside it can fall in the window.
+          AND "pickupDate" < ${to}::date
+          AND "returnDate" > ${from}::date
+      ) x
+    ) r
+    CROSS JOIN LATERAL generate_series(
+      r.first_day, r.first_day + (r.n - 1), interval '1 day'
+    ) AS d(day)
+    WHERE d.day >= ${from}::date AND d.day < ${to}::date
+    GROUP BY 1
+  `);
+  // Converted once, here, at the edge. A Decimal never leaves this module.
+  return new Map(rows.map((row) => [row.bucket, Number(row.revenue)]));
+}
+
+/** Revenue per bucket for the last `count` buckets, oldest first. */
+async function revenueSeriesFor(
+  unit: BucketUnit,
+  count: number,
+  now: Date
+): Promise<{ series: SeriesPoint[]; total: number; current: number }> {
+  const { starts, end } = businessBuckets(unit, count, now);
+  const sums = await revenueByBucket(unit, starts[0], end);
+  const values = starts.map((start) => sums.get(start) ?? 0);
+  return {
+    series: starts.map((start, i) => ({
+      label: bucketLabel(unit, start),
+      value: Math.round(values[i]),
+    })),
+    // From the unrounded bucket values, so the total is not a sum of roundings.
+    total: values.reduce((a, b) => a + b, 0),
+    current: values[values.length - 1],
+  };
+}
+
+/**
+ * Bookings made per bucket, by the branch-local day they were made on.
+ * `createdAt` is a real instant stored as UTC, unlike rental dates, so it is
+ * converted to branch time before truncating.
+ */
+async function bookingsByBucket(
+  unit: BucketUnit,
+  starts: string[],
+  end: string
+): Promise<SeriesPoint[]> {
+  const rows = await prisma.$queryRaw<{ bucket: string; count: number }[]>(
+    Prisma.sql`
+      SELECT to_char(date_trunc(${unit}, local), 'YYYY-MM-DD') AS bucket,
+             COUNT(*)::int AS count
+      FROM (
+        SELECT ("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${BUSINESS_TIME_ZONE} AS local
+        FROM reservations
+      ) b
+      WHERE local >= ${starts[0]}::date AND local < ${end}::date
+      GROUP BY 1
+    `
+  );
+  const counts = new Map(rows.map((row) => [row.bucket, row.count]));
+  return starts.map((start) => ({
+    label: bucketLabel(unit, start),
+    value: counts.get(start) ?? 0,
+  }));
 }
 
 function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
@@ -94,10 +183,8 @@ export async function getUpcomingSchedule() {
   return { upcomingPickups, upcomingReturns };
 }
 
-export async function getDashboardData() {
-  const now = new Date();
-  const weekStart = businessWeekStart(now);
-  const monthStart = businessMonthStart(now);
+/** `now` is a parameter so tests can read a window no other row touches. */
+export async function getDashboardData(now = new Date()) {
   const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
 
   const [
@@ -107,14 +194,13 @@ export async function getDashboardData() {
       rentedNow,
       maintenance,
       pending,
-      revenueWeek,
-      revenueMonth,
       recentReservations,
       pendingRequests,
-      revenueRows,
       overdue,
     ],
     { upcomingPickups, upcomingReturns },
+    monthRevenue,
+    weekRevenue,
   ] = await Promise.all([
     prisma.$transaction([
       prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
@@ -123,20 +209,6 @@ export async function getDashboardData() {
       prisma.vehicle.count({ where: { status: "SERVICE" } }),
       // Expired requests are not waiting on anyone: their pickup day passed.
       prisma.reservation.count({ where: actionableRequestWhere(now) }),
-      prisma.reservation.aggregate({
-        _sum: { totalPrice: true },
-        where: {
-          status: { in: [...REVENUE_STATUSES] },
-          createdAt: { gte: weekStart },
-        },
-      }),
-      prisma.reservation.aggregate({
-        _sum: { totalPrice: true },
-        where: {
-          status: { in: [...REVENUE_STATUSES] },
-          createdAt: { gte: monthStart },
-        },
-      }),
       prisma.reservation.findMany({
         take: 6,
         orderBy: { createdAt: "desc" },
@@ -165,10 +237,6 @@ export async function getDashboardData() {
           },
         },
       }),
-      prisma.reservation.findMany({
-        where: { createdAt: { gte: subMonths(now, 6) } },
-        select: { createdAt: true, totalPrice: true, status: true },
-      }),
       prisma.reservation.count({
         where: {
           OR: [
@@ -179,13 +247,11 @@ export async function getDashboardData() {
       }),
     ]),
     getUpcomingSchedule(),
+    // The chart's last month and the "this month" KPI are one query, so they
+    // cannot disagree. Both count per rental day; see revenueByBucket.
+    revenueSeriesFor("month", 6, now),
+    revenueSeriesFor("week", 1, now),
   ]);
-
-  const revenueSeries = monthlySeries(revenueRows, 6, (r) =>
-    (REVENUE_STATUSES as readonly string[]).includes(r.status)
-      ? Number(r.totalPrice)
-      : 0
-  );
 
   return {
     kpis: {
@@ -196,10 +262,10 @@ export async function getDashboardData() {
       pending,
       overdue,
       utilization: fleetTotal ? Math.round((rentedNow / fleetTotal) * 100) : 0,
-      revenueWeek: Number(revenueWeek._sum.totalPrice ?? 0),
-      revenueMonth: Number(revenueMonth._sum.totalPrice ?? 0),
+      revenueWeek: weekRevenue.current,
+      revenueMonth: monthRevenue.current,
     },
-    revenueSeries,
+    revenueSeries: monthRevenue.series,
     upcomingPickups,
     upcomingReturns,
     recentReservations,
@@ -369,83 +435,35 @@ function monthlySeriesFromDates(
   });
 }
 
-export type Period = "week" | "month" | "year";
+export type Period = BucketUnit;
 
-/**
- * Bucket definition per reporting period.
- *
- * `boundary(now, k)` is the start of the bucket k periods before now, resolved
- * from the branch calendar each time rather than by adding a fixed duration to
- * a single anchor. Adding durations drifts across a daylight-saving change,
- * because a Belgrade day is 23 or 25 hours through one.
- */
-const PERIODS: Record<
-  Period,
-  {
-    label: string;
-    buckets: number;
-    boundary: (now: Date, periodsAgo: number) => Date;
-    format: string;
-  }
-> = {
-  week: {
-    label: "Last 12 weeks",
-    buckets: 12,
-    boundary: (now, k) => businessWeekStart(subDays(now, k * 7)),
-    format: "dd MMM",
-  },
-  month: {
-    label: "Last 12 months",
-    buckets: 12,
-    boundary: (now, k) => businessMonthStart(subMonths(now, k)),
-    format: "MMM",
-  },
-  year: {
-    label: "Last 5 years",
-    buckets: 5,
-    boundary: (now, k) => businessYearStart(subMonths(now, k * 12)),
-    format: "yyyy",
-  },
+/** How many buckets each reporting period shows. */
+const PERIOD_BUCKETS: Record<Period, number> = {
+  week: 12,
+  month: 12,
+  year: 5,
 };
 
-function bucketSeries(
-  rows: { createdAt: Date; totalPrice: unknown; status: string }[],
-  period: Period,
-  pick: (row: { totalPrice: unknown; status: string }) => number
-): SeriesPoint[] {
-  const cfg = PERIODS[period];
-  const now = new Date();
-  return Array.from({ length: cfg.buckets }, (_, i) => {
-    const from = cfg.boundary(now, cfg.buckets - 1 - i);
-    const to = cfg.boundary(now, cfg.buckets - 2 - i);
-    const value = rows
-      .filter((r) => r.createdAt >= from && r.createdAt < to)
-      .reduce((sum, r) => sum + pick(r), 0);
-    return { label: format(from, cfg.format), value: Math.round(value) };
-  });
-}
+/** `now` is a parameter so tests can read a window no other row touches. */
+export async function getAnalytics(period: Period = "month", now = new Date()) {
+  // Window the whole page to the selected period, KPIs included: the same
+  // calendar buckets drive the revenue chart, the bookings chart and the
+  // counts, so the figures and the charts cover exactly the same span. The
+  // current bucket is included in full — confirmed days later this month are
+  // this month's revenue.
+  const { starts, end } = businessBuckets(period, PERIOD_BUCKETS[period], now);
+  const since = businessDayStart(new Date(`${starts[0]}T12:00:00.000Z`));
+  const until = businessDayStart(new Date(`${end}T12:00:00.000Z`));
+  const made = { createdAt: { gte: since, lt: until } };
 
-export async function getAnalytics(period: Period = "month") {
-  const now = new Date();
-  const cfg = PERIODS[period];
-  // Window the whole page to the selected period, KPIs included. Same
-  // boundary the first bucket uses, so the KPIs and the chart cover exactly
-  // the same span.
-  const since = cfg.boundary(now, cfg.buckets - 1);
-
-  const [rows, fleet, cancelled, totalReservations] = await prisma.$transaction(
-    [
-      prisma.reservation.findMany({
-        where: { createdAt: { gte: since } },
-        select: { createdAt: true, totalPrice: true, status: true },
-      }),
+  const [revenue, bookingsSeries, fleet, cancelled, totalReservations] =
+    await Promise.all([
+      revenueSeriesFor(period, PERIOD_BUCKETS[period], now),
+      bookingsByBucket(period, starts, end),
       prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
-      prisma.reservation.count({
-        where: { status: "CANCELLED", createdAt: { gte: since } },
-      }),
-      prisma.reservation.count({ where: { createdAt: { gte: since } } }),
-    ]
-  );
+      prisma.reservation.count({ where: { status: "CANCELLED", ...made } }),
+      prisma.reservation.count({ where: made }),
+    ]);
 
   const [fleetInsights, customerInsights] = await Promise.all([
     getFleetInsights(),
@@ -453,19 +471,12 @@ export async function getAnalytics(period: Period = "month") {
   ]);
 
   return {
-    periodLabel: cfg.label,
-    revenueByMonth: bucketSeries(rows, period, (r) =>
-      (REVENUE_STATUSES as readonly string[]).includes(r.status)
-        ? Number(r.totalPrice)
-        : 0
-    ),
-    bookingsByMonth: bucketSeries(rows, period, () => 1),
+    revenueByMonth: revenue.series,
+    bookingsByMonth: bookingsSeries,
     cancellationRate: totalReservations
       ? Math.round((cancelled / totalReservations) * 100)
       : 0,
-    totalRevenue: rows
-      .filter((r) => (REVENUE_STATUSES as readonly string[]).includes(r.status))
-      .reduce((sum, r) => sum + Number(r.totalPrice), 0),
+    totalRevenue: revenue.total,
     totalReservations,
     fleet,
     topVehicles: fleetInsights.topVehicles,

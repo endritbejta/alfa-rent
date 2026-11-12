@@ -64,12 +64,15 @@ export default async function AnalyticsPage({
         </div>
       </PageHeader>
 
-      {/* No period hint on Revenue: the page header already states it. */}
+      {/* No period hint on Revenue: the page header already states it. The
+          hint says how revenue is counted instead — per rental day, not by
+          the date a booking was made. */}
       <StatStrip
         stats={[
           {
             label: t("admin.revenue"),
             value: formatEur(data.totalRevenue, locale, { precision: 0 }),
+            hint: t("admin.revenueBasis"),
           },
           { label: t("admin.bookings"), value: data.totalReservations },
           {
@@ -82,7 +85,10 @@ export default async function AnalyticsPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title={t("admin.revenue")} subtitle={periodDescription}>
+        <Panel
+          title={t("admin.revenue")}
+          subtitle={`${periodDescription} · ${t("admin.revenueBasis")}`}
+        >
           <AreaChart data={data.revenueByMonth} suffix=" EUR" />
         </Panel>
         <Panel title={t("admin.bookings")} subtitle={periodDescription}>

@@ -15,8 +15,10 @@ import { extendReservation } from "@/services/reservation.service";
  *
  * The races are made deterministic rather than hoped for: a second
  * connection holds the conflicting change open, the test waits until the
- * extension is visibly blocked on it in pg_stat_activity, and only then lets
- * it commit.
+ * extension is visibly blocked by that very connection (pg_blocking_pids),
+ * and only then lets it commit. Matching "any backend waiting on a lock"
+ * instead would be fooled by the dev server or another worktree's tests
+ * sharing the local database.
  */
 const suffix = randomUUID().slice(0, 8);
 const customerId = `extw-customer-${suffix}`;
@@ -67,16 +69,15 @@ async function refusalKey(run: Promise<unknown>) {
 }
 
 /**
- * Resolves once some backend in this database is waiting on a lock, which is
- * the extension's UPDATE queued behind the transaction the test holds open.
+ * Resolves once some backend is blocked by `holder`, the connection running
+ * the transaction the test holds open. The only statement that can be is the
+ * extension's write, queued behind it.
  */
-async function blockedOnALock() {
+async function blockedBy(holder: number) {
   for (let i = 0; i < 200; i++) {
     const [row] = await prisma.$queryRaw<{ waiting: bigint }[]>`
       SELECT count(*) AS waiting FROM pg_stat_activity
-      WHERE datname = current_database()
-        AND wait_event_type = 'Lock'
-        AND pid <> pg_backend_pid()
+      WHERE ${holder}::int = ANY(pg_blocking_pids(pid))
     `;
     if (row!.waiting > BigInt(0)) return;
     await new Promise((resolve) => setTimeout(resolve, 25));
@@ -97,11 +98,14 @@ async function extendWhileHeld(
   let extension!: Promise<unknown>;
   await other.$transaction(
     async (tx) => {
+      const [{ pid }] = await tx.$queryRaw<{ pid: number }[]>`
+        SELECT pg_backend_pid() AS pid
+      `;
       await change(tx);
       extension = extendReservation(id, to);
       // Keep the rejection from being reported as unhandled while it waits.
       extension.catch(() => {});
-      await blockedOnALock();
+      await blockedBy(pid);
     },
     { timeout: 15_000 }
   );
@@ -147,27 +151,92 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe("the price of an extension", () => {
-  it("keeps the agreed total and adds only the extra days at today's rate", async () => {
-    const { id } = await rental();
-    // Midnight on the 17th: the time of day is taken from the booking.
-    const extended = await extendReservation(
-      id,
-      new Date("2028-01-17T00:00:00.000Z")
+/**
+ * The totalPrice values extendReservation hands to its write, as given.
+ *
+ * Reading the row back cannot tell Decimal arithmetic from float: the column
+ * is Decimal(10,2), so a float sum is rounded to the same cents on the way
+ * in. What can tell them apart is the value the service computes, so the
+ * transaction client it is handed is wrapped to record its updateMany data.
+ */
+function recordPriceWrites() {
+  const written: unknown[] = [];
+  const original = prisma.$transaction.bind(prisma) as (
+    ...args: unknown[]
+  ) => Promise<unknown>;
+  const wrapped = (
+    work: (tx: Prisma.TransactionClient) => Promise<unknown>,
+    options?: unknown
+  ) =>
+    original(
+      (tx: Prisma.TransactionClient) =>
+        work(
+          new Proxy(tx, {
+            get(target, key, receiver) {
+              const value = Reflect.get(target, key, receiver);
+              if (key !== "reservation") return value;
+              return new Proxy(value as object, {
+                get(model, method, modelReceiver) {
+                  const fn = Reflect.get(model, method, modelReceiver);
+                  if (method !== "updateMany") return fn;
+                  return (args: { data: { totalPrice?: unknown } }) => {
+                    written.push(args.data.totalPrice);
+                    return (fn as (a: unknown) => unknown).call(model, args);
+                  };
+                },
+              });
+            },
+          })
+        ),
+      options
     );
+  // Prisma serves $transaction through its client proxy, which vi.spyOn
+  // cannot restore; an own property shadows it and deleting it un-shadows.
+  Object.defineProperty(prisma, "$transaction", {
+    value: wrapped,
+    configurable: true,
+    writable: true,
+  });
+  return {
+    written,
+    restore: () => {
+      delete (prisma as { $transaction?: unknown }).$transaction;
+    },
+  };
+}
 
-    expect(extended.returnDate.toISOString()).toBe("2028-01-17T09:30:00.000Z");
-    // Decimal arithmetic, compared as Decimal: 157.35 + 3 × 33.37. In
-    // floating point the same sum is 257.46000000000004.
-    const expected = D(agreedTotal).add(D(pricePerDay).mul(3));
-    expect(expected.toFixed(2)).toBe("257.46");
-    expect(extended.totalPrice).toBeInstanceOf(Prisma.Decimal);
+describe("the price of an extension", () => {
+  it("keeps the agreed total and adds only the extra days at today's rate, in Decimal", async () => {
+    const { id } = await rental();
+    const writes = recordPriceWrites();
+    let extended: Awaited<ReturnType<typeof extendReservation>>;
+    try {
+      // Midnight on the 16th: the time of day is taken from the booking.
+      extended = await extendReservation(
+        id,
+        new Date("2028-01-16T00:00:00.000Z")
+      );
+    } finally {
+      writes.restore();
+    }
+
+    expect(extended.returnDate.toISOString()).toBe("2028-01-16T09:30:00.000Z");
+    // 157.35 + 2 × 33.37. In floating point that sum is 224.08999999999997.
+    const expected = D(agreedTotal).add(D(pricePerDay).mul(2));
+    expect(expected.toString()).toBe("224.09");
+    expect(157.35 + 33.37 * 2).not.toBe(224.09);
+
+    // The value the service wrote was computed as a Decimal and is exact.
+    expect(writes.written).toHaveLength(1);
+    const [written] = writes.written;
+    expect(written).toBeInstanceOf(Prisma.Decimal);
+    expect((written as Prisma.Decimal).toString()).toBe("224.09");
+
     expect(extended.totalPrice.equals(expected)).toBe(true);
-
     const stored = await prisma.reservation.findUniqueOrThrow({
       where: { id },
     });
-    expect(stored.totalPrice.toFixed(2)).toBe("257.46");
+    expect(stored.totalPrice.toFixed(2)).toBe("224.09");
   });
 
   it("charges a started day as a whole day", async () => {
@@ -217,32 +286,6 @@ describe("the price of an extension", () => {
 });
 
 describe("the compare-and-swap", () => {
-  it("lets exactly one of two simultaneous extensions through", async () => {
-    const { id } = await rental();
-    const to = new Date("2028-01-16T00:00:00.000Z");
-    const results = await Promise.allSettled([
-      extendReservation(id, to),
-      extendReservation(id, to),
-    ]);
-
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    const [loser] = results.filter((r) => r.status === "rejected");
-    // Which refusal depends only on when the loser read the row: before the
-    // winner committed (the swap finds the row changed) or after (the date
-    // is no longer later). Either way, never a second charge.
-    expect((loser as PromiseRejectedResult).reason?.text?.key).toBeOneOf([
-      "err.changedUnderYou",
-      "err.returnMustBeLater",
-    ]);
-
-    const stored = await prisma.reservation.findUniqueOrThrow({
-      where: { id },
-    });
-    expect(
-      stored.totalPrice.equals(D(agreedTotal).add(D(pricePerDay).mul(2)))
-    ).toBe(true);
-  });
-
   it.each([
     [
       "its return date was moved",

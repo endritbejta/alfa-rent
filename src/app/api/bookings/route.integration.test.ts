@@ -94,7 +94,8 @@ async function spendAllowance(count: number, minutesLeft: number) {
 /**
  * How far the session's wall clock is from UTC, in seconds. The limiter reads
  * that wall-clock expiry back as though it were UTC, so its Retry-After is
- * off by exactly this much outside UTC (zero in CI and on Supabase).
+ * off by exactly this much outside UTC (zero in CI and on Supabase), and
+ * clamped to 0 where the zone is far enough behind UTC.
  */
 async function sessionUtcOffsetSeconds() {
   const [row] = await prisma.$queryRaw<{ offset: number }[]>`
@@ -236,10 +237,13 @@ describe("POST /api/bookings", () => {
 
     const retryAfter = Number(response.headers.get("Retry-After"));
     expect(Number.isInteger(retryAfter)).toBe(true);
-    // About half an hour is left on the window the row above opened.
+    // About half an hour is left on the window the row above opened, as
+    // the limiter computes it: shifted by the session's UTC offset and
+    // floored at zero, which is where a zone far enough behind UTC lands.
     const skew = await sessionUtcOffsetSeconds();
-    expect(retryAfter - skew).toBeGreaterThan(29 * 60);
-    expect(retryAfter - skew).toBeLessThanOrEqual(30 * 60);
+    const asTheLimiterSeesIt = (seconds: number) => Math.max(0, seconds + skew);
+    expect(retryAfter).toBeGreaterThanOrEqual(asTheLimiterSeesIt(29 * 60));
+    expect(retryAfter).toBeLessThanOrEqual(asTheLimiterSeesIt(30 * 60));
 
     expect((await response.json()).success).toBe(false);
     expect(await reservationsWritten()).toBe(0);

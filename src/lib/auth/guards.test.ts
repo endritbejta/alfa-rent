@@ -1,25 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { auth, findUnique, Redirected } = vi.hoisted(() => {
-  /** Stands in for Next's NEXT_REDIRECT, carrying where it was sent. */
-  class Redirected extends Error {
-    constructor(public readonly to: string) {
-      super(`redirect to ${to}`);
-    }
-  }
-  return { auth: vi.fn(), findUnique: vi.fn(), Redirected };
-});
+const { auth, findUnique } = vi.hoisted(() => ({
+  auth: vi.fn(),
+  findUnique: vi.fn(),
+}));
 
 vi.mock("@/lib/auth", () => ({ auth }));
 vi.mock("@/lib/db/prisma", () => ({ prisma: { user: { findUnique } } }));
-vi.mock("next/navigation", () => ({
-  redirect: (to: string) => {
-    throw new Redirected(to);
-  },
-}));
+vi.mock("next/navigation", async () =>
+  (await import("@/lib/testing/action-mocks")).nextNavigationMock()
+);
 
 import { requireRole, requireUser } from "@/lib/auth/guards";
 import { ForbiddenError } from "@/lib/errors";
+import { Redirected } from "@/lib/testing/action-mocks";
 
 const signedIn = (sessionVersion = 3) => ({
   user: { id: "user-1", sessionVersion },

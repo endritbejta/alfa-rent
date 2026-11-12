@@ -5,49 +5,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * guard with a signed-in EMPLOYEE; the session, the user row, the limiter and
  * the service stand in.
  */
-const { auth, signOut, findUnique, changeOwnPassword, limiter, Redirected } =
-  vi.hoisted(() => {
-    /** Stands in for Next's NEXT_REDIRECT, carrying where it was sent. */
-    class Redirected extends Error {
-      constructor(public readonly to: string) {
-        super(`redirect to ${to}`);
-      }
-    }
-    return {
-      auth: vi.fn(),
-      signOut: vi.fn(),
-      findUnique: vi.fn(),
-      changeOwnPassword: vi.fn(),
-      limiter: { consumeRateLimit: vi.fn(), resetRateLimit: vi.fn() },
-      Redirected,
-    };
-  });
+const { auth, signOut, findUnique, changeOwnPassword, limiter } = vi.hoisted(
+  () => ({
+    auth: vi.fn(),
+    signOut: vi.fn(),
+    findUnique: vi.fn(),
+    changeOwnPassword: vi.fn(),
+    limiter: { consumeRateLimit: vi.fn(), resetRateLimit: vi.fn() },
+  })
+);
 
 vi.mock("@/lib/auth", () => ({ auth, signOut }));
 vi.mock("@/lib/db/prisma", () => ({ prisma: { user: { findUnique } } }));
 vi.mock("@/services/staff.service", () => ({ changeOwnPassword }));
 vi.mock("@/lib/rate-limit", () => limiter);
-vi.mock("next/navigation", () => ({
-  redirect: (to: string) => {
-    throw new Redirected(to);
-  },
-  unstable_rethrow: () => {},
-}));
+vi.mock("next/navigation", async () =>
+  (await import("@/lib/testing/action-mocks")).nextNavigationMock()
+);
 // errorMessage() reads the locale cookie through a server-only module.
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/i18n/server", async () => {
-  const { dictionaries, translate } = await import("@/lib/i18n/translations");
-  return {
-    getI18n: async () => ({
-      locale: "en",
-      dictionary: dictionaries.en,
-      t: (key: Parameters<typeof translate>[1]) =>
-        translate(dictionaries.en, key),
-    }),
-  };
-});
+vi.mock("@/lib/i18n/server", async () =>
+  (await import("@/lib/testing/action-mocks")).i18nServerMock()
+);
 
 import { changeOwnPasswordAction } from "./actions";
+import { Redirected } from "@/lib/testing/action-mocks";
 import { dictionaries } from "@/lib/i18n/translations";
 
 const strong = "correct horse battery";

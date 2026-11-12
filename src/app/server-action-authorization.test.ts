@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import {
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -21,42 +22,27 @@ import {
  *
  * Only the session (auth()), the user row the guard re-reads, and the layer
  * below the actions stand in: every service, the Cloudinary signer, the rate
- * limiter and the cookie jar are automocked, so "reached the service" is a
- * spy call and not a database write.
+ * limiter, the cookie jar, signOut() and cache revalidation are spies, so
+ * "reached the service" is a spy call and not a database write.
  *
  * The list of actions is not trusted either. The first test walks src/ for
  * "use server" modules and fails when an exported action is missing from the
  * table below, so a new action cannot ship without someone deciding — here,
  * in review — who may call it.
  */
-const { auth, signOut, findUnique, Redirected } = vi.hoisted(() => {
-  /** Stands in for Next's NEXT_REDIRECT, carrying where it was sent. */
-  class Redirected extends Error {
-    constructor(public readonly to: string) {
-      super(`redirect to ${to}`);
-    }
-  }
-  return {
-    auth: vi.fn(),
-    signOut: vi.fn(),
-    findUnique: vi.fn(),
-    Redirected,
-  };
-});
+const { auth, signOut, findUnique } = vi.hoisted(() => ({
+  auth: vi.fn(),
+  signOut: vi.fn(),
+  findUnique: vi.fn(),
+}));
 
 vi.mock("@/lib/auth", () => ({ auth, signOut }));
 vi.mock("@/lib/db/prisma", () => ({ prisma: { user: { findUnique } } }));
-vi.mock("next/navigation", () => ({
-  redirect: (to: string) => {
-    throw new Redirected(to);
-  },
-  // Mirrors Next: errorMessage() must hand control flow back, so a guard
-  // that sits inside an action's try still redirects instead of becoming
-  // an { error } the client would show.
-  unstable_rethrow: (error: unknown) => {
-    if (error instanceof Redirected) throw error;
-  },
-}));
+// Mirrors Next, unstable_rethrow included: a guard that sits inside an
+// action's try must still redirect, not become an { error } on screen.
+vi.mock("next/navigation", async () =>
+  (await import("@/lib/testing/action-mocks")).nextNavigationMock()
+);
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   updateTag: vi.fn(),
@@ -68,17 +54,9 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ set: vi.fn(), get: vi.fn() })),
 }));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/i18n/server", async () => {
-  const { dictionaries, translate } = await import("@/lib/i18n/translations");
-  return {
-    getI18n: async () => ({
-      locale: "en",
-      dictionary: dictionaries.en,
-      t: (key: Parameters<typeof translate>[1]) =>
-        translate(dictionaries.en, key),
-    }),
-  };
-});
+vi.mock("@/lib/i18n/server", async () =>
+  (await import("@/lib/testing/action-mocks")).i18nServerMock()
+);
 
 // Everything an action may reach once its guard lets it through.
 vi.mock("@/services/customer.service");
@@ -97,6 +75,8 @@ vi.mock("@/lib/observability");
 
 import { dictionaries } from "@/lib/i18n/translations";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { Redirected } from "@/lib/testing/action-mocks";
+import { createVehicle } from "@/services/vehicle.service";
 
 const DOWNSTREAM = [
   "@/services/customer.service",
@@ -110,25 +90,30 @@ const DOWNSTREAM = [
   "@/lib/cloudinary",
   "@/lib/rate-limit",
   "next/headers",
+  // Ending a session and busting caches are side effects too: a refused
+  // call must not sign anyone out or revalidate anything.
+  "next/cache",
 ] as const;
 
-/** Every spy below the actions, by module and export name. */
-async function downstreamSpies() {
-  const spies: [string, MockInstance][] = [];
+/** Every spy below the actions, by module and export name. Built once. */
+let spies: [string, MockInstance][];
+
+async function collectSpies() {
+  const found: [string, MockInstance][] = [["@/lib/auth#signOut", signOut]];
   for (const id of DOWNSTREAM) {
     const mod = (await import(/* @vite-ignore */ id)) as Record<
       string,
       unknown
     >;
     for (const [name, value] of Object.entries(mod)) {
-      if (vi.isMockFunction(value)) spies.push([`${id}#${name}`, value]);
+      if (vi.isMockFunction(value)) found.push([`${id}#${name}`, value]);
     }
   }
-  return spies;
+  return found;
 }
 
-async function reachedDownstream() {
-  return (await downstreamSpies())
+function reachedDownstream() {
+  return spies
     .filter(([, spy]) => spy.mock.calls.length > 0)
     .map(([name]) => name);
 }
@@ -494,6 +479,20 @@ const SESSION_REFUSALS = [
   ],
 ] as const;
 
+/**
+ * A call the guard let through: it returned (an { error } from the mocked
+ * services' empty answers is fine) or redirected somewhere other than sign-in,
+ * as the vehicle saves do. A throw is not "let through": it is an error page.
+ */
+function expectLetThrough(result: Awaited<ReturnType<typeof outcome>>) {
+  const label = JSON.stringify(result);
+  expect(["returned", "redirected"], label).toContain(result.kind);
+  if (result.kind === "redirected") expect(result.to, label).not.toBe("/login");
+}
+
+const publicActions = Object.entries(ACTIONS).filter(
+  ([, entry]) => entry.level === "PUBLIC"
+);
 const guarded = Object.entries(ACTIONS).filter(
   ([, entry]) => entry.level !== "PUBLIC"
 );
@@ -511,7 +510,14 @@ beforeEach(async () => {
     remaining: 10,
     retryAfter: 0,
   });
-  actions ??= await discoverActions();
+  // The one result an action dereferences outside its try: the new vehicle's
+  // id, for the redirect to its edit page.
+  vi.mocked(createVehicle).mockResolvedValue({ id: "vehicle-1" } as never);
+});
+
+beforeAll(async () => {
+  actions = await discoverActions();
+  spies = await collectSpies();
 });
 
 const run = (key: string) => () => ACTIONS[key].call(actions.get(key)!);
@@ -561,7 +567,7 @@ describe.each(SESSION_REFUSALS)("%s", (_who, arrange) => {
         to: "/login",
       });
       expect(auth).toHaveBeenCalled();
-      expect(await reachedDownstream()).toEqual([]);
+      expect(reachedDownstream()).toEqual([]);
     }
   );
 });
@@ -572,7 +578,7 @@ describe("an active EMPLOYEE", () => {
     async (key) => {
       caller("EMPLOYEE");
       expect(await outcome(run(key))).toEqual({ kind: "forbidden" });
-      expect(await reachedDownstream()).toEqual([]);
+      expect(reachedDownstream()).toEqual([]);
     }
   );
 
@@ -583,10 +589,8 @@ describe("an active EMPLOYEE", () => {
       // allowed does reach the layer below, so a refusal above is the guard
       // and not the input failing validation.
       caller("EMPLOYEE");
-      const result = await outcome(run(key));
-      expect(result.kind, JSON.stringify(result)).not.toBe("forbidden");
-      expect(result).not.toEqual({ kind: "redirected", to: "/login" });
-      expect(await reachedDownstream()).not.toEqual([]);
+      expectLetThrough(await outcome(run(key)));
+      expect(reachedDownstream()).not.toEqual([]);
     }
   );
 });
@@ -594,9 +598,30 @@ describe("an active EMPLOYEE", () => {
 describe("an active ADMIN", () => {
   it.each(guarded.map(([key]) => [key]))("is let through %s", async (key) => {
     caller("ADMIN");
-    const result = await outcome(run(key));
-    expect(result.kind, JSON.stringify(result)).not.toBe("forbidden");
-    expect(result).not.toEqual({ kind: "redirected", to: "/login" });
-    expect(await reachedDownstream()).not.toEqual([]);
+    expectLetThrough(await outcome(run(key)));
+    expect(reachedDownstream()).not.toEqual([]);
+  });
+});
+
+describe("the deliberately public actions", () => {
+  it.each(publicActions.map(([key]) => [key]))(
+    "%s works signed out, never consults the session, and only sets a cookie",
+    async (key) => {
+      auth.mockResolvedValue(null);
+      expectLetThrough(await outcome(run(key)));
+      expect(auth).not.toHaveBeenCalled();
+      expect(findUnique).not.toHaveBeenCalled();
+      expect(reachedDownstream()).toEqual(["next/headers#cookies"]);
+    }
+  );
+
+  it("refuses a locale it does not support, without touching the cookie", async () => {
+    const setLocale = actions.get(
+      "../lib/i18n/locale-actions.ts#setLocaleAction"
+    )!;
+    await expect(
+      setLocale(...(["xx; Path=/admin"] as never[]))
+    ).rejects.toThrow("Unsupported locale");
+    expect(reachedDownstream()).toEqual([]);
   });
 });

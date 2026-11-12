@@ -109,6 +109,10 @@ beforeAll(async () => {
     status,
     totalPrice,
     notes: "Flight LH1234, wife Arta also drives",
+    contactFirstName: "Arta",
+    contactLastName: "Krasniqi",
+    contactEmail: "arta.private@example.test",
+    contactPhone: "+383 49 555 111",
   });
   await prisma.reservation.createMany({
     data: [
@@ -203,6 +207,14 @@ describe("anonymiseCustomer", () => {
     // Free text on the rentals, and the signer's name, are gone; what the
     // inspection says about the car is not.
     expect(customer.reservations.map((r) => r.notes)).toEqual([null, null]);
+    for (const r of customer.reservations) {
+      expect(r).toMatchObject({
+        contactFirstName: null,
+        contactLastName: null,
+        contactEmail: null,
+        contactPhone: null,
+      });
+    }
     const [inspection] = customer.reservations[0].inspections;
     expect(inspection).toMatchObject({
       signerName: ANONYMISED_SIGNER,
@@ -214,6 +226,8 @@ describe("anonymiseCustomer", () => {
     const text = JSON.stringify(customer);
     for (const trace of [
       "Arta Krasniqi",
+      "arta.private",
+      "555 111",
       email("customer-0"),
       "Hotel",
       "LH1234",

@@ -377,6 +377,7 @@ export const ANONYMISED_SIGNER = "Anonymised";
  * Scrubbed, all in one transaction:
  * - the customer's name, email, phone and notes, replaced with placeholders
  *   (see ANONYMISED_FIRST_NAME and anonymisedEmail);
+ * - the contact details snapshotted on each of their reservations;
  * - the notes on every one of their reservations. Notes are free text staff
  *   type during a phone booking, and they hold exactly the things worth
  *   erasing: a flight number, a hotel, who else will drive. Nothing can tell
@@ -427,15 +428,17 @@ export async function anonymiseCustomer(
       },
     });
 
-    // TODO(PR #25, fix/booking-contact-snapshot): once the reservation
-    // contact snapshot is merged, clear it here too, or the name, email and
-    // phone typed into each booking survive on the reservation itself:
-    //   data: { notes: null, contactFirstName: null, contactLastName: null,
-    //           contactEmail: null, contactPhone: null }
-    // and assert it in customer-anonymise.integration.test.ts.
+    // The contact snapshot each public booking keeps is this customer's
+    // name, email and phone again, so it goes too.
     const { count: reservations } = await tx.reservation.updateMany({
       where: { customerId: id },
-      data: { notes: null },
+      data: {
+        notes: null,
+        contactFirstName: null,
+        contactLastName: null,
+        contactEmail: null,
+        contactPhone: null,
+      },
     });
 
     await tx.rentalInspection.updateMany({

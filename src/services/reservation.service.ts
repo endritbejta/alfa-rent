@@ -32,6 +32,12 @@ import {
 } from "@/lib/reservation-occupancy";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
+import {
+  contactSnapshot,
+  contactSnapshotData,
+  reservationContactDifference,
+  type ContactSnapshotColumns,
+} from "@/lib/booking-contact";
 import type {
   AvailabilityInput,
   CreateBookingInput,
@@ -205,6 +211,44 @@ function assertSameBooking(
 }
 
 /**
+ * Whether a retried request carries the contact details the first one did.
+ *
+ * Compared with what that request submitted, not with the customer it was
+ * linked to: the customer may hold other details, and staff may have edited
+ * them since. A key with a different name or phone is another booking, so it
+ * is refused like one with other dates. A reservation from before the
+ * snapshot has only the customer's email to go on.
+ */
+function sameSubmittedContact(
+  existing: ContactSnapshotColumns & { customer: { email: string } },
+  submitted: CreateBookingInput["customer"]
+): boolean {
+  const snapshot = contactSnapshot(existing);
+  if (!snapshot) {
+    return (
+      existing.customer.email.toLowerCase() === submitted.email.toLowerCase()
+    );
+  }
+  const typed = submittedContact(submitted);
+  return (
+    snapshot.email.toLowerCase() === typed.email.toLowerCase() &&
+    snapshot.firstName === typed.firstName &&
+    snapshot.lastName === typed.lastName &&
+    snapshot.phone === typed.phone
+  );
+}
+
+/** The booking form's contact details as stored on the reservation. */
+function submittedContact(customer: CreateBookingInput["customer"]) {
+  return {
+    firstName: customer.firstName.trim(),
+    lastName: customer.lastName.trim(),
+    email: customer.email.trim(),
+    phone: customer.phone.trim(),
+  };
+}
+
+/**
  * The reservation an earlier public request with this key made, if any.
  *
  * The payment token is rotated rather than repeated: only its hash is stored,
@@ -223,8 +267,7 @@ async function replayBooking(
   if (!existing) return null;
   assertSameBooking(existing, input);
   if (
-    existing.customer.email.toLowerCase() !==
-      input.customer.email.toLowerCase() ||
+    !sameSubmittedContact(existing, input.customer) ||
     (existing.notes ?? "") !== (input.notes ?? "")
   ) {
     throw new IdempotencyKeyReusedError();
@@ -306,6 +349,9 @@ export async function createReservation(
           status: "PENDING",
           paymentAccessTokenHash: paymentAccess.hash,
           idempotencyKey,
+          // What was typed, kept even when the email matched a customer whose
+          // record findOrCreateCustomerByEmail leaves untouched.
+          ...contactSnapshotData(submittedContact(input.customer)),
         },
       });
     });
@@ -561,7 +607,17 @@ export async function getReservations(filters: {
         vehicle: {
           select: { brand: true, model: true, plate: true, slug: true },
         },
-        customer: { select: { firstName: true, lastName: true, email: true } },
+        // Phone and notes too: the pending queue compares the request's
+        // submitted details with these, and can copy them onto the record.
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            notes: true,
+          },
+        },
       },
       orderBy: { pickupDate: "desc" },
       skip: (page - 1) * perPage,
@@ -890,10 +946,26 @@ export async function getReservationDetail(id: string) {
     // the customer drawer showed for the same person.
     getCustomerSpend(reservation.customerId),
   ]);
+  // The raw snapshot columns stay here; the drawer gets the comparison, which
+  // is null whenever there is nothing for staff to act on.
+  const {
+    contactFirstName,
+    contactLastName,
+    contactEmail,
+    contactPhone,
+    ...rest
+  } = reservation;
   return {
-    ...reservation,
+    ...rest,
     timing: getReservationTiming(reservation),
     extension,
+    contactDifference: reservationContactDifference({
+      contactFirstName,
+      contactLastName,
+      contactEmail,
+      contactPhone,
+      customer: reservation.customer,
+    }),
     customer: { ...reservation.customer, spend: customerSpend },
   };
 }

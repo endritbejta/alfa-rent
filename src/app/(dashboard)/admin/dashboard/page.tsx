@@ -11,6 +11,7 @@ import { ScheduleList } from "@/components/dashboard/schedule-list";
 
 import { Button } from "@/components/ui/button";
 import { RecentReservations } from "./recent-reservations";
+import { reservationContactDifference } from "@/lib/booking-contact";
 import { PendingQueue } from "../reservations/pending-queue";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
@@ -71,7 +72,14 @@ export default async function DashboardPage() {
           createdAt: r.createdAt,
           notes: r.notes,
           vehicle: r.vehicle,
-          customer: r.customer,
+          customerId: r.customerId,
+          customer: {
+            firstName: r.customer.firstName,
+            lastName: r.customer.lastName,
+            email: r.customer.email,
+          },
+          customerNotes: r.customer.notes,
+          contactDifference: reservationContactDifference(r),
         }))}
       />
 

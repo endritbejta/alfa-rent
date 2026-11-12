@@ -151,7 +151,13 @@ export async function getDashboardData() {
         include: {
           vehicle: { select: { brand: true, model: true, plate: true } },
           customer: {
-            select: { firstName: true, lastName: true, email: true },
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              notes: true,
+            },
           },
         },
       }),

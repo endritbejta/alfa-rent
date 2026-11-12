@@ -193,6 +193,15 @@ model Reservation {
   /// key gets this reservation back instead of making a second one. Null for
   /// requests that sent none and for everything created before the column.
   idempotencyKey         String?           @unique
+  /// What a public booking's form submitted, kept even when the email
+  /// matched an existing customer whose record is (deliberately) left as it
+  /// is. Staff compare it with the customer on file. Null for staff bookings
+  /// and for everything created before the columns. Personal data: anonymising
+  /// a customer must clear these too.
+  contactFirstName       String?
+  contactLastName        String?
+  contactEmail           String?
+  contactPhone           String?
   /// Actual handover and return timestamps. Scheduled dates remain unchanged
   /// so punctuality and overdue rentals can be audited later.
   startedAt              DateTime?

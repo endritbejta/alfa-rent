@@ -14,6 +14,11 @@ import { formatEur } from "@/lib/money";
 import { rentalDays } from "@/lib/pricing";
 import { rentalCalendarDay } from "@/lib/reservation-lifecycle";
 import { vehicleLabel } from "@/lib/vehicle-label";
+import {
+  reservationContactDifference,
+  CONTACT_SNAPSHOT_SELECT,
+  type ContactDifference,
+} from "@/lib/booking-contact";
 
 /**
  * Staff work in Albanian, the app's default language. A single constant so
@@ -31,12 +36,19 @@ export type BookingRequestEmailData = {
     /** The cover photo's Cloudinary URL, when the car has one. */
     imageUrl: string | null;
   };
+  /** The customer on file the request was linked to. */
   customer: {
     firstName: string;
     lastName: string;
     email: string;
     phone: string;
   };
+  /**
+   * Set when the request carried other contact details than `customer`. The
+   * email then leads with what was submitted — that is who asked, and the
+   * number that will answer — and lists the differing details on file below.
+   */
+  contactDifference?: ContactDifference | null;
   pickupDate: Date;
   returnDate: Date;
   totalPrice: Prisma.Decimal | number;
@@ -106,7 +118,19 @@ export function buildStaffBookingEmail(
   const carMeta = [data.vehicle.plate, String(data.vehicle.year)]
     .filter(Boolean)
     .join(" · ");
-  const name = `${data.customer.firstName} ${data.customer.lastName}`.trim();
+  const difference = data.contactDifference ?? null;
+  const who = difference?.submitted ?? data.customer;
+  const name = `${who.firstName} ${who.lastName}`.trim();
+  // Only the fields that disagree, so a matching email is not repeated.
+  const onFile = difference
+    ? [
+        difference.name
+          ? `${difference.onFile.firstName} ${difference.onFile.lastName}`.trim()
+          : null,
+        difference.phone ? difference.onFile.phone : null,
+        difference.email ? difference.onFile.email : null,
+      ].filter((value): value is string => !!value)
+    : [];
   const days = rentalDays(data.pickupDate, data.returnDate);
   const duration =
     days === 1 ? t("email.oneDay") : t("email.days", { count: days });
@@ -128,8 +152,15 @@ export function buildStaffBookingEmail(
     "",
     t("email.customer"),
     name,
-    data.customer.phone,
-    data.customer.email,
+    who.phone,
+    who.email,
+    ...(onFile.length > 0
+      ? [
+          "",
+          t("email.contactDiffers"),
+          `${t("email.contactOnFile")}: ${onFile.join(" · ")}`,
+        ]
+      : []),
     ...(data.notes ? ["", t("email.notes"), data.notes] : []),
     ...(data.adminUrl ? ["", `${cta}: ${data.adminUrl}`] : []),
     "",
@@ -139,7 +170,7 @@ export function buildStaffBookingEmail(
   const e = escapeHtml;
   const label = (value: string) =>
     `<div style="font-size:11px;line-height:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${C.muted}">${e(value)}</div>`;
-  const phoneHref = `tel:${data.customer.phone.replace(/[^\d+]/g, "")}`;
+  const phoneHref = `tel:${who.phone.replace(/[^\d+]/g, "")}`;
 
   const photoBlock = photo
     ? `<img src="${e(photo)}" width="560" alt="${e(carName)}" style="display:block;width:100%;max-width:560px;height:auto;border:0;background:${C.photo}">`
@@ -160,8 +191,14 @@ export function buildStaffBookingEmail(
   const customerBlock =
     `<div style="margin-top:24px">${label(t("email.customer"))}` +
     `<div style="margin-top:6px;font-size:16px;line-height:22px;font-weight:700;color:${C.ink}">${e(name)}</div>` +
-    `<div style="margin-top:4px;font-size:14px;line-height:22px"><a href="${e(phoneHref)}" style="color:${C.brand};text-decoration:none;font-weight:600">${e(data.customer.phone)}</a></div>` +
-    `<div style="font-size:14px;line-height:22px"><a href="mailto:${e(data.customer.email)}" style="color:${C.brand};text-decoration:none">${e(data.customer.email)}</a></div>` +
+    `<div style="margin-top:4px;font-size:14px;line-height:22px"><a href="${e(phoneHref)}" style="color:${C.brand};text-decoration:none;font-weight:600">${e(who.phone)}</a></div>` +
+    `<div style="font-size:14px;line-height:22px"><a href="mailto:${e(who.email)}" style="color:${C.brand};text-decoration:none">${e(who.email)}</a></div>` +
+    (onFile.length > 0
+      ? `<div style="margin-top:12px;background:${C.pendingBg};border-radius:8px;padding:10px 14px;font-size:13px;line-height:20px;color:${C.pendingInk}">` +
+        `<div style="font-weight:700">${e(t("email.contactDiffers"))}</div>` +
+        `<div style="margin-top:2px">${e(t("email.contactOnFile"))}: ${onFile.map(e).join(" · ")}</div>` +
+        `</div>`
+      : "") +
     `</div>`;
 
   const notesBlock = data.notes
@@ -253,12 +290,14 @@ export async function notifyStaffOfBookingRequest(
           },
         },
       },
+      ...CONTACT_SNAPSHOT_SELECT,
       customer: {
         select: { firstName: true, lastName: true, email: true, phone: true },
       },
     },
   });
   if (!reservation) return "skipped";
+  const contactDifference = reservationContactDifference(reservation);
 
   const message = buildStaffBookingEmail({
     reservationId: reservation.id,
@@ -270,6 +309,7 @@ export async function notifyStaffOfBookingRequest(
       imageUrl: reservation.vehicle.images[0]?.url ?? null,
     },
     customer: reservation.customer,
+    contactDifference,
     pickupDate: reservation.pickupDate,
     returnDate: reservation.returnDate,
     totalPrice: reservation.totalPrice,
@@ -277,5 +317,10 @@ export async function notifyStaffOfBookingRequest(
     adminUrl: adminReservationUrl(reservation.id),
   });
 
-  return sendEmail({ to, ...message, replyTo: reservation.customer.email });
+  // Replies go to whoever sent the request, which is the submitted address.
+  return sendEmail({
+    to,
+    ...message,
+    replyTo: contactDifference?.submitted.email ?? reservation.customer.email,
+  });
 }

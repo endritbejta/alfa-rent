@@ -13,7 +13,8 @@ import {
  * aborts at 20 seconds — used to become two PENDING requests the moment the
  * customer pressed Send again. These pin the server half of the fix: a retry
  * with the same key gets the first reservation back, concurrent retries
- * still make exactly one, and a key cannot be borrowed for another booking.
+ * still make exactly one, and a key cannot be borrowed for another booking —
+ * other dates, or the same dates with another name or phone.
  */
 const suffix = randomUUID().slice(0, 8);
 const vehicleId = `idem-vehicle-${suffix}`;
@@ -131,6 +132,34 @@ describe("public booking with an idempotency key", () => {
         { idempotencyKey: key }
       )
     ).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
+  });
+
+  it("refuses a key reused with different contact details", async () => {
+    const key = randomUUID();
+    await createReservation(booking(), { idempotencyKey: key });
+    const base = booking();
+
+    await expect(
+      createReservation(
+        { ...base, customer: { ...base.customer, phone: "+383 44 999 999" } },
+        { idempotencyKey: key }
+      )
+    ).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
+    await expect(
+      createReservation(
+        { ...base, customer: { ...base.customer, firstName: "Someone" } },
+        { idempotencyKey: key }
+      )
+    ).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
+    await expect(
+      createReservation(
+        { ...base, customer: { ...base.customer, lastName: "Else" } },
+        { idempotencyKey: key }
+      )
+    ).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
+    expect(
+      await prisma.reservation.count({ where: { idempotencyKey: key } })
+    ).toBe(1);
   });
 
   it("still makes a new reservation for every request without a key", async () => {

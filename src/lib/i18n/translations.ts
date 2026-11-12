@@ -842,6 +842,17 @@ const en = {
   "account.submit": "Change password",
   "account.submitting": "Changing…",
   "auth.passwordChanged": "Password changed. Sign in with the new one.",
+  // A public booking whose contact details differ from the customer on file.
+  "admin.contactDiffers": "Details differ from the customer on file",
+  "admin.contactDiffersHint":
+    "This request was sent with other contact details than the customer record it is linked to. Call the number given in the request.",
+  "admin.contactSubmitted": "In this request",
+  "admin.contactOnFile": "On file",
+  "admin.contactApply": "Update the customer with these details",
+  "admin.contactApplying": "Updating…",
+  "email.contactDiffers":
+    "These details differ from the customer on file. Call the number above, the one given in the request.",
+  "email.contactOnFile": "On file",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -1691,6 +1702,17 @@ const sq: TranslationDictionary = {
   "account.submit": "Ndrysho fjalëkalimin",
   "account.submitting": "Duke ndryshuar…",
   "auth.passwordChanged": "Fjalëkalimi u ndryshua. Kyçu me fjalëkalimin e ri.",
+  // A public booking whose contact details differ from the customer on file.
+  "admin.contactDiffers": "Të dhënat ndryshojnë nga klienti në regjistër",
+  "admin.contactDiffersHint":
+    "Kjo kërkesë u dërgua me të dhëna kontakti të ndryshme nga regjistri i klientit me të cilin është lidhur. Telefono numrin e dhënë në kërkesë.",
+  "admin.contactSubmitted": "Në këtë kërkesë",
+  "admin.contactOnFile": "Në regjistër",
+  "admin.contactApply": "Përditëso klientin me këto të dhëna",
+  "admin.contactApplying": "Duke përditësuar…",
+  "email.contactDiffers":
+    "Këto të dhëna ndryshojnë nga klienti në regjistër. Telefono numrin më sipër, atë të dhënë në kërkesë.",
+  "email.contactOnFile": "Në regjistër",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

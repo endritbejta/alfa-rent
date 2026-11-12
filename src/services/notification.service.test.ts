@@ -112,6 +112,97 @@ describe("staff booking email", () => {
   });
 });
 
+describe("staff booking email when the request differs from the file", () => {
+  const submitted = {
+    firstName: "Ilir",
+    lastName: "Rexhepi",
+    email: "ilir@example.test",
+    phone: "+383 49 222 333",
+  };
+  const differing = {
+    ...booking,
+    contactDifference: {
+      submitted,
+      onFile: booking.customer,
+      name: false,
+      email: false,
+      phone: true,
+    },
+  };
+
+  it("says nothing extra when the details agree", () => {
+    const plain = buildStaffBookingEmail(booking, "en");
+    const agreed = buildStaffBookingEmail(
+      { ...booking, contactDifference: null },
+      "en"
+    );
+    expect(agreed).toEqual(plain);
+    expect(plain.text).not.toContain("differ from the customer on file");
+    expect(plain.html).not.toContain("differ from the customer on file");
+  });
+
+  it("puts the submitted phone first and the one on file after it", () => {
+    const { text, html } = buildStaffBookingEmail(differing, "en");
+
+    expect(text.indexOf("+383 49 222 333")).toBeGreaterThan(-1);
+    expect(text.indexOf("+383 49 222 333")).toBeLessThan(
+      text.indexOf("+383 47 150 374")
+    );
+    expect(text).toContain("On file: +383 47 150 374");
+    // The tap-to-call link rings the number that asked.
+    expect(html).toContain('href="tel:+38349222333"');
+    expect(html).not.toContain('href="tel:+38347150374"');
+    expect(html.indexOf("+383 49 222 333")).toBeLessThan(
+      html.indexOf("+383 47 150 374")
+    );
+    expect(html).toContain("differ from the customer on file");
+    // A matching name and email are not repeated as "on file".
+    expect(text).not.toContain("On file: Ilir Rexhepi");
+  });
+
+  it("names the request with the submitted name", () => {
+    const { subject, text } = buildStaffBookingEmail(
+      {
+        ...differing,
+        contactDifference: {
+          ...differing.contactDifference,
+          submitted: { ...submitted, lastName: "Rexhepi-Gashi" },
+          name: true,
+        },
+      },
+      "en"
+    );
+    expect(subject).toContain("for Ilir Rexhepi-Gashi");
+    expect(text).toContain("On file: Ilir Rexhepi · +383 47 150 374");
+  });
+
+  it("escapes both the submitted and the on-file details", () => {
+    const { html } = buildStaffBookingEmail(
+      {
+        ...differing,
+        contactDifference: {
+          submitted: { ...submitted, phone: '<script>"x"</script> 049' },
+          onFile: { ...booking.customer, firstName: "<b>Old</b>" },
+          name: true,
+          email: false,
+          phone: true,
+        },
+      },
+      "en"
+    );
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<b>Old</b>");
+    expect(html).toContain("&lt;script&gt;&quot;x&quot;&lt;/script&gt; 049");
+    expect(html).toContain("&lt;b&gt;Old&lt;/b&gt; Rexhepi");
+  });
+
+  it("is flagged in Albanian by default", () => {
+    const { text } = buildStaffBookingEmail(differing);
+    expect(text).toContain("ndryshojnë nga klienti në regjistër");
+    expect(text).toContain("Në regjistër: +383 47 150 374");
+  });
+});
+
 describe("emailCarPhotoUrl", () => {
   it("ignores anything that is not a Cloudinary upload", () => {
     expect(emailCarPhotoUrl(null)).toBeNull();

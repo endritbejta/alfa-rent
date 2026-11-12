@@ -1055,24 +1055,15 @@ export async function getPendingCount(now = new Date()): Promise<number> {
 }
 
 /**
- * Earliest pickup and latest return among open reservations — the span the
- * continuous calendar renders, so scrolling covers exactly the months that
- * hold work rather than an arbitrary infinite range.
+ * Vehicles with their open reservations overlapping a date window
+ * (`from` inclusive, `to` exclusive). Expired requests are left out: their
+ * pickup day has passed without a decision, so they hold nothing on the plan.
  */
-export async function getReservationDateBounds() {
-  const bounds = await prisma.reservation.aggregate({
-    _min: { pickupDate: true },
-    _max: { returnDate: true },
-    where: { status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] } },
-  });
-  return {
-    min: bounds._min.pickupDate ?? null,
-    max: bounds._max.returnDate ?? null,
-  };
-}
-
-/** Vehicles with their open reservations overlapping a date window. */
-export async function getCalendarReservations(from: Date, to: Date) {
+export async function getCalendarReservations(
+  from: Date,
+  to: Date,
+  now = new Date()
+) {
   return prisma.vehicle.findMany({
     where: { status: { not: "INACTIVE" } },
     orderBy: [{ brand: "asc" }, { model: "asc" }],
@@ -1085,9 +1076,10 @@ export async function getCalendarReservations(from: Date, to: Date) {
       reservations: {
         where: {
           status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
-          pickupDate: { lte: to },
+          pickupDate: { lt: to },
           // An overdue rental is drawn up to today however old its return is.
-          OR: [{ returnDate: { gte: from } }, { status: "ACTIVE" }],
+          OR: [{ returnDate: { gt: from } }, { status: "ACTIVE" }],
+          NOT: expiredRequestWhere(now),
         },
         select: {
           id: true,

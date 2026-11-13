@@ -20,7 +20,7 @@ import { formatEur } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  await requireUser();
+  const user = await requireUser();
   const { locale, t } = await getI18n();
   const {
     kpis,
@@ -52,13 +52,16 @@ export default async function DashboardPage() {
             </span>
           )}
         </Button>
-        <Button
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/admin/vehicles/new" />}
-        >
-          {t("admin.addVehicle")}
-        </Button>
+        {/* The page requires ADMIN, as on the vehicles list. */}
+        {user.role === "ADMIN" && (
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/admin/vehicles/new" />}
+          >
+            {t("admin.addVehicle")}
+          </Button>
+        )}
       </PageHeader>
 
       {/* Today's decisions come before today's numbers. */}

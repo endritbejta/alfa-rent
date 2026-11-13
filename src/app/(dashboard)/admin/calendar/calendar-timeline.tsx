@@ -57,14 +57,6 @@ const rowW = (gridW: number) => `calc(${NAME_W} + ${gridW}px)`;
 const ZOOMS = { compact: 34, comfortable: 68 } as const;
 type Zoom = keyof typeof ZOOMS;
 
-const pad = (n: number) => String(n).padStart(2, "0");
-function addDays(iso: string, n: number) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + n);
-  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
-}
-
 type Selection = { rowId: string; id: string; start: number; end: number };
 type ModalState = { vehicleId: string; from: string; to: string };
 
@@ -133,7 +125,8 @@ export function CalendarTimeline({
 
   const openFromIndex = (vehicleId: string, index: number) => {
     const from = dayDates[Math.max(0, Math.min(index, days - 1))];
-    setModal({ vehicleId, from, to: addDays(from, 1) });
+    // A click books that one day: pickup and return day both count.
+    setModal({ vehicleId, from, to: from });
   };
 
   const inSelectedRange = (index: number) =>

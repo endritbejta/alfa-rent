@@ -171,3 +171,56 @@ describe("double-booking is refused by the database, not the application", () =>
     expect(unchanged.status).toBe("PENDING");
   });
 });
+
+/**
+ * Pickup day and return day are both rental days, so the car is the renter's
+ * for the whole return day. A half-open range on the stored instants used to
+ * let someone else pick it up that afternoon; the constraint now compares
+ * calendar days, inclusive at both ends.
+ */
+describe("the return day belongs to the rental", () => {
+  const confirmedOn = (pickupDate: Date, returnDate: Date) =>
+    prisma.reservation.create({
+      data: {
+        vehicleId: ids.vehicle,
+        customerId: ids.customer,
+        pickupDate,
+        returnDate,
+        status: "CONFIRMED",
+        totalPrice: 40,
+      },
+    });
+
+  it("refuses a pickup on another booking's return day, whatever the hour", async () => {
+    // The first booking returns 8 Jun at 10:00; this would start at 15:00.
+    let caught: unknown;
+    try {
+      await confirmedOn(
+        new Date("2027-06-08T15:00:00.000Z"),
+        new Date("2027-06-09T15:00:00.000Z")
+      );
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as Error).message).toContain("reservations_no_overlap");
+  });
+
+  it("accepts a pickup the day after the return", async () => {
+    const next = await confirmedOn(
+      new Date("2027-06-09T10:00:00.000Z"),
+      new Date("2027-06-10T10:00:00.000Z")
+    );
+    expect(next.status).toBe("CONFIRMED");
+  });
+
+  it("holds a same-day rental's one day against another", async () => {
+    const day = new Date("2027-06-20T10:00:00.000Z");
+    await confirmedOn(day, day);
+    await expect(
+      confirmedOn(
+        new Date("2027-06-19T10:00:00.000Z"),
+        new Date("2027-06-20T10:00:00.000Z")
+      )
+    ).rejects.toThrow(/reservations_no_overlap/);
+  });
+});

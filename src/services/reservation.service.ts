@@ -14,10 +14,16 @@ import {
   ValidationError,
   phrase,
 } from "@/lib/errors";
-import { calculateTotalPrice, rentalDays } from "@/lib/pricing";
-import { latestUnder, withTimeOfDay } from "@/lib/rental-dates";
+import { calculateTotalPrice } from "@/lib/pricing";
+import {
+  latestReturnBefore,
+  rentalDayStart,
+  rentalDays,
+  withTimeOfDay,
+} from "@/lib/rental-dates";
 import {
   actionableRequestWhere,
+  businessTodayAsRentalDate,
   expiredRequestWhere,
   getReservationTiming,
   isExpiredRequest,
@@ -32,6 +38,7 @@ import {
   isOverdueRental,
   occupyingReservationWhere,
   overdueRentalWhere,
+  sharesRentalDayWhere,
 } from "@/lib/reservation-occupancy";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
@@ -139,8 +146,9 @@ export async function getQuote({
 /**
  * Public booking constraints for one vehicle.
  *
- * Returned as calendar-day strings so the server and browser use the same
- * half-open interval contract without timezone conversion at the RSC boundary.
+ * Returned as calendar-day strings, both ends inclusive, so the server and
+ * browser use the same day contract without timezone conversion at the RSC
+ * boundary.
  */
 export async function getVehicleBookingCalendar(
   vehicleId: string
@@ -154,8 +162,13 @@ export async function getVehicleBookingCalendar(
       where: {
         vehicleId,
         status: { in: BLOCKING_STATUSES },
-        // An overdue ACTIVE rental is past its return date but still blocks.
-        OR: [{ returnDate: { gt: new Date() } }, { status: "ACTIVE" }],
+        // The return day is still booked, so anything returning today or
+        // later blocks. An overdue ACTIVE rental is past its return day but
+        // still blocks.
+        OR: [
+          { returnDate: { gte: businessTodayAsRentalDate() } },
+          { status: "ACTIVE" },
+        ],
       },
       orderBy: { pickupDate: "asc" },
       select: { pickupDate: true, returnDate: true, status: true },
@@ -564,8 +577,7 @@ export async function previewManualReservation(
       where: {
         vehicleId,
         status: { in: BLOCKING_STATUSES },
-        pickupDate: { lt: returnDate },
-        returnDate: { gt: pickupDate },
+        ...sharesRentalDayWhere({ pickupDate, returnDate }),
       },
       orderBy: { pickupDate: "asc" },
       select: { pickupDate: true, returnDate: true },
@@ -823,14 +835,14 @@ async function getExtensionWindow(reservation: {
     return { allowed: false, reason: extensionRefusal(reservation.status) };
   }
 
-  // The vehicle's next commitment. tsrange is half-open, so a return landing
-  // exactly on the next pickup is not an overlap and is therefore allowed.
+  // The vehicle's next commitment. Its pickup day and this rental's return
+  // day are both whole rental days, so the latest return is the day before.
   const next = await prisma.reservation.findFirst({
     where: {
       id: { not: reservation.id },
       vehicleId: reservation.vehicleId,
       status: { in: BLOCKING_STATUSES },
-      pickupDate: { gte: reservation.returnDate },
+      pickupDate: { gte: rentalDayStart(reservation.returnDate) },
     },
     orderBy: { pickupDate: "asc" },
     select: { pickupDate: true },
@@ -840,7 +852,10 @@ async function getExtensionWindow(reservation: {
     return { allowed: true, latestReturn: null, limitedBy: null };
   }
 
-  const latestReturn = latestUnder(reservation.returnDate, next.pickupDate);
+  const latestReturn = latestReturnBefore(
+    reservation.returnDate,
+    next.pickupDate
+  );
 
   // The next booking leaves no room at all — say so now rather than let
   // staff pick a date and be refused.
@@ -925,8 +940,10 @@ export async function extendReservation(
         id: { not: id },
         vehicleId: reservation.vehicleId,
         status: { in: BLOCKING_STATUSES },
-        pickupDate: { lt: target },
-        returnDate: { gt: reservation.pickupDate },
+        ...sharesRentalDayWhere({
+          pickupDate: reservation.pickupDate,
+          returnDate: target,
+        }),
       },
       orderBy: { pickupDate: "asc" },
       select: { pickupDate: true },
@@ -1086,7 +1103,7 @@ export async function getCalendarReservations(
           status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
           pickupDate: { lt: to },
           // An overdue rental is drawn up to today however old its return is.
-          OR: [{ returnDate: { gt: from } }, { status: "ACTIVE" }],
+          OR: [{ returnDate: { gte: from } }, { status: "ACTIVE" }],
           NOT: expiredRequestWhere(now),
         },
         select: {

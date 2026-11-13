@@ -78,8 +78,8 @@ export function calendarWindow(now = new Date()): CalendarWindow {
  * Where a reservation's bar sits in the window, or null if none of it is
  * inside.
  *
- * A booking occupies its pickup day up to, not including, its return day —
- * the same half-open range the exclusion constraint enforces. An ACTIVE
+ * A booking occupies its pickup day through its return day, both included —
+ * the same days the exclusion constraint reserves. An ACTIVE
  * rental occupies at least through today: the car is out until staff record
  * its return, so an overdue one stays visible, running to today, however old
  * its scheduled return is. Bars are clamped to the window at both ends.
@@ -89,7 +89,7 @@ export function calendarBar(
   window: Pick<CalendarWindow, "start" | "days" | "todayIndex">
 ): { start: number; span: number } | null {
   const pickup = dayIndex(window.start, reservation.pickupDate);
-  let endExclusive = dayIndex(window.start, reservation.returnDate);
+  let endExclusive = dayIndex(window.start, reservation.returnDate) + 1;
   if (reservation.status === "ACTIVE") {
     endExclusive = Math.max(endExclusive, window.todayIndex + 1);
   }

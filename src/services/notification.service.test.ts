@@ -37,7 +37,7 @@ describe("staff booking email", () => {
     expect(subject).toBe(
       "New booking request: Dacia Sandero · 03-572-ZK for Ilir Rexhepi"
     );
-    expect(text).toContain("Tue, 01 Dec 2026 → Fri, 04 Dec 2026 (3 days)");
+    expect(text).toContain("Tue, 01 Dec 2026 → Fri, 04 Dec 2026 (4 days)");
     expect(text).toContain("Total: 75.00 EUR");
     expect(text).toContain("+383 47 150 374");
     expect(text).toContain("ilir@example.test");
@@ -56,16 +56,24 @@ describe("staff booking email", () => {
   it("is written in Albanian by default", () => {
     const { subject, text } = buildStaffBookingEmail(booking);
     expect(subject).toMatch(/^Kërkesë e re për rezervim:/);
-    expect(text).toContain("(3 ditë)");
+    expect(text).toContain("(4 ditë)");
     expect(text).toContain("Totali: 75,00 EUR");
   });
 
-  it("says 1 day, not 1 days", () => {
+  it("says 1 day, not 1 days, for a same-day return", () => {
+    const { text } = buildStaffBookingEmail(
+      { ...booking, returnDate: new Date("2026-12-01T10:00:00.000Z") },
+      "en"
+    );
+    expect(text).toContain("(1 day)");
+  });
+
+  it("counts both the pickup and the return day", () => {
     const { text } = buildStaffBookingEmail(
       { ...booking, returnDate: new Date("2026-12-02T10:00:00.000Z") },
       "en"
     );
-    expect(text).toContain("(1 day)");
+    expect(text).toContain("(2 days)");
   });
 
   it("shows the car's photo as an email-safe JPEG", () => {

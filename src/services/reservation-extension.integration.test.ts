@@ -101,13 +101,13 @@ beforeAll(async () => {
         vehicleId: ids.backToBack,
         status: "CONFIRMED",
       },
-      // Starts exactly where the one above ends. tsrange is half-open, so this
-      // is legal — and it leaves not one day to extend into.
+      // Picks up the day after the one above returns — the earliest the
+      // inclusive day rule allows — leaving not one day to extend into.
       {
         id: ids.follower,
         customerId: ids.customer,
         vehicleId: ids.backToBack,
-        pickupDate: ret,
+        pickupDate: new Date("2027-12-06T10:00:00.000Z"),
         returnDate: new Date("2027-12-09T10:00:00.000Z"),
         status: "CONFIRMED",
         totalPrice: 160,
@@ -150,7 +150,7 @@ describe("why an extension is refused", () => {
     );
   });
 
-  it("names the booking that starts the moment this one ends", async () => {
+  it("names the booking that starts the day after this one ends", async () => {
     expect(await refusalFor(ids.blocked)).toBe("BOOKED_IMMEDIATELY_AFTER");
   });
 

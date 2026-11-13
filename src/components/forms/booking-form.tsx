@@ -31,6 +31,14 @@ import { formatPrice } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { IDEMPOTENCY_HEADER, keyForPayload } from "@/lib/idempotency";
 import { PendingStatus } from "@/components/shared/pending-status";
+import { RentalDurationPresets } from "@/components/forms/rental-duration-presets";
+import {
+  DURATION_PRESET_DAYS,
+  durationChoiceFor,
+  rentalDaysBetween,
+  returnDayFor,
+  type DurationChoice,
+} from "@/lib/rental-dates";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import {
   isBookingDayBlocked,
@@ -49,7 +57,7 @@ const createFormSchema = (t: (key: TranslationKey) => string) =>
       email: z.email(t("booking.validEmail")),
       phone: z.string().trim().min(6, t("booking.validPhone")).max(25),
     })
-    .refine((data) => !data.from || !data.to || data.to > data.from, {
+    .refine((data) => !data.from || !data.to || data.to >= data.from, {
       message: t("booking.rangeError"),
       path: ["to"],
     });
@@ -134,14 +142,29 @@ export function BookingForm({
   const pickedFrom = useWatch({ control, name: "from" });
   const pickedTo = useWatch({ control, name: "to" });
 
+  const [choice, setChoice] = useState<DurationChoice>(() =>
+    initialRangeAvailable ? durationChoiceFor(initialFrom, initialTo) : "custom"
+  );
   const rentalDays =
-    pickedFrom && pickedTo && pickedTo > pickedFrom
-      ? Math.round(
-          (Date.parse(`${pickedTo}T00:00:00Z`) -
-            Date.parse(`${pickedFrom}T00:00:00Z`)) /
-            86_400_000
-        )
+    pickedFrom && pickedTo && pickedTo >= pickedFrom
+      ? rentalDaysBetween(pickedFrom, pickedTo)
       : null;
+
+  /*
+   * A preset fixes the length and follows the pickup. Unlike a hand-picked
+   * return, the day it lands on may be taken, so it is set anyway and the
+   * clash is said out loud rather than the return silently emptied.
+   */
+  const applyDuration = (from: string, next: DurationChoice) => {
+    if (next === "custom" || !from) return;
+    const to = returnDayFor(from, DURATION_PRESET_DAYS[next]);
+    setValue("to", to, { shouldDirty: true, shouldValidate: true });
+    setServerError(
+      isBookingRangeAvailable(from, to, bookingCalendar)
+        ? null
+        : t("availability.booked")
+    );
+  };
   const estimatedTotal = rentalDays ? vehicle.pricePerDay * rentalDays : null;
   const unavailablePickup = (date: Date) =>
     isBookingDayBlocked(toDateValue(date), bookingCalendar.blockedRanges);
@@ -325,7 +348,15 @@ export function BookingForm({
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4">
+          <RentalDurationPresets
+            className="mt-4 sm:mt-6"
+            value={choice}
+            onChange={(next) => {
+              setChoice(next);
+              applyDuration(pickedFrom, next);
+            }}
+          />
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:mt-4 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="from">{t("booking.pickupDate")}</Label>
               <Controller
@@ -339,6 +370,10 @@ export function BookingForm({
                       const nextFrom = date ? toDateValue(date) : "";
                       field.onChange(nextFrom);
                       setServerError(null);
+                      if (choice !== "custom") {
+                        applyDuration(nextFrom, choice);
+                        return;
+                      }
                       if (
                         pickedTo &&
                         !isBookingRangeAvailable(
@@ -374,6 +409,7 @@ export function BookingForm({
                     onChange={(date) => {
                       field.onChange(date ? toDateValue(date) : "");
                       setServerError(null);
+                      setChoice("custom");
                     }}
                     minDate={fromDateValue(pickedFrom) ?? minDate}
                     unavailableDates={unavailableReturn}

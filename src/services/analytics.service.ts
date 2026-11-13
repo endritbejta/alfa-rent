@@ -28,9 +28,12 @@ const REVENUE_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
  * days it adds. Revenue used to be counted in full on the day the booking was
  * *created*, so a March rental booked in November was November revenue.
  *
- * The days are the ones the price was billed for (`rentalDays` in
- * lib/pricing): `n` started 24-hour periods from pickup, minimum one, so the
- * covered days are the pickup day and the `n − 1` after it.
+ * The days are the ones a rental occupies: pickup day through return day,
+ * both included — `rentalDays` in lib/rental-dates, restated here because
+ * SQL cannot call it. Keep the two in step. A booking priced before the
+ * inclusive count (one day for 25 → 26 Nov) keeps its stored price, which is
+ * now spread over both days; no period's total changes by more than where a
+ * boundary falls.
  *
  * Rental dates are naive calendar values — `T10:00:00Z` means 10:00 at the
  * branch — so `"pickupDate"::date` already is the branch-local day and needs
@@ -53,12 +56,12 @@ async function revenueByBucket(
       SELECT x."totalPrice" / x.n AS share, x."pickupDate"::date AS first_day, x.n
       FROM (
         SELECT "totalPrice", "pickupDate",
-               GREATEST(1, CEIL(EXTRACT(EPOCH FROM ("returnDate" - "pickupDate")) / 86400))::int AS n
+               ("returnDate"::date - "pickupDate"::date + 1) AS n
         FROM reservations
         WHERE status::text = ANY(${[...REVENUE_STATUSES]})
           -- Coarse range filter: no day of a rental outside it can fall in the window.
           AND "pickupDate" < ${to}::date
-          AND "returnDate" > ${from}::date
+          AND "returnDate" >= ${from}::date
       ) x
     ) r
     CROSS JOIN LATERAL generate_series(

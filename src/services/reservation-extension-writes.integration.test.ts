@@ -3,7 +3,10 @@ import { Prisma, PrismaClient, type ReservationStatus } from "@prisma/client";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { AppError, ConflictError, normalizeError } from "@/lib/errors";
-import { extendReservation } from "@/services/reservation.service";
+import {
+  extendReservation,
+  getReservationDetail,
+} from "@/services/reservation.service";
 
 /**
  * extendReservation's write path. reservation-extension.integration.test.ts
@@ -239,9 +242,9 @@ describe("the price of an extension", () => {
     expect(stored.totalPrice.toFixed(2)).toBe("224.09");
   });
 
-  it("charges a started day as a whole day", async () => {
-    // A rental picked up at 18:00 and returned at 10:00 is billed by started
-    // days, so moving the return two calendar days on adds two days.
+  it("charges each added calendar day once, whatever the times of day", async () => {
+    // Days are calendar days, pickup and return both counted, so moving the
+    // return two calendar days on adds two days.
     const { id } = await rental({
       status: "ACTIVE",
       pickupDate: new Date("2028-02-01T18:00:00.000Z"),
@@ -357,6 +360,32 @@ describe("running into another commitment", () => {
       extendReservation(id, new Date("2028-01-17T00:00:00.000Z"))
     ).resolves.toMatchObject({
       returnDate: new Date("2028-01-17T09:30:00.000Z"),
+    });
+  });
+
+  it("refuses a return on the next pickup day: both are whole rental days", async () => {
+    const { id } = await rental();
+    await follower("CONFIRMED");
+    expect(
+      await refusalKey(
+        extendReservation(id, new Date("2028-01-18T00:00:00.000Z"))
+      )
+    ).toBe("err.bookedAgainFrom");
+    const stored = await prisma.reservation.findUniqueOrThrow({
+      where: { id },
+    });
+    expect(stored.returnDate).toEqual(returnDate);
+    expect(stored.totalPrice.toFixed(2)).toBe(agreedTotal);
+  });
+
+  it("offers the day before the next pickup as the latest return", async () => {
+    const { id } = await rental();
+    await follower("CONFIRMED");
+    const { extension } = await getReservationDetail(id);
+    expect(extension).toEqual({
+      allowed: true,
+      latestReturn: new Date("2028-01-17T09:30:00.000Z"),
+      limitedBy: "booking",
     });
   });
 

@@ -17,6 +17,7 @@ import {
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/lib/vehicle-label";
+import { rentalDays } from "@/lib/rental-dates";
 import { formatEur } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
@@ -57,7 +58,10 @@ export function PendingRequestCard({
   const { openReservation } = useDetailDrawer();
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
-  const days = differenceInCalendarDays(request.returnDate, request.pickupDate);
+  // The days the dates span, pickup and return both counted. A request made
+  // before that rule keeps the total it was quoted, so a 25 → 26 request
+  // from then reads "2 days" next to a one-day price.
+  const days = rentalDays(request.pickupDate, request.returnDate);
   const waiting = formatDistanceToNow(request.createdAt, {
     addSuffix: false,
     locale: dateLocale,

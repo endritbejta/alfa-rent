@@ -174,6 +174,52 @@ describe("POST /api/bookings", () => {
     expect(notifyStaffOfBookingRequest).toHaveBeenCalledWith(body.data.id);
   });
 
+  it("charges both the pickup and the return day: 25 → 26 at 53/day is 106", async () => {
+    await prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { pricePerDay: 53 },
+    });
+    try {
+      const response = await POST(
+        post(
+          {},
+          {
+            ...booking,
+            pickupDate: "2027-11-25T10:00:00.000Z",
+            returnDate: "2027-11-26T10:00:00.000Z",
+          }
+        )
+      );
+      expect(response.status).toBe(201);
+      const body = await response.json();
+      expect(body.data.totalPrice).toBe(106);
+      const stored = await prisma.reservation.findUniqueOrThrow({
+        where: { id: body.data.id },
+      });
+      expect(stored.totalPrice.toFixed(2)).toBe("106.00");
+    } finally {
+      await prisma.vehicle.update({
+        where: { id: vehicleId },
+        data: { pricePerDay: 40 },
+      });
+    }
+  });
+
+  it("accepts a same-day return as one day", async () => {
+    const response = await POST(
+      post(
+        {},
+        {
+          ...booking,
+          pickupDate: "2027-11-25T10:00:00.000Z",
+          returnDate: "2027-11-25T10:00:00.000Z",
+        }
+      )
+    );
+    expect(response.status).toBe(201);
+    expect((await response.json()).data.totalPrice).toBe(40);
+  });
+
   it("answers a retry with the same key with the same body, marked as a replay", async () => {
     const key = randomUUID();
     const first = await POST(post({ "Idempotency-Key": key }));

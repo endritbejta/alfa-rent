@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { removeTestActor } from "@/lib/testing/audit";
 import { AppError } from "@/lib/errors";
 import { BUSINESS_TIME_ZONE, businessDay } from "@/lib/reservation-lifecycle";
 import type { RentalInspectionInput } from "@/lib/validations/inspection";
@@ -132,7 +133,7 @@ afterAll(async () => {
   await prisma.reservation.deleteMany({ where: { id: reservationId } });
   await prisma.vehicle.deleteMany({ where: { id: ids.vehicle } });
   await prisma.customer.deleteMany({ where: { id: ids.customer } });
-  await prisma.user.deleteMany({ where: { id: ids.user } });
+  await removeTestActor(ids.user);
   await prisma.$disconnect();
 });
 

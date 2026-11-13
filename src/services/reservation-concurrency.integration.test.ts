@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { removeTestActor } from "@/lib/testing/audit";
 import { businessDay } from "@/lib/reservation-lifecycle";
 import { cancelReservation } from "@/services/reservation.service";
 import { recordRentalInspection } from "@/services/inspection.service";
@@ -73,13 +74,13 @@ describe("reservation transition concurrency", () => {
     await prisma.reservation.deleteMany({ where: { id: ids.reservation } });
     await prisma.vehicle.deleteMany({ where: { id: ids.vehicle } });
     await prisma.customer.deleteMany({ where: { id: ids.customer } });
-    await prisma.user.deleteMany({ where: { id: ids.user } });
+    await removeTestActor(ids.user);
     await prisma.$disconnect();
   });
 
   it("allows cancellation or pickup to win, but never both", async () => {
     const results = await Promise.allSettled([
-      cancelReservation(ids.reservation),
+      cancelReservation(ids.reservation, ids.user, "Customer called to cancel"),
       recordRentalInspection(
         ids.reservation,
         ids.user,

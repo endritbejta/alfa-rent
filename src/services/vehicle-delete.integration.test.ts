@@ -2,6 +2,16 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { deleteVehicle } from "@/services/vehicle.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("vehicle-delete");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * Deleting a vehicle used to destroy every Cloudinary asset first and only
@@ -118,7 +128,7 @@ describe("deleting a vehicle", () => {
   it("destroys nothing when the delete is refused", async () => {
     deleteImage.mockClear();
 
-    await expect(deleteVehicle(ids.blocked)).rejects.toThrow(
+    await expect(deleteVehicle(ids.blocked, actor)).rejects.toThrow(
       /open reservations/i
     );
 
@@ -138,7 +148,7 @@ describe("deleting a vehicle", () => {
 
     // Says which of the two it did, so the operator is not told a vehicle
     // was removed while it is still on the list as inactive.
-    expect(await deleteVehicle(ids.retiring)).toBe("retired");
+    expect(await deleteVehicle(ids.retiring, actor)).toBe("retired");
 
     const retired = await prisma.vehicle.findUniqueOrThrow({
       where: { id: ids.retiring },
@@ -167,7 +177,7 @@ describe("deleting a vehicle", () => {
       rowStillPresent.push(row !== null);
     });
 
-    expect(await deleteVehicle(ids.deletable)).toBe("deleted");
+    expect(await deleteVehicle(ids.deletable, actor)).toBe("deleted");
 
     expect(deleteImage).toHaveBeenCalledTimes(2);
     // Never destroy an asset that a live row still references.
@@ -198,7 +208,7 @@ describe("deleting a vehicle", () => {
     deleteImage.mockClear();
     deleteImage.mockRejectedValue(new Error("cloudinary unavailable"));
 
-    await expect(deleteVehicle(id)).resolves.toBe("deleted");
+    await expect(deleteVehicle(id, actor)).resolves.toBe("deleted");
     expect(await prisma.vehicle.findUnique({ where: { id } })).toBeNull();
 
     deleteImage.mockResolvedValue(undefined);

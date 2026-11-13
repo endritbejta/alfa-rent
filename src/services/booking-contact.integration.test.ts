@@ -9,6 +9,16 @@ import {
   createReservation,
   getReservationDetail,
 } from "@/services/reservation.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("booking-contact");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * Audit P1-4. A public booking whose email is already on file used to keep
@@ -214,7 +224,8 @@ describe("copying the submitted details onto the customer", () => {
       customer.id,
       customerSchema.parse(
         submittedContactAsCustomerInput(contactDifference!, customer.notes)
-      )
+      ),
+      actor
     );
 
     const after = await prisma.customer.findUniqueOrThrow({
@@ -262,7 +273,8 @@ describe("copying the submitted details onto the customer", () => {
         customer.id,
         customerSchema.parse(
           submittedContactAsCustomerInput(contactDifference!, customer.notes)
-        )
+        ),
+        actor
       )
     ).rejects.toSatisfy(
       (error) =>

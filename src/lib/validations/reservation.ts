@@ -3,6 +3,8 @@ import { ReservationStatus } from "@prisma/client";
 import { businessDay, rentalCalendarDay } from "@/lib/reservation-lifecycle";
 import { idempotencyKeySchema } from "@/lib/idempotency";
 import { rentalDays } from "@/lib/rental-dates";
+import { CANCEL_REASON_MAX, CANCEL_REASON_MIN } from "@/lib/cancel-reason";
+import { ValidationError } from "@/lib/errors";
 
 export const MAX_RENTAL_DAYS = 365;
 export const MAX_BOOKING_HORIZON_DAYS = 730;
@@ -69,9 +71,33 @@ export const createBookingSchema = withValidRange(
   })
 );
 
-export const updateReservationStatusSchema = z.object({
-  status: z.enum(ReservationStatus),
-});
+/**
+ * A cancellation must say why, so "who cancelled this, and why?" has an
+ * answer (audit P2-7). The service checks again for any other caller.
+ */
+export const updateReservationStatusSchema = z
+  .object({
+    status: z.enum(ReservationStatus),
+    reason: z
+      .string()
+      .trim()
+      .max(CANCEL_REASON_MAX)
+      .nullish()
+      .transform((v) => v || null),
+  })
+  .refine(
+    (v) =>
+      v.status !== "CANCELLED" || (v.reason?.length ?? 0) >= CANCEL_REASON_MIN,
+    { message: "cancelReasonRequired", path: ["reason"] }
+  );
+
+/** The refusal both the action and the service give, in the reader's language. */
+export function cancelReasonRequiredError(): ValidationError {
+  return new ValidationError(
+    `Give a reason for cancelling (at least ${CANCEL_REASON_MIN} characters)`,
+    { key: "err.cancelReasonRequired", values: { count: CANCEL_REASON_MIN } }
+  );
+}
 
 /**
  * Extending only ever moves the return date later; the service enforces

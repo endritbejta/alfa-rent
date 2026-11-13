@@ -7,6 +7,16 @@ import {
   createManualReservation,
   createReservation,
 } from "@/services/reservation.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("idempotency");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * A booking that commits after the browser has given up on it — the form
@@ -188,8 +198,8 @@ describe("staff booking with an idempotency key", () => {
       idempotencyKey: key,
     };
 
-    const first = await createManualReservation(input);
-    const retry = await createManualReservation(input);
+    const first = await createManualReservation(input, actor);
+    const retry = await createManualReservation(input, actor);
 
     expect(retry.id).toBe(first.id);
     expect(

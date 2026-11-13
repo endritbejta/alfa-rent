@@ -13,6 +13,7 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { CustomerEditForm } from "./customer-edit-form";
+import { AuditHistory } from "./audit-history";
 import { anonymiseCustomerAction } from "./customers/actions";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { toasts } from "@/components/dashboard/toaster";
@@ -146,6 +147,8 @@ export function CustomerDetailBody({
           ))}
         </ul>
       </section>
+
+      <AuditHistory items={detail.history} />
 
       {detail.viewerIsAdmin && !anonymised && (
         <AnonymiseSection detail={detail} onDone={onChanged} />

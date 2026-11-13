@@ -9,6 +9,7 @@ import type { VehicleDetail } from "./detail-actions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { SectionTitle, Row } from "./detail-primitives";
+import { AuditHistory } from "./audit-history";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 
@@ -199,6 +200,8 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
           ))}
         </ul>
       </section>
+
+      <AuditHistory items={detail.history} />
 
       <Button
         variant="outline"

@@ -24,6 +24,7 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 import { formatNumber } from "@/lib/number-format";
 import { ContactDifferenceNotice } from "./contact-difference";
+import { AuditHistory } from "./audit-history";
 
 export function ReservationBody({
   detail,
@@ -170,6 +171,8 @@ export function ReservationBody({
           </div>
         </div>
       </section>
+
+      <AuditHistory items={detail.history} />
 
       {detail.inspections.length > 0 && (
         <section>

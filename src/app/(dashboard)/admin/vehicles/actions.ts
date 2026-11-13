@@ -71,7 +71,7 @@ export async function signVehicleUploadAction(
 export async function createVehicleAction(
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
 
   let input: ReturnType<typeof createVehicleSchema.parse>;
   let images: ReturnType<typeof parseVehicleImagesField>;
@@ -86,7 +86,7 @@ export async function createVehicleAction(
 
   let vehicle: Awaited<ReturnType<typeof createVehicle>>;
   try {
-    vehicle = await createVehicle(input);
+    vehicle = await createVehicle(input, user.id);
   } catch (error) {
     // Still nothing created — a duplicate plate belongs on the form, not on
     // the error boundary.
@@ -133,11 +133,11 @@ export async function updateVehicleAction(
   vehicleId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
   try {
     const input = updateVehicleSchema.parse(parseVehicleFields(formData));
     const images = parseVehicleImagesField(formData.get("images"));
-    await updateVehicle(vehicleId, input);
+    await updateVehicle(vehicleId, input, user.id);
     await syncVehicleImages(vehicleId, images);
   } catch (error) {
     return { error: await errorMessage(error) };
@@ -152,10 +152,10 @@ export async function updateVehicleAction(
 export async function deleteVehicleAction(
   vehicleId: string
 ): Promise<RemovalResult> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
   let removal: VehicleRemoval;
   try {
-    removal = await deleteVehicle(vehicleId);
+    removal = await deleteVehicle(vehicleId, user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -168,10 +168,10 @@ export async function addRepairAction(
   vehicleId: string,
   formData: FormData
 ): Promise<ActionResult> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
   try {
     const input = parseRepairFields(formData);
-    await addRepair(vehicleId, input);
+    await addRepair(vehicleId, input, user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -184,9 +184,9 @@ export async function deleteRepairAction(
   vehicleId: string,
   repairId: string
 ): Promise<ActionResult> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
   try {
-    await deleteRepair(repairId);
+    await deleteRepair(repairId, user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }

@@ -43,6 +43,16 @@ vi.mock("next-auth/providers/credentials", () => ({
 import { prisma } from "@/lib/db/prisma";
 import "@/lib/auth";
 import { createStaff } from "@/services/staff.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("credentials");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 const suffix = randomUUID().slice(0, 8);
 const email = `signin-${suffix}@example.test`;
@@ -75,13 +85,13 @@ const compare = vi.spyOn(bcrypt, "compare");
 beforeAll(async () => {
   // Through the real staff path, so the hash is made at the cost real
   // accounts use; the dummy-hash test below compares against it.
-  ({ id: userId } = await createStaff({
+  ({ id: userId } = await createStaff(actor, {
     name: "Sign In",
     email,
     role: "EMPLOYEE",
     temporaryPassword: password,
   }));
-  await createStaff({
+  await createStaff(actor, {
     name: "Gone Away",
     email: inactiveEmail,
     role: "EMPLOYEE",

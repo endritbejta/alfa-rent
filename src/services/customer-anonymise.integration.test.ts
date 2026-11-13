@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { prisma } from "@/lib/db/prisma";
+import { purgeAuditEvents } from "@/lib/testing/audit";
 import { AppError, ForbiddenError } from "@/lib/errors";
 import { dictionaries, translate } from "@/lib/i18n/translations";
 import {
@@ -142,6 +143,7 @@ afterAll(async () => {
   await prisma.reservation.deleteMany({ where: { vehicleId: ids.vehicle } });
   await prisma.vehicle.deleteMany({ where: { id: ids.vehicle } });
   await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
+  await purgeAuditEvents({ actorIds: [ids.admin, ids.employee] });
   await prisma.user.deleteMany({
     where: { id: { in: [ids.admin, ids.employee] } },
   });
@@ -169,7 +171,7 @@ describe("anonymiseCustomer", () => {
   it("scrubs the customer's personal data and keeps the rentals and their totals", async () => {
     const spendBefore = await getCustomerSpend(ids.closed);
 
-    await expect(anonymiseCustomer(ids.closed)).resolves.toEqual({
+    await expect(anonymiseCustomer(ids.closed, ids.admin)).resolves.toEqual({
       reservations: 2,
     });
 
@@ -237,19 +239,29 @@ describe("anonymiseCustomer", () => {
   });
 
   it("then refuses to edit, merge or anonymise the record again", async () => {
-    await refusedWith(anonymiseCustomer(ids.closed), "err.customerAnonymised");
     await refusedWith(
-      updateCustomer(ids.closed, {
-        firstName: "Arta",
-        lastName: "Krasniqi",
-        email: email("customer-0"),
-        phone: "+383 44 100 234",
-        notes: null,
-      }),
+      anonymiseCustomer(ids.closed, ids.admin),
       "err.customerAnonymised"
     );
     await refusedWith(
-      mergeCustomers({ keepId: ids.viaAction, mergeIds: [ids.closed] }),
+      updateCustomer(
+        ids.closed,
+        {
+          firstName: "Arta",
+          lastName: "Krasniqi",
+          email: email("customer-0"),
+          phone: "+383 44 100 234",
+          notes: null,
+        },
+        ids.admin
+      ),
+      "err.customerAnonymised"
+    );
+    await refusedWith(
+      mergeCustomers(
+        { keepId: ids.viaAction, mergeIds: [ids.closed] },
+        ids.admin
+      ),
       "err.customerAnonymised"
     );
   });
@@ -269,7 +281,7 @@ describe("anonymiseCustomer", () => {
 
   it("is refused while the customer has an open reservation", async () => {
     await refusedWith(
-      anonymiseCustomer(ids.open),
+      anonymiseCustomer(ids.open, ids.admin),
       "err.customerHasOpenReservations"
     );
     const customer = await prisma.customer.findUniqueOrThrow({

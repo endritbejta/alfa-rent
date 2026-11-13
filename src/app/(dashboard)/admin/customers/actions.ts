@@ -33,9 +33,9 @@ export async function updateCustomerAction(
   customerId: string,
   input: unknown
 ): Promise<ActionResult> {
-  await requireRole("EMPLOYEE");
+  const user = await requireRole("EMPLOYEE");
   try {
-    await updateCustomer(customerId, customerSchema.parse(input));
+    await updateCustomer(customerId, customerSchema.parse(input), user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -50,10 +50,10 @@ export async function updateCustomerAction(
 export async function mergeCustomersAction(
   input: unknown
 ): Promise<{ moved: number } | { error: string }> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
   let result: { moved: number };
   try {
-    result = await mergeCustomers(mergeCustomersSchema.parse(input));
+    result = await mergeCustomers(mergeCustomersSchema.parse(input), user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -69,10 +69,13 @@ export async function mergeCustomersAction(
 export async function anonymiseCustomerAction(
   customerId: unknown
 ): Promise<{ reservations: number } | { error: string }> {
-  await requireRole("ADMIN");
+  const user = await requireRole("ADMIN");
   let result: { reservations: number };
   try {
-    result = await anonymiseCustomer(z.string().min(1).parse(customerId));
+    result = await anonymiseCustomer(
+      z.string().min(1).parse(customerId),
+      user.id
+    );
   } catch (error) {
     return { error: await errorMessage(error) };
   }

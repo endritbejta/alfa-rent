@@ -1053,6 +1053,35 @@ const en = {
     "This customer has been anonymised, so the record can no longer be changed or used for new bookings.",
   "err.customerHasOpenReservations":
     "This customer still has pending, confirmed or active reservations. Complete or cancel them first.",
+  // --- audit trail (P2-7) ---------------------------------------------------
+  "err.cancelReasonRequired":
+    "Give a reason for cancelling, at least {count} characters.",
+  "admin.cancelReasonLabel": "Reason for cancelling",
+  "admin.cancelReasonHint":
+    "Kept in the reservation's history. At least {count} characters.",
+  "audit.reservation.create": "Created the reservation",
+  "audit.reservation.confirm": "Confirmed the reservation",
+  "audit.reservation.cancel": "Cancelled the reservation",
+  "audit.reservation.extend": "Extended the return to {date}",
+  "audit.reservation.start": "Handed the car over",
+  "audit.reservation.complete": "Took the car back",
+  "audit.reservation.recordPast": "Recorded the rental after the fact",
+  "audit.customer.update": "Edited the customer",
+  "audit.customer.merge": "Merged {count} duplicate records into this one",
+  "audit.customer.anonymise": "Anonymised the customer",
+  "audit.vehicle.create": "Added the vehicle",
+  "audit.vehicle.update": "Edited the vehicle",
+  "audit.vehicle.retire": "Retired the vehicle",
+  "audit.vehicle.delete": "Deleted the vehicle",
+  "audit.vehicle.addRepair": "Added a repair",
+  "audit.vehicle.deleteRepair": "Removed a repair",
+  "audit.staff.create": "Added the staff account",
+  "audit.staff.changeRole": "Changed the role",
+  "audit.staff.deactivate": "Deactivated the account",
+  "audit.staff.reactivate": "Reactivated the account",
+  "audit.staff.resetPassword": "Reset the password",
+  "audit.staff.signOutEverywhere": "Signed the account out everywhere",
+  "audit.staff.changeOwnPassword": "Changed their own password",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -2114,6 +2143,35 @@ const sq: TranslationDictionary = {
     "Ky klient është anonimizuar, prandaj kartela nuk mund të ndryshohet më dhe nuk mund të përdoret për rezervime të reja.",
   "err.customerHasOpenReservations":
     "Ky klient ka ende rezervime në pritje, të konfirmuara ose aktive. Përfundojini ose anulojini ato më parë.",
+  // --- audit trail (P2-7) ---------------------------------------------------
+  "err.cancelReasonRequired":
+    "Shkruani arsyen e anulimit, të paktën {count} karaktere.",
+  "admin.cancelReasonLabel": "Arsyeja e anulimit",
+  "admin.cancelReasonHint":
+    "Ruhet në historikun e rezervimit. Të paktën {count} karaktere.",
+  "audit.reservation.create": "Krijoi rezervimin",
+  "audit.reservation.confirm": "Konfirmoi rezervimin",
+  "audit.reservation.cancel": "Anuloi rezervimin",
+  "audit.reservation.extend": "E zgjati kthimin deri më {date}",
+  "audit.reservation.start": "Dorëzoi veturën",
+  "audit.reservation.complete": "Pranoi veturën në kthim",
+  "audit.reservation.recordPast": "Regjistroi qiranë pasi kishte përfunduar",
+  "audit.customer.update": "Ndryshoi të dhënat e klientit",
+  "audit.customer.merge": "Bashkoi {count} kartela të dyfishta në këtë",
+  "audit.customer.anonymise": "Anonimizoi klientin",
+  "audit.vehicle.create": "Shtoi veturën",
+  "audit.vehicle.update": "Ndryshoi veturën",
+  "audit.vehicle.retire": "E nxori veturën nga përdorimi",
+  "audit.vehicle.delete": "Fshiu veturën",
+  "audit.vehicle.addRepair": "Shtoi një riparim",
+  "audit.vehicle.deleteRepair": "Hoqi një riparim",
+  "audit.staff.create": "Shtoi llogarinë e punonjësit",
+  "audit.staff.changeRole": "Ndryshoi rolin",
+  "audit.staff.deactivate": "Çaktivizoi llogarinë",
+  "audit.staff.reactivate": "Riaktivizoi llogarinë",
+  "audit.staff.resetPassword": "Rivendosi fjalëkalimin",
+  "audit.staff.signOutEverywhere": "E nxori llogarinë nga të gjitha pajisjet",
+  "audit.staff.changeOwnPassword": "Ndryshoi fjalëkalimin e vet",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

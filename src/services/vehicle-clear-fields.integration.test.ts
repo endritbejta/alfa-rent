@@ -6,6 +6,16 @@ import {
   updateVehicleSchema,
 } from "@/lib/validations/vehicle";
 import { updateVehicle } from "@/services/vehicle.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("clear-fields");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * Covers the whole path a cleared field takes: form data → parse → schema →
@@ -87,7 +97,8 @@ describe("clearing an optional vehicle field", () => {
       id,
       updateVehicleSchema.parse(
         parseVehicleFields(submissionWithClearedOptionals())
-      )
+      ),
+      actor
     );
 
     const after = await prisma.vehicle.findUniqueOrThrow({ where: { id } });

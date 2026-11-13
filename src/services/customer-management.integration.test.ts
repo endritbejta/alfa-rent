@@ -8,6 +8,16 @@ import {
   mergeCustomers,
   updateCustomer,
 } from "@/services/customer.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("customer-management");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * Staff can find, correct and fold together customer records. The merge is
@@ -121,7 +131,8 @@ describe("editing a customer", () => {
         email: `BESA-${suffix}@Example.test`,
         phone: local,
         notes: "",
-      })
+      }),
+      actor
     );
     const after = await prisma.customer.findUniqueOrThrow({
       where: { id: ids.other },
@@ -138,7 +149,8 @@ describe("editing a customer", () => {
         lastName: `Other${suffix}`,
         email: `arta-${suffix}@example.test`,
         phone: local,
-      })
+      }),
+      actor
     );
     await expect(attempt).rejects.toMatchObject({
       status: 409,
@@ -165,7 +177,7 @@ describe("duplicates and merging", () => {
 
   it("leaves everything untouched when a record is missing", async () => {
     await expect(
-      mergeCustomers({ keepId: ids.walkIn, mergeIds: ["cm-missing"] })
+      mergeCustomers({ keepId: ids.walkIn, mergeIds: ["cm-missing"] }, actor)
     ).rejects.toMatchObject({ status: 404 });
     expect(
       await prisma.reservation.count({ where: { customerId: ids.walkIn } })
@@ -173,10 +185,13 @@ describe("duplicates and merging", () => {
   });
 
   it("moves the history and keeps real contact details over placeholders", async () => {
-    const { moved } = await mergeCustomers({
-      keepId: ids.walkIn,
-      mergeIds: [ids.real],
-    });
+    const { moved } = await mergeCustomers(
+      {
+        keepId: ids.walkIn,
+        mergeIds: [ids.real],
+      },
+      actor
+    );
     expect(moved).toBe(1);
 
     const kept = await prisma.customer.findUniqueOrThrow({

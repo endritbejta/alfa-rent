@@ -13,6 +13,7 @@ import {
   PASSWORD_PROBLEM_TEXT,
   passwordProblem,
 } from "@/lib/password-policy";
+import { recordAudit, type AuditAction, type AuditFields } from "@/lib/audit";
 
 /**
  * The staff account lifecycle: adding people, changing what they may do,
@@ -59,12 +60,15 @@ export function listStaff(): Promise<StaffMember[]> {
   });
 }
 
-export async function createStaff(input: {
-  name: string;
-  email: string;
-  role: Role;
-  temporaryPassword: string;
-}): Promise<StaffMember> {
+export async function createStaff(
+  actorId: string,
+  input: {
+    name: string;
+    email: string;
+    role: Role;
+    temporaryPassword: string;
+  }
+): Promise<StaffMember> {
   assertPasswordPolicy(input.temporaryPassword);
   const email = input.email.trim().toLowerCase();
 
@@ -79,16 +83,26 @@ export async function createStaff(input: {
 
   const password = await bcrypt.hash(input.temporaryPassword, BCRYPT_COST);
   try {
-    return await prisma.user.create({
-      data: {
-        name: input.name.trim(),
-        email,
-        role: input.role,
-        password,
-        // The admin chose this password and knows it.
-        mustChangePassword: true,
-      },
-      select: STAFF_COLUMNS,
+    return await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name: input.name.trim(),
+          email,
+          role: input.role,
+          password,
+          // The admin chose this password and knows it.
+          mustChangePassword: true,
+        },
+        select: STAFF_COLUMNS,
+      });
+      // Never the temporary password, nor its hash.
+      await recordAudit(tx, {
+        actorId,
+        action: "staff.create",
+        entityId: created.id,
+        after: { name: created.name, email, role: created.role },
+      });
+      return created;
     });
   } catch (error) {
     if (
@@ -115,7 +129,10 @@ export async function changeStaffRole(
   role: Role
 ): Promise<void> {
   if (role === "ADMIN") {
-    await updateStaff(userId, { role });
+    await updateStaff(actorId, userId, "staff.changeRole", { role }, (was) => ({
+      before: { role: was.role },
+      after: { role },
+    }));
     return;
   }
   if (actorId === userId) {
@@ -124,8 +141,15 @@ export async function changeStaffRole(
     });
   }
   await withLastAdminLock(async (tx) => {
-    await assertNotLastActiveAdmin(tx, userId);
+    const was = await assertNotLastActiveAdmin(tx, userId);
     await tx.user.update({ where: { id: userId }, data: { role } });
+    await recordAudit(tx, {
+      actorId,
+      action: "staff.changeRole",
+      entityId: userId,
+      before: { role: was.role },
+      after: { role },
+    });
   });
 }
 
@@ -139,12 +163,19 @@ export async function deactivateStaff(
     });
   }
   await withLastAdminLock(async (tx) => {
-    await assertNotLastActiveAdmin(tx, userId);
+    const was = await assertNotLastActiveAdmin(tx, userId);
     await tx.user.update({
       where: { id: userId },
       // Sign-in already refuses an inactive account; this ends the sessions
       // that are open right now.
       data: { active: false, sessionVersion: { increment: 1 } },
+    });
+    await recordAudit(tx, {
+      actorId,
+      action: "staff.deactivate",
+      entityId: userId,
+      before: { active: was.active },
+      after: { active: false },
     });
   });
 }
@@ -155,11 +186,17 @@ export async function deactivateStaff(
  * version, so turning it back on would otherwise bring its old sessions back
  * to life.
  */
-export async function reactivateStaff(userId: string): Promise<void> {
-  await updateStaff(userId, {
-    active: true,
-    sessionVersion: { increment: 1 },
-  });
+export async function reactivateStaff(
+  actorId: string,
+  userId: string
+): Promise<void> {
+  await updateStaff(
+    actorId,
+    userId,
+    "staff.reactivate",
+    { active: true, sessionVersion: { increment: 1 } },
+    (was) => ({ before: { active: was.active }, after: { active: true } })
+  );
 }
 
 /**
@@ -182,7 +219,8 @@ export async function resetStaffPassword(
   }
   assertPasswordPolicy(temporaryPassword);
   const password = await bcrypt.hash(temporaryPassword, BCRYPT_COST);
-  await updateStaff(userId, {
+  // The fact only: no password, no hash.
+  await updateStaff(actorId, userId, "staff.resetPassword", {
     password,
     mustChangePassword: true,
     sessionVersion: { increment: 1 },
@@ -190,8 +228,13 @@ export async function resetStaffPassword(
 }
 
 /** For a lost phone, or a counter PC someone left signed in. */
-export async function signOutStaffEverywhere(userId: string): Promise<void> {
-  await updateStaff(userId, { sessionVersion: { increment: 1 } });
+export async function signOutStaffEverywhere(
+  actorId: string,
+  userId: string
+): Promise<void> {
+  await updateStaff(actorId, userId, "staff.signOutEverywhere", {
+    sessionVersion: { increment: 1 },
+  });
 }
 
 /**
@@ -230,21 +273,30 @@ export async function changeOwnPassword(
   }
 
   const password = await bcrypt.hash(newPassword, BCRYPT_COST);
-  const { count } = await prisma.user.updateMany({
-    where: { id: userId, password: user.password, active: true },
-    data: {
-      password,
-      mustChangePassword: false,
-      // Ends every other session too. Whoever was signed in as this person
-      // somewhere else no longer is.
-      sessionVersion: { increment: 1 },
-    },
-  });
-  if (count === 0) {
-    throw new ConflictError("The password changed while this was open", {
-      key: "err.passwordChangedElsewhere",
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.user.updateMany({
+      where: { id: userId, password: user.password, active: true },
+      data: {
+        password,
+        mustChangePassword: false,
+        // Ends every other session too. Whoever was signed in as this person
+        // somewhere else no longer is.
+        sessionVersion: { increment: 1 },
+      },
     });
-  }
+    if (count === 0) {
+      throw new ConflictError("The password changed while this was open", {
+        key: "err.passwordChangedElsewhere",
+      });
+    }
+    // The fact only. A wrong current password is refused above and records
+    // nothing: the rate limiter, not the audit trail, deals with guessing.
+    await recordAudit(tx, {
+      actorId: userId,
+      action: "staff.changeOwnPassword",
+      entityId: userId,
+    });
+  });
 }
 
 const PASSWORD_PROBLEM_LOG = {
@@ -268,16 +320,43 @@ function emailTaken() {
   });
 }
 
-/** updateMany for the count, so a stale id says "staff account", not "record". */
+/**
+ * One change to one account and its audit event, together.
+ *
+ * `describe` turns the row as it was into the event's before/after; without
+ * it the event records only that the action happened, which is all a
+ * password reset or a sign-out should say.
+ */
 async function updateStaff(
+  actorId: string,
   userId: string,
-  data: Prisma.UserUpdateManyMutationInput
+  action: AuditAction,
+  data: Prisma.UserUpdateManyMutationInput,
+  describe?: (was: { role: Role; active: boolean }) => {
+    before: AuditFields;
+    after: AuditFields;
+  }
 ): Promise<void> {
-  const { count } = await prisma.user.updateMany({
-    where: { id: userId },
-    data,
+  await prisma.$transaction(async (tx) => {
+    const was = await tx.user.findUnique({
+      where: { id: userId },
+      select: { role: true, active: true },
+    });
+    if (!was) throw new NotFoundError("Staff");
+    // updateMany for the count, so a stale id says "staff account", not
+    // "record", even if the row vanished since the read.
+    const { count } = await tx.user.updateMany({
+      where: { id: userId },
+      data,
+    });
+    if (count === 0) throw new NotFoundError("Staff");
+    await recordAudit(tx, {
+      actorId,
+      action,
+      entityId: userId,
+      ...describe?.(was),
+    });
   });
-  if (count === 0) throw new NotFoundError("Staff");
 }
 
 /**
@@ -310,13 +389,13 @@ function withLastAdminLock(
 async function assertNotLastActiveAdmin(
   tx: Prisma.TransactionClient,
   userId: string
-): Promise<void> {
+): Promise<{ role: Role; active: boolean }> {
   const target = await tx.user.findUnique({
     where: { id: userId },
     select: { role: true, active: true },
   });
   if (!target) throw new NotFoundError("Staff");
-  if (target.role !== "ADMIN" || !target.active) return;
+  if (target.role !== "ADMIN" || !target.active) return target;
 
   const otherActiveAdmins = await tx.user.count({
     where: { role: "ADMIN", active: true, id: { not: userId } },
@@ -326,4 +405,5 @@ async function assertNotLastActiveAdmin(
       key: "err.lastActiveAdmin",
     });
   }
+  return target;
 }

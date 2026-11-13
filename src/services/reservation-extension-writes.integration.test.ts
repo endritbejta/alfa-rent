@@ -7,6 +7,16 @@ import {
   extendReservation,
   getReservationDetail,
 } from "@/services/reservation.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("extension-writes");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * extendReservation's write path. reservation-extension.integration.test.ts
@@ -105,7 +115,7 @@ async function extendWhileHeld(
         SELECT pg_backend_pid() AS pid
       `;
       await change(tx);
-      extension = extendReservation(id, to);
+      extension = extendReservation(id, to, actor);
       // Keep the rejection from being reported as unhandled while it waits.
       extension.catch(() => {});
       await blockedBy(pid);
@@ -217,7 +227,8 @@ describe("the price of an extension", () => {
       // Midnight on the 16th: the time of day is taken from the booking.
       extended = await extendReservation(
         id,
-        new Date("2028-01-16T00:00:00.000Z")
+        new Date("2028-01-16T00:00:00.000Z"),
+        actor
       );
     } finally {
       writes.restore();
@@ -253,7 +264,8 @@ describe("the price of an extension", () => {
     });
     const extended = await extendReservation(
       id,
-      new Date("2028-02-05T00:00:00.000Z")
+      new Date("2028-02-05T00:00:00.000Z"),
+      actor
     );
     expect(extended.returnDate.toISOString()).toBe("2028-02-05T10:00:00.000Z");
     expect(
@@ -263,10 +275,11 @@ describe("the price of an extension", () => {
 
   it("extends twice in a row without re-pricing the first extension", async () => {
     const { id } = await rental();
-    await extendReservation(id, new Date("2028-01-15T00:00:00.000Z"));
+    await extendReservation(id, new Date("2028-01-15T00:00:00.000Z"), actor);
     const second = await extendReservation(
       id,
-      new Date("2028-01-16T00:00:00.000Z")
+      new Date("2028-01-16T00:00:00.000Z"),
+      actor
     );
     expect(
       second.totalPrice.equals(D(agreedTotal).add(D(pricePerDay).mul(2)))
@@ -277,7 +290,7 @@ describe("the price of an extension", () => {
     const { id } = await rental();
     expect(
       await refusalKey(
-        extendReservation(id, new Date("2028-01-14T00:00:00.000Z"))
+        extendReservation(id, new Date("2028-01-14T00:00:00.000Z"), actor)
       )
     ).toBe("err.returnMustBeLater");
     const stored = await prisma.reservation.findUniqueOrThrow({
@@ -334,7 +347,11 @@ describe("running into another commitment", () => {
 
       let caught: unknown;
       try {
-        await extendReservation(id, new Date("2028-01-19T00:00:00.000Z"));
+        await extendReservation(
+          id,
+          new Date("2028-01-19T00:00:00.000Z"),
+          actor
+        );
       } catch (error) {
         caught = error;
       }
@@ -357,7 +374,7 @@ describe("running into another commitment", () => {
     await follower("CONFIRMED");
     // Returned 09:30 on the 17th; the next customer collects on the 18th.
     await expect(
-      extendReservation(id, new Date("2028-01-17T00:00:00.000Z"))
+      extendReservation(id, new Date("2028-01-17T00:00:00.000Z"), actor)
     ).resolves.toMatchObject({
       returnDate: new Date("2028-01-17T09:30:00.000Z"),
     });
@@ -368,7 +385,7 @@ describe("running into another commitment", () => {
     await follower("CONFIRMED");
     expect(
       await refusalKey(
-        extendReservation(id, new Date("2028-01-18T00:00:00.000Z"))
+        extendReservation(id, new Date("2028-01-18T00:00:00.000Z"), actor)
       )
     ).toBe("err.bookedAgainFrom");
     const stored = await prisma.reservation.findUniqueOrThrow({
@@ -393,7 +410,7 @@ describe("running into another commitment", () => {
     const { id } = await rental();
     await follower("PENDING");
     await expect(
-      extendReservation(id, new Date("2028-01-19T00:00:00.000Z"))
+      extendReservation(id, new Date("2028-01-19T00:00:00.000Z"), actor)
     ).resolves.toMatchObject({
       returnDate: new Date("2028-01-19T09:30:00.000Z"),
     });

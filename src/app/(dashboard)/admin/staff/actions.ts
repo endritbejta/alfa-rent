@@ -39,8 +39,8 @@ export async function createStaffAction(
   input: unknown
 ): Promise<StaffActionResult> {
   try {
-    await requireRole("ADMIN");
-    await createStaff(createStaffSchema.parse(input));
+    const admin = await requireRole("ADMIN");
+    await createStaff(admin.id, createStaffSchema.parse(input));
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -80,9 +80,9 @@ export async function reactivateStaffAction(
   input: unknown
 ): Promise<StaffActionResult> {
   try {
-    await requireRole("ADMIN");
+    const admin = await requireRole("ADMIN");
     const { userId } = staffTargetSchema.parse(input);
-    await reactivateStaff(userId);
+    await reactivateStaff(admin.id, userId);
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -111,7 +111,7 @@ export async function signOutStaffEverywhereAction(
   try {
     const admin = await requireRole("ADMIN");
     const { userId } = staffTargetSchema.parse(input);
-    await signOutStaffEverywhere(userId);
+    await signOutStaffEverywhere(admin.id, userId);
     signedOutSelf = userId === admin.id;
   } catch (error) {
     return { error: await errorMessage(error) };

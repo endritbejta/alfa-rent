@@ -3,6 +3,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { normalizeError } from "@/lib/errors";
 import { updateReservationStatus } from "@/services/reservation.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("double-booking");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * The exclusion constraint is the only real guarantee against double-booking,
@@ -162,7 +172,7 @@ describe("double-booking is refused by the database, not the application", () =>
     // The transition the business actually performs, through the service, so
     // the whole path is covered rather than a raw insert.
     await expect(
-      updateReservationStatus(ids.second, "CONFIRMED")
+      updateReservationStatus(ids.second, "CONFIRMED", actor)
     ).rejects.toThrow();
 
     const unchanged = await prisma.reservation.findUniqueOrThrow({

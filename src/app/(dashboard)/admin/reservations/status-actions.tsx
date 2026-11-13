@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
 import { updateReservationStatusAction } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { useI18n } from "@/components/shared/locale-provider";
 import { toasts } from "@/components/dashboard/toaster";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { CANCEL_REASON_MAX, CANCEL_REASON_MIN } from "@/lib/cancel-reason";
 
 const NEXT_ACTIONS: Partial<
   Record<
@@ -60,7 +63,12 @@ export function StatusActions({
   const setConfirmingCancel = (next: boolean) => {
     if (cancelOpen === undefined) setOwnConfirming(next);
     onCancelOpenChange?.(next);
+    if (!next) setReasonError(null);
   };
+  // Why it is being cancelled: required, and kept in the history (P2-7).
+  const [reason, setReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | null>(null);
+  const reasonId = useId();
   const available = (NEXT_ACTIONS[status] ?? []).filter(
     (action) => !(expired && action.to === "CONFIRMED")
   );
@@ -73,12 +81,17 @@ export function StatusActions({
   const apply = (to: ReservationStatus) => {
     setError(null);
     startTransition(async () => {
-      const result = await updateReservationStatusAction(reservationId, to);
+      const result = await updateReservationStatusAction(
+        reservationId,
+        to,
+        to === "CANCELLED" ? reason : null
+      );
       setConfirmingCancel(false);
       if (result?.error) {
         setError(result.error);
         return;
       }
+      setReason("");
       toasts.success(t("toast.reservationUpdated"));
       onSuccess?.();
     });
@@ -129,8 +142,46 @@ export function StatusActions({
         confirmLabel={t("admin.cancelReservationConfirm")}
         cancelLabel={t("admin.keepReservation")}
         onCancel={() => setConfirmingCancel(false)}
-        onConfirm={() => apply("CANCELLED")}
-      />
+        onConfirm={() => {
+          // Said here, before the round trip; the server refuses it anyway.
+          if (reason.trim().length < CANCEL_REASON_MIN) {
+            setReasonError(
+              t("err.cancelReasonRequired", { count: CANCEL_REASON_MIN })
+            );
+            return;
+          }
+          apply("CANCELLED");
+        }}
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor={reasonId}>{t("admin.cancelReasonLabel")}</Label>
+          <Textarea
+            id={reasonId}
+            value={reason}
+            maxLength={CANCEL_REASON_MAX}
+            required
+            aria-invalid={reasonError ? true : undefined}
+            aria-describedby={`${reasonId}-hint`}
+            className="min-h-20"
+            onChange={(event) => {
+              setReason(event.target.value);
+              if (reasonError) setReasonError(null);
+            }}
+          />
+          <p
+            id={`${reasonId}-hint`}
+            role={reasonError ? "alert" : undefined}
+            className={
+              reasonError
+                ? "text-destructive text-xs"
+                : "text-muted-foreground text-xs"
+            }
+          >
+            {reasonError ??
+              t("admin.cancelReasonHint", { count: CANCEL_REASON_MIN })}
+          </p>
+        </div>
+      </ConfirmDialog>
     </div>
   );
 }

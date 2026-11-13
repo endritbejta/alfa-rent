@@ -2,6 +2,16 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { updateVehicle } from "@/services/vehicle.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("vehicle-status");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * `Vehicle.status` is a second source of truth for something the reservations
@@ -83,7 +93,7 @@ afterAll(async () => {
 describe("who may write Vehicle.status", () => {
   it("refuses to mark a vehicle available while a rental is out", async () => {
     await expect(
-      updateVehicle(ids.rented, { status: "AVAILABLE" })
+      updateVehicle(ids.rented, { status: "AVAILABLE" }, actor)
     ).rejects.toThrow(/active rental/i);
 
     const unchanged = await prisma.vehicle.findUniqueOrThrow({
@@ -93,15 +103,19 @@ describe("who may write Vehicle.status", () => {
   });
 
   it("refuses RENTED as a manual choice — only the handover sets it", async () => {
-    await expect(updateVehicle(ids.idle, { status: "RENTED" })).rejects.toThrow(
-      /pickup inspection/i
-    );
+    await expect(
+      updateVehicle(ids.idle, { status: "RENTED" }, actor)
+    ).rejects.toThrow(/pickup inspection/i);
   });
 
   it("still allows SERVICE mid-rental, because a car can break", async () => {
     // The legitimate mid-rental action. The return will then correctly leave
     // it in SERVICE rather than releasing a broken car to the fleet.
-    const updated = await updateVehicle(ids.rented, { status: "SERVICE" });
+    const updated = await updateVehicle(
+      ids.rented,
+      { status: "SERVICE" },
+      actor
+    );
     expect(updated.status).toBe("SERVICE");
     await prisma.vehicle.update({
       where: { id: ids.rented },
@@ -111,27 +125,39 @@ describe("who may write Vehicle.status", () => {
 
   it("refuses to retire a vehicle that still has open reservations", async () => {
     await expect(
-      updateVehicle(ids.rented, { status: "INACTIVE" })
+      updateVehicle(ids.rented, { status: "INACTIVE" }, actor)
     ).rejects.toThrow(/open reservations/i);
   });
 
   it("leaves an unrelated edit on a rented vehicle alone", async () => {
     // The form posts `status` on every submit, so an unchanged status must not
     // be treated as an attempted transition.
-    const updated = await updateVehicle(ids.rented, {
-      status: "RENTED",
-      pricePerDay: 55,
-    });
+    const updated = await updateVehicle(
+      ids.rented,
+      {
+        status: "RENTED",
+        pricePerDay: 55,
+      },
+      actor
+    );
     expect(updated.status).toBe("RENTED");
     expect(Number(updated.pricePerDay)).toBe(55);
   });
 
   it("allows an ordinary status change on an idle vehicle", async () => {
-    const toService = await updateVehicle(ids.idle, { status: "SERVICE" });
+    const toService = await updateVehicle(
+      ids.idle,
+      { status: "SERVICE" },
+      actor
+    );
     expect(toService.status).toBe("SERVICE");
-    const backToAvailable = await updateVehicle(ids.idle, {
-      status: "AVAILABLE",
-    });
+    const backToAvailable = await updateVehicle(
+      ids.idle,
+      {
+        status: "AVAILABLE",
+      },
+      actor
+    );
     expect(backToAvailable.status).toBe("AVAILABLE");
   });
 });

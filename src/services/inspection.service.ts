@@ -23,6 +23,7 @@ import type {
   RentalInspectionInput,
 } from "@/lib/validations/inspection";
 import { reportError } from "@/lib/observability";
+import { auditFields, recordAudit } from "@/lib/audit";
 
 function expectedInspection(status: string): InspectionType | null {
   if (status === "CONFIRMED") return "PICKUP";
@@ -252,6 +253,21 @@ export async function recordRentalInspection(
           { key: "err.vehicleNoLongerAvailable" }
         );
       }
+      await recordAudit(tx, {
+        actorId: createdById,
+        action: "reservation.start",
+        entityId: reservationId,
+        before: { status: "CONFIRMED" },
+        after: auditFields({
+          status: "ACTIVE",
+          startedAt: occurredAt,
+          lateStart: input.lateStartConfirmed === true,
+          mileage: input.mileage,
+          fuelLevel: input.fuelLevel,
+          damageFound: input.damageFound,
+          vehicleStatus: "RENTED",
+        }),
+      });
     } else {
       const advanced = await tx.reservation.updateMany({
         where: { id: reservationId, status: "ACTIVE" },
@@ -287,6 +303,20 @@ export async function recordRentalInspection(
           }
         );
       }
+      await recordAudit(tx, {
+        actorId: createdById,
+        action: "reservation.complete",
+        entityId: reservationId,
+        before: { status: "ACTIVE" },
+        after: auditFields({
+          status: "COMPLETED",
+          completedAt: occurredAt,
+          mileage: input.mileage,
+          fuelLevel: input.fuelLevel,
+          damageFound: input.damageFound,
+          ...(released.count === 1 && { vehicleStatus: "AVAILABLE" }),
+        }),
+      });
     }
 
     return inspection;
@@ -409,5 +439,14 @@ export async function recordPastRental(
         { key: "err.changedUnderYou" }
       );
     }
+    // The note is why the inspections are missing: the event's reason.
+    await recordAudit(tx, {
+      actorId: userId,
+      action: "reservation.recordPast",
+      entityId: reservationId,
+      before: { status: "CONFIRMED" },
+      after: auditFields({ status: "COMPLETED", startedAt, completedAt }),
+      reason: input.note,
+    });
   });
 }

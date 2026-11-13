@@ -11,6 +11,16 @@ import {
   updateReservationStatus,
 } from "@/services/reservation.service";
 import { getVehicles } from "@/services/vehicle.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("overdue");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * A rental that is ACTIVE past its scheduled return means the car is still
@@ -149,19 +159,22 @@ describe("an overdue rental keeps its car occupied", () => {
     const before = await prisma.customer.count({
       where: { firstName: "Walkin", lastName: suffix },
     });
-    const attempt = createManualReservation({
-      vehicleId: ids.overdueCar,
-      customer: {
-        kind: "new",
-        firstName: "Walkin",
-        lastName: suffix,
-        phone: "049 000 000",
-        email: undefined,
+    const attempt = createManualReservation(
+      {
+        vehicleId: ids.overdueCar,
+        customer: {
+          kind: "new",
+          firstName: "Walkin",
+          lastName: suffix,
+          phone: "049 000 000",
+          email: undefined,
+        },
+        pickupDate: windowStart,
+        returnDate: windowEnd,
+        status: "CONFIRMED",
       },
-      pickupDate: windowStart,
-      returnDate: windowEnd,
-      status: "CONFIRMED",
-    });
+      actor
+    );
     await expect(attempt).rejects.toBeInstanceOf(AppError);
     await expect(attempt).rejects.toMatchObject({
       status: 409,
@@ -175,26 +188,29 @@ describe("an overdue rental keeps its car occupied", () => {
   });
 
   it("still accepts a pending request, which commits nothing", async () => {
-    const created = await createManualReservation({
-      vehicleId: ids.overdueCar,
-      customer: {
-        kind: "new",
-        firstName: "Walkin",
-        lastName: suffix,
-        phone: "049 000 000",
-        email: undefined,
+    const created = await createManualReservation(
+      {
+        vehicleId: ids.overdueCar,
+        customer: {
+          kind: "new",
+          firstName: "Walkin",
+          lastName: suffix,
+          phone: "049 000 000",
+          email: undefined,
+        },
+        pickupDate: at(20),
+        returnDate: at(22),
+        status: "PENDING",
       },
-      pickupDate: at(20),
-      returnDate: at(22),
-      status: "PENDING",
-    });
+      actor
+    );
     walkInCustomers.push(created.customerId);
     expect(created.status).toBe("PENDING");
   });
 
   it("refuses to confirm a pending request on the car", async () => {
     await expect(
-      updateReservationStatus(ids.pending, "CONFIRMED")
+      updateReservationStatus(ids.pending, "CONFIRMED", actor)
     ).rejects.toMatchObject({ text: { key: "err.overdueRental" } });
     const after = await prisma.reservation.findUniqueOrThrow({
       where: { id: ids.pending },

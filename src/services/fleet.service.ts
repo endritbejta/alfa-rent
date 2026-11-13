@@ -6,31 +6,62 @@ import {
   businessYearStart,
 } from "@/lib/reservation-lifecycle";
 import type { RepairInput } from "@/lib/validations/repair";
+import { auditFields, recordAudit } from "@/lib/audit";
+import { getAuditHistory } from "@/services/audit.service";
 
-export async function addRepair(
-  vehicleId: string,
-  input: RepairInput
-): Promise<Repair> {
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { id: vehicleId },
-    select: { id: true },
-  });
-  if (!vehicle) throw new NotFoundError("Vehicle");
-
-  return prisma.repair.create({
-    data: {
-      vehicleId,
-      date: input.date,
-      cost: new Prisma.Decimal(input.cost),
-      description: input.description,
-      notes: input.notes,
-      reference: input.reference,
-    },
+/** A repair as the audit trail describes it, on the vehicle's history. */
+function repairFields(repair: Repair) {
+  return auditFields({
+    repairId: repair.id,
+    date: repair.date,
+    cost: repair.cost,
+    description: repair.description,
   });
 }
 
-export async function deleteRepair(id: string): Promise<void> {
-  await prisma.repair.delete({ where: { id } });
+export async function addRepair(
+  vehicleId: string,
+  input: RepairInput,
+  actorId: string
+): Promise<Repair> {
+  return prisma.$transaction(async (tx) => {
+    const vehicle = await tx.vehicle.findUnique({
+      where: { id: vehicleId },
+      select: { id: true },
+    });
+    if (!vehicle) throw new NotFoundError("Vehicle");
+
+    const repair = await tx.repair.create({
+      data: {
+        vehicleId,
+        date: input.date,
+        cost: new Prisma.Decimal(input.cost),
+        description: input.description,
+        notes: input.notes,
+        reference: input.reference,
+      },
+    });
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.addRepair",
+      entityId: vehicleId,
+      after: repairFields(repair),
+    });
+    return repair;
+  });
+}
+
+/** Recorded on the vehicle the repair belonged to, from the row itself. */
+export async function deleteRepair(id: string, actorId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const repair = await tx.repair.delete({ where: { id } });
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.deleteRepair",
+      entityId: repair.vehicleId,
+      before: repairFields(repair),
+    });
+  });
 }
 
 /**
@@ -113,46 +144,48 @@ export async function getVehicleDetail(vehicleId: string) {
   const now = new Date();
   const yearStart = businessYearStart(now);
 
-  const [vehicle, earnedSum, repairSum, repairYearSum] = await Promise.all([
-    prisma.vehicle.findUnique({
-      where: { id: vehicleId },
-      include: {
-        images: { orderBy: { sortOrder: "asc" } },
-        repairs: { orderBy: { date: "desc" } },
-        // Display only — the drawer lists recent bookings. Never sum these.
-        reservations: {
-          where: {
-            status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
-          },
-          orderBy: { pickupDate: "desc" },
-          take: 12,
-          select: {
-            id: true,
-            status: true,
-            pickupDate: true,
-            returnDate: true,
-            totalPrice: true,
-            customer: { select: { firstName: true, lastName: true } },
+  const [vehicle, earnedSum, repairSum, repairYearSum, history] =
+    await Promise.all([
+      prisma.vehicle.findUnique({
+        where: { id: vehicleId },
+        include: {
+          images: { orderBy: { sortOrder: "asc" } },
+          repairs: { orderBy: { date: "desc" } },
+          // Display only — the drawer lists recent bookings. Never sum these.
+          reservations: {
+            where: {
+              status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
+            },
+            orderBy: { pickupDate: "desc" },
+            take: 12,
+            select: {
+              id: true,
+              status: true,
+              pickupDate: true,
+              returnDate: true,
+              totalPrice: true,
+              customer: { select: { firstName: true, lastName: true } },
+            },
           },
         },
-      },
-    }),
-    prisma.reservation.aggregate({
-      _sum: { totalPrice: true },
-      where: { vehicleId, status: { in: [...EARNED_STATUSES] } },
-    }),
-    prisma.repair.aggregate({
-      _sum: { cost: true },
-      _count: true,
-      where: { vehicleId },
-    }),
-    prisma.repair.aggregate({
-      _sum: { cost: true },
-      // See getVehicleFleetProfile: calendar-dated rows against a
-      // branch-local boundary.
-      where: { vehicleId, date: { gte: yearStart } },
-    }),
-  ]);
+      }),
+      prisma.reservation.aggregate({
+        _sum: { totalPrice: true },
+        where: { vehicleId, status: { in: [...EARNED_STATUSES] } },
+      }),
+      prisma.repair.aggregate({
+        _sum: { cost: true },
+        _count: true,
+        where: { vehicleId },
+      }),
+      prisma.repair.aggregate({
+        _sum: { cost: true },
+        // See getVehicleFleetProfile: calendar-dated rows against a
+        // branch-local boundary.
+        where: { vehicleId, date: { gte: yearStart } },
+      }),
+      getAuditHistory("vehicle", vehicleId),
+    ]);
   if (!vehicle) throw new NotFoundError("Vehicle");
 
   // Summed as Decimal in the database, converted once here at the edge.
@@ -173,6 +206,7 @@ export async function getVehicleDetail(vehicleId: string) {
 
   return {
     vehicle,
+    history,
     costs: {
       /** Cost of the most recent service only — not a history. */
       lastService,

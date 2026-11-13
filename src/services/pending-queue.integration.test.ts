@@ -8,6 +8,16 @@ import {
   updateReservationStatus,
 } from "@/services/reservation.service";
 import { getDashboardData } from "@/services/analytics.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("pending-queue");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * Request-queue hygiene. A PENDING request whose pickup day has passed is
@@ -186,7 +196,7 @@ describe("the pending count", () => {
 describe("confirming a request", () => {
   it("refuses one whose pickup day has passed, and leaves it pending", async () => {
     await expect(
-      updateReservationStatus(ids.lapsed, "CONFIRMED")
+      updateReservationStatus(ids.lapsed, "CONFIRMED", actor)
     ).rejects.toMatchObject({
       status: 400,
       text: { key: "err.requestExpired" },
@@ -198,12 +208,21 @@ describe("confirming a request", () => {
   });
 
   it("still lets staff cancel an expired request", async () => {
-    const cancelled = await updateReservationStatus(ids.ancient, "CANCELLED");
+    const cancelled = await updateReservationStatus(
+      ids.ancient,
+      "CANCELLED",
+      actor,
+      "Pickup day passed without an answer"
+    );
     expect(cancelled.status).toBe("CANCELLED");
   });
 
   it("accepts one for today", async () => {
-    const confirmed = await updateReservationStatus(ids.today, "CONFIRMED");
+    const confirmed = await updateReservationStatus(
+      ids.today,
+      "CONFIRMED",
+      actor
+    );
     expect(confirmed.status).toBe("CONFIRMED");
   });
 
@@ -213,11 +232,15 @@ describe("confirming a request", () => {
       WHERE conname = 'reservations_no_overlap' AND contype = 'x'`;
     expect(Number(constraint.count)).toBe(1);
 
-    const confirmed = await updateReservationStatus(ids.rivalA, "CONFIRMED");
+    const confirmed = await updateReservationStatus(
+      ids.rivalA,
+      "CONFIRMED",
+      actor
+    );
     expect(confirmed.status).toBe("CONFIRMED");
 
     await expect(
-      updateReservationStatus(ids.rivalB, "CONFIRMED")
+      updateReservationStatus(ids.rivalB, "CONFIRMED", actor)
     ).rejects.toThrow(/reservations_no_overlap/);
     const rival = await prisma.reservation.findUniqueOrThrow({
       where: { id: ids.rivalB },

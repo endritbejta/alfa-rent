@@ -15,6 +15,20 @@ import {
   resetStaffPassword,
   signOutStaffEverywhere,
 } from "@/services/staff.service";
+import {
+  createTestActor,
+  purgeAuditEvents,
+  removeTestActor,
+} from "@/lib/testing/audit";
+
+// Every staff write records who did it; this stands behind them here.
+let actor = "";
+beforeAll(async () => {
+  actor = await createTestActor("staff");
+});
+afterAll(async () => {
+  await removeTestActor(actor);
+});
 
 /**
  * The staff lifecycle against a real database: the rules that keep the
@@ -39,6 +53,12 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  const staff = await prisma.user.findMany({
+    where: { email: { contains: suffix } },
+    select: { id: true },
+  });
+  const staffIds = staff.map((u) => u.id);
+  await purgeAuditEvents({ actorIds: staffIds, entityIds: staffIds });
   await prisma.user.deleteMany({ where: { email: { contains: suffix } } });
   await prisma.$disconnect();
 });
@@ -102,7 +122,7 @@ const activeAdmins = () =>
 
 describe("adding staff", () => {
   it("creates the account with a hashed temporary password to replace", async () => {
-    const created = await createStaff({
+    const created = await createStaff(actor, {
       name: "  Arta  ",
       email: `  ${email("new").toUpperCase()} `,
       role: "EMPLOYEE",
@@ -132,7 +152,7 @@ describe("adding staff", () => {
   it("refuses an email already in use, whatever its case", async () => {
     await seed("taken");
     await refusedWith(
-      createStaff({
+      createStaff(actor, {
         name: "Someone else",
         email: email("taken").toUpperCase(),
         role: "ADMIN",
@@ -149,7 +169,7 @@ describe("adding staff", () => {
 
   it("refuses a temporary password the policy does not allow", async () => {
     await refusedWith(
-      createStaff({
+      createStaff(actor, {
         name: "Short",
         email: email("short"),
         role: "EMPLOYEE",
@@ -158,7 +178,7 @@ describe("adding staff", () => {
       "err.passwordTooShort"
     );
     await refusedWith(
-      createStaff({
+      createStaff(actor, {
         name: "Long",
         email: email("long"),
         role: "EMPLOYEE",
@@ -345,7 +365,7 @@ describe("revoking access", () => {
       verifyCredentials(email("leaver"), PASSWORD)
     ).resolves.toBeNull();
 
-    await reactivateStaff(id("leaver"));
+    await reactivateStaff(actor, id("leaver"));
     // A fresh version again, so no session from before the deactivation
     // comes back with the account.
     expect(await row("leaver")).toMatchObject({
@@ -361,7 +381,7 @@ describe("revoking access", () => {
     await seed("everywhere", { sessionVersion: 7 });
     const before = await row("everywhere");
 
-    await signOutStaffEverywhere(id("everywhere"));
+    await signOutStaffEverywhere(actor, id("everywhere"));
 
     expect(await row("everywhere")).toMatchObject({
       sessionVersion: 8,
@@ -372,7 +392,10 @@ describe("revoking access", () => {
   });
 
   it("says so when the account no longer exists", async () => {
-    await refusedWith(signOutStaffEverywhere(id("nobody")), "err.notFound");
+    await refusedWith(
+      signOutStaffEverywhere(actor, id("nobody")),
+      "err.notFound"
+    );
     await refusedWith(
       resetStaffPassword(id("reset-admin"), id("nobody"), NEW_PASSWORD),
       "err.notFound"

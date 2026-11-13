@@ -7,6 +7,7 @@ import { deleteImage } from "@/lib/cloudinary";
 import { occupyingReservationWhere } from "@/lib/reservation-occupancy";
 import { reportError } from "@/lib/observability";
 import { toMoney } from "@/lib/money";
+import { auditFields, diffFields, recordAudit } from "@/lib/audit";
 import type {
   CreateVehicleInput,
   UpdateVehicleInput,
@@ -193,18 +194,35 @@ export async function getVehicleById(id: string): Promise<VehicleWithImages> {
 }
 
 export async function createVehicle(
-  input: CreateVehicleInput
+  input: CreateVehicleInput,
+  actorId: string
 ): Promise<VehicleWithImages> {
   // The identity suffix allows multiple same-model vehicles and remains
   // stable when display fields are edited. A plate is ideal; vehicles
   // without one receive a non-guessable short identity.
   const identity = input.plate ?? randomUUID().slice(0, 8);
-  return prisma.vehicle.create({
-    data: {
-      ...input,
-      slug: slugify(input.brand, input.model, input.year, identity),
-    },
-    ...vehicleWithImages,
+  return prisma.$transaction(async (tx) => {
+    const vehicle = await tx.vehicle.create({
+      data: {
+        ...input,
+        slug: slugify(input.brand, input.model, input.year, identity),
+      },
+      ...vehicleWithImages,
+    });
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.create",
+      entityId: vehicle.id,
+      after: auditFields({
+        brand: vehicle.brand,
+        model: vehicle.model,
+        plate: vehicle.plate,
+        year: vehicle.year,
+        pricePerDay: vehicle.pricePerDay,
+        status: vehicle.status,
+      }),
+    });
+    return vehicle;
   });
 }
 
@@ -279,21 +297,33 @@ async function assertStatusChangeAllowed(
 
 export async function updateVehicle(
   id: string,
-  input: UpdateVehicleInput
+  input: UpdateVehicleInput,
+  actorId: string
 ): Promise<VehicleWithImages> {
-  if (input.status) {
-    const existing = await prisma.vehicle.findUnique({
-      where: { id },
-      select: { status: true },
-    });
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.vehicle.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Vehicle");
-    await assertStatusChangeAllowed(id, existing.status, input.status);
-  }
+    if (input.status) {
+      await assertStatusChangeAllowed(id, existing.status, input.status);
+    }
 
-  return prisma.vehicle.update({
-    where: { id },
-    data: input,
-    ...vehicleWithImages,
+    const updated = await tx.vehicle.update({
+      where: { id },
+      data: input,
+      ...vehicleWithImages,
+    });
+    // The form posts every field on every save; only real changes are
+    // recorded, and a save that changed nothing records nothing.
+    const change = diffFields(existing, input);
+    if (change) {
+      await recordAudit(tx, {
+        actorId,
+        action: "vehicle.update",
+        entityId: id,
+        ...change,
+      });
+    }
+    return updated;
   });
 }
 
@@ -304,7 +334,10 @@ export async function updateVehicle(
  */
 export type VehicleRemoval = "deleted" | "retired";
 
-export async function deleteVehicle(id: string): Promise<VehicleRemoval> {
+export async function deleteVehicle(
+  id: string,
+  actorId: string
+): Promise<VehicleRemoval> {
   const activeCount = await prisma.reservation.count({
     where: {
       vehicleId: id,
@@ -323,9 +356,23 @@ export async function deleteVehicle(id: string): Promise<VehicleRemoval> {
     where: { vehicleId: id },
   });
   if (historyCount > 0) {
-    await prisma.vehicle.update({
-      where: { id },
-      data: { status: "INACTIVE" },
+    await prisma.$transaction(async (tx) => {
+      const before = await tx.vehicle.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (!before) throw new NotFoundError("Vehicle");
+      await tx.vehicle.update({
+        where: { id },
+        data: { status: "INACTIVE" },
+      });
+      await recordAudit(tx, {
+        actorId,
+        action: "vehicle.retire",
+        entityId: id,
+        before: { status: before.status },
+        after: { status: "INACTIVE" },
+      });
     });
     return "retired";
   }
@@ -352,7 +399,19 @@ export async function deleteVehicle(id: string): Promise<VehicleRemoval> {
     });
     // The cascade removes the rows; this throws instead if a reservation
     // appeared, and the whole transaction unwinds.
-    await tx.vehicle.delete({ where: { id } });
+    const gone = await tx.vehicle.delete({ where: { id } });
+    // What it was, since the row itself is gone and this is all that says so.
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.delete",
+      entityId: id,
+      before: auditFields({
+        brand: gone.brand,
+        model: gone.model,
+        plate: gone.plate,
+        year: gone.year,
+      }),
+    });
     return images.map((image) => image.publicId);
   });
 

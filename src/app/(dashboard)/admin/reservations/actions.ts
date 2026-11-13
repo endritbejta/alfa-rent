@@ -13,6 +13,7 @@ import {
   type UploadSignature,
 } from "@/lib/cloudinary";
 import {
+  cancelReasonRequiredError,
   extendReservationSchema,
   updateReservationStatusSchema,
 } from "@/lib/validations/reservation";
@@ -137,12 +138,27 @@ export async function recordPastRentalAction(
  */
 export async function updateReservationStatusAction(
   reservationId: string,
-  status: ReservationStatus
+  status: ReservationStatus,
+  /** Required when cancelling; stored on the audit event. */
+  reason?: string | null
 ): Promise<ActionResult> {
-  await requireRole("EMPLOYEE");
+  const user = await requireRole("EMPLOYEE");
   try {
-    const input = updateReservationStatusSchema.parse({ status });
-    await updateReservationStatus(reservationId, input.status);
+    const parsed = updateReservationStatusSchema.safeParse({ status, reason });
+    if (!parsed.success) {
+      // The one refusal staff can act on gets its own translated sentence.
+      if (parsed.error.issues.some((issue) => issue.path[0] === "reason")) {
+        throw cancelReasonRequiredError();
+      }
+      throw parsed.error;
+    }
+    const input = parsed.data;
+    await updateReservationStatus(
+      reservationId,
+      input.status,
+      user.id,
+      input.reason
+    );
   } catch (error) {
     return { error: await errorMessage(error) };
   }
@@ -161,10 +177,10 @@ export async function extendReservationAction(
   reservationId: string,
   returnDate: string
 ): Promise<ActionResult> {
-  await requireRole("EMPLOYEE");
+  const user = await requireRole("EMPLOYEE");
   try {
     const input = extendReservationSchema.parse({ returnDate });
-    await extendReservation(reservationId, input.returnDate);
+    await extendReservation(reservationId, input.returnDate, user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }

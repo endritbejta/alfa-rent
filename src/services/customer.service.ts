@@ -4,6 +4,11 @@ import { ConflictError, NotFoundError } from "@/lib/errors";
 import type { Customer } from "@prisma/client";
 import type { Paginated } from "@/types/api";
 import type { PaginationInput } from "@/lib/validations/common";
+import { auditFields, diffFields, recordAudit } from "@/lib/audit";
+import {
+  getAuditHistory,
+  scrubCustomerAuditEvents,
+} from "@/services/audit.service";
 import {
   ANONYMISED_FIRST_NAME,
   MISSING_PHONE,
@@ -193,7 +198,11 @@ export async function getCustomerById(id: string) {
     },
   });
   if (!customer) throw new NotFoundError("Customer");
-  return { ...customer, spend: await getCustomerSpend(id) };
+  const [spend, history] = await Promise.all([
+    getCustomerSpend(id),
+    getAuditHistory("customer", id),
+  ]);
+  return { ...customer, spend, history };
 }
 
 /**
@@ -207,11 +216,28 @@ export async function getCustomerById(id: string) {
  */
 export async function updateCustomer(
   id: string,
-  input: CustomerFormInput
+  input: CustomerFormInput,
+  actorId: string
 ): Promise<Customer> {
   await assertNotAnonymised([id]);
   try {
-    return await prisma.customer.update({ where: { id }, data: input });
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.customer.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundError("Customer");
+      const updated = await tx.customer.update({ where: { id }, data: input });
+      // "Who changed this customer's phone?" needs the old and new number.
+      // Anonymising strips them from here again (scrubCustomerAuditEvents).
+      const change = diffFields(existing, input);
+      if (change) {
+        await recordAudit(tx, {
+          actorId,
+          action: "customer.update",
+          entityId: id,
+          ...change,
+        });
+      }
+      return updated;
+    });
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -294,10 +320,10 @@ export async function findDuplicateCustomers(): Promise<DuplicateGroup[]> {
  * a walk-in email or a "-" phone — and a merged record has the real thing.
  * Notes from every record are kept.
  */
-export async function mergeCustomers({
-  keepId,
-  mergeIds,
-}: MergeCustomersInput): Promise<{ moved: number }> {
+export async function mergeCustomers(
+  { keepId, mergeIds }: MergeCustomersInput,
+  actorId: string
+): Promise<{ moved: number }> {
   return prisma.$transaction(async (tx) => {
     const records = await tx.customer.findMany({
       where: { id: { in: [keepId, ...mergeIds] } },
@@ -329,13 +355,24 @@ export async function mergeCustomers({
     // Deleted before the update so a merged record's email can move onto the
     // kept one without tripping the unique index.
     await tx.customer.deleteMany({ where: { id: { in: mergeIds } } });
-    await tx.customer.update({
-      where: { id: keepId },
-      data: {
-        ...(WALK_IN_EMAIL.test(keep.email) &&
-          realEmail && { email: realEmail }),
-        ...(keep.phone === MISSING_PHONE && realPhone && { phone: realPhone }),
-        notes: notes || null,
+    const data = {
+      ...(WALK_IN_EMAIL.test(keep.email) && realEmail && { email: realEmail }),
+      ...(keep.phone === MISSING_PHONE && realPhone && { phone: realPhone }),
+      notes: notes || null,
+    };
+    await tx.customer.update({ where: { id: keepId }, data });
+
+    // Recorded on the record kept. `mergedIds` is what lets anonymising
+    // this customer later find, and scrub, the merged records' own events.
+    const change = diffFields(keep, data);
+    await recordAudit(tx, {
+      actorId,
+      action: "customer.merge",
+      entityId: keepId,
+      before: change?.before,
+      after: {
+        ...change?.after,
+        ...auditFields({ mergedIds: mergeIds, movedReservations: moved }),
       },
     });
     return { moved };
@@ -387,7 +424,11 @@ export const ANONYMISED_SIGNER = "Anonymised";
  *   this customer alone;
  * - the signer's name on their handover and return inspections, which is
  *   the customer's or another driver's name. The rest of an inspection
- *   (mileage, fuel, damage) describes the car and is kept as evidence.
+ *   (mileage, fuel, damage) describes the car and is kept as evidence;
+ * - the same details in the audit trail: an earlier edit's old phone
+ *   number, a cancellation reason that names them (see
+ *   scrubCustomerAuditEvents). The erasure itself is recorded, without
+ *   any of what was erased.
  *
  * Kept: every reservation with its dates, vehicle, status and total, and its
  * payments.
@@ -398,7 +439,8 @@ export const ANONYMISED_SIGNER = "Anonymised";
  * taken, and one that starts later waits until this has committed.
  */
 export async function anonymiseCustomer(
-  id: string
+  id: string,
+  actorId: string
 ): Promise<{ reservations: number }> {
   return prisma.$transaction(async (tx) => {
     const [row] = await tx.$queryRaw<{ anonymisedAt: Date | null }[]>`
@@ -446,6 +488,17 @@ export async function anonymiseCustomer(
     await tx.rentalInspection.updateMany({
       where: { reservation: { customerId: id } },
       data: { signerName: ANONYMISED_SIGNER },
+    });
+
+    // The audit trail holds the same details again: an old edit's phone
+    // number, a cancellation reason naming them. Scrubbed first, then the
+    // fact of the erasure recorded, and none of what was erased.
+    await scrubCustomerAuditEvents(tx, id);
+    await recordAudit(tx, {
+      actorId,
+      action: "customer.anonymise",
+      entityId: id,
+      after: { anonymised: true, reservations },
     });
 
     return { reservations };

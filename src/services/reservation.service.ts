@@ -34,6 +34,7 @@ import {
   getCustomerSpend,
 } from "@/services/customer.service";
 import { isPublicBookableVehicleStatus } from "@/lib/vehicle-policy";
+import { getAuditHistory } from "@/services/audit.service";
 import {
   isOverdueRental,
   occupyingReservationWhere,
@@ -41,6 +42,8 @@ import {
   sharesRentalDayWhere,
 } from "@/lib/reservation-occupancy";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
+import { auditFields, recordAudit } from "@/lib/audit";
+import { CANCEL_REASON_MIN } from "@/lib/cancel-reason";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
 import {
   contactSnapshot,
@@ -48,6 +51,7 @@ import {
   reservationContactDifference,
   type ContactSnapshotColumns,
 } from "@/lib/booking-contact";
+import { cancelReasonRequiredError } from "@/lib/validations/reservation";
 import type {
   AvailabilityInput,
   CreateBookingInput,
@@ -400,7 +404,8 @@ export async function createReservation(
  * walk-in customer and all.
  */
 export async function createManualReservation(
-  input: ManualReservationInput
+  input: ManualReservationInput,
+  actorId: string
 ): Promise<Reservation> {
   const key = input.idempotencyKey;
   if (key) {
@@ -408,7 +413,7 @@ export async function createManualReservation(
     if (earlier) return earlier;
   }
   try {
-    return await insertManualReservation(input);
+    return await insertManualReservation(input, actorId);
   } catch (error) {
     if (key && isUniqueViolationOn(error, "idempotencyKey")) {
       const earlier = await findManualReplay(key, input);
@@ -442,7 +447,8 @@ async function findManualReplay(
 }
 
 async function insertManualReservation(
-  input: ManualReservationInput
+  input: ManualReservationInput,
+  actorId: string
 ): Promise<Reservation> {
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.findUnique({
@@ -464,7 +470,7 @@ async function insertManualReservation(
 
     const customerId = await resolveManualCustomer(tx, input.customer);
 
-    return tx.reservation.create({
+    const created = await tx.reservation.create({
       data: {
         vehicleId: input.vehicleId,
         customerId,
@@ -480,6 +486,23 @@ async function insertManualReservation(
         idempotencyKey: input.idempotencyKey,
       },
     });
+    // A replayed retry returns before this, so it records nothing: nothing
+    // happened the second time. Notes stay out: free text about the customer.
+    await recordAudit(tx, {
+      actorId,
+      action: "reservation.create",
+      entityId: created.id,
+      after: auditFields({
+        status: created.status,
+        vehicleId: created.vehicleId,
+        customerId: created.customerId,
+        newCustomer: input.customer.kind === "new",
+        pickupDate: created.pickupDate,
+        returnDate: created.returnDate,
+        totalPrice: created.totalPrice,
+      }),
+    });
+    return created;
   });
 }
 
@@ -727,8 +750,16 @@ async function getPendingQueue(
  */
 export async function updateReservationStatus(
   id: string,
-  nextStatus: ReservationStatus
+  nextStatus: ReservationStatus,
+  actorId: string,
+  /** Required to cancel: "who cancelled this, and why?" is the question. */
+  reason?: string | null
 ): Promise<Reservation> {
+  const why = reason?.trim() || null;
+  if (nextStatus === "CANCELLED" && (why?.length ?? 0) < CANCEL_REASON_MIN) {
+    // The action's schema says so first; this holds for every other caller.
+    throw cancelReasonRequiredError();
+  }
   return prisma.$transaction(async (tx) => {
     const reservation = await tx.reservation.findUnique({
       where: { id },
@@ -790,12 +821,29 @@ export async function updateReservationStatus(
         { key: "err.changedUnderYou" }
       );
     }
+    await recordAudit(tx, {
+      actorId,
+      // ACTIVE and COMPLETED were refused above: only the inspections
+      // reach them, and they record their own events.
+      action:
+        nextStatus === "CANCELLED"
+          ? "reservation.cancel"
+          : "reservation.confirm",
+      entityId: id,
+      before: { status: reservation.status },
+      after: { status: nextStatus },
+      reason: nextStatus === "CANCELLED" ? why : null,
+    });
     return tx.reservation.findUniqueOrThrow({ where: { id } });
   });
 }
 
-export async function cancelReservation(id: string): Promise<Reservation> {
-  return updateReservationStatus(id, "CANCELLED");
+export async function cancelReservation(
+  id: string,
+  actorId: string,
+  reason: string
+): Promise<Reservation> {
+  return updateReservationStatus(id, "CANCELLED", actorId, reason);
 }
 
 /**
@@ -906,7 +954,8 @@ const REFUSAL_MESSAGES = {
  */
 export async function extendReservation(
   id: string,
-  newReturnDate: Date
+  newReturnDate: Date,
+  actorId: string
 ): Promise<Reservation> {
   return prisma.$transaction(async (tx) => {
     const reservation = await tx.reservation.findUnique({
@@ -964,18 +1013,16 @@ export async function extendReservation(
       rentalDays(reservation.pickupDate, target) -
       rentalDays(reservation.pickupDate, reservation.returnDate);
 
+    const totalPrice = reservation.totalPrice.add(
+      reservation.vehicle.pricePerDay.mul(extraDays)
+    );
     const changed = await tx.reservation.updateMany({
       where: {
         id,
         status: reservation.status,
         returnDate: reservation.returnDate,
       },
-      data: {
-        returnDate: target,
-        totalPrice: reservation.totalPrice.add(
-          reservation.vehicle.pricePerDay.mul(extraDays)
-        ),
-      },
+      data: { returnDate: target, totalPrice },
     });
     if (changed.count !== 1) {
       throw new ConflictError(
@@ -983,6 +1030,16 @@ export async function extendReservation(
         { key: "err.changedUnderYou" }
       );
     }
+    await recordAudit(tx, {
+      actorId,
+      action: "reservation.extend",
+      entityId: id,
+      before: auditFields({
+        returnDate: reservation.returnDate,
+        totalPrice: reservation.totalPrice,
+      }),
+      after: auditFields({ returnDate: target, totalPrice }),
+    });
     return tx.reservation.findUniqueOrThrow({ where: { id } });
   });
 }
@@ -1038,13 +1095,14 @@ export async function getReservationDetail(id: string) {
     },
   });
   if (!reservation) throw new NotFoundError("Reservation");
-  const [extension, customerSpend] = await Promise.all([
+  const [extension, customerSpend, history] = await Promise.all([
     // Bundled with the detail so opening the drawer is still one round trip.
     getExtensionWindow(reservation),
     // Aggregated rather than summed from the 20 reservations included above:
     // that reduce understated a repeat customer and disagreed with the number
     // the customer drawer showed for the same person.
     getCustomerSpend(reservation.customerId),
+    getAuditHistory("reservation", reservation.id),
   ]);
   // The raw snapshot columns stay here; the drawer gets the comparison, which
   // is null whenever there is nothing for staff to act on.
@@ -1059,6 +1117,7 @@ export async function getReservationDetail(id: string) {
     ...rest,
     timing: getReservationTiming(reservation),
     extension,
+    history,
     contactDifference: reservationContactDifference({
       contactFirstName,
       contactLastName,

@@ -18,10 +18,10 @@ export type ManualResult = { ok: true } | { error: string };
 export async function createManualReservationAction(
   input: unknown
 ): Promise<ManualResult> {
-  await requireRole("EMPLOYEE");
+  const user = await requireRole("EMPLOYEE");
   try {
     const parsed = manualReservationSchema.parse(input);
-    await createManualReservation(parsed);
+    await createManualReservation(parsed, user.id);
   } catch (error) {
     return { error: await errorMessage(error) };
   }

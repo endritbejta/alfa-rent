@@ -80,32 +80,19 @@ function post(
 }
 
 /**
- * Spends part of this test's allowance, the way the limiter itself writes:
- * with the database's now(). `expiresAt` is a timestamp without time zone,
- * and the limiter compares it against now() in the session's time zone, so a
- * row written through Prisma (UTC) reads as already expired wherever the
- * database does not run in UTC — the local Homebrew Postgres runs in
- * Europe/Belgrade.
+ * Spends part of this test's allowance. Written through Prisma like any
+ * other DateTime: the limiter keeps "expiresAt" in UTC whatever the
+ * session's time zone (see rate-limit.ts), so no offset is needed — the
+ * local Homebrew Postgres runs in Europe/Belgrade and this used to need one.
  */
 async function spendAllowance(count: number, minutesLeft: number) {
-  await prisma.$executeRaw`
-    INSERT INTO rate_limits ("key", "count", "expiresAt")
-    VALUES (${`bookings:${ip}`}, ${count}::int,
-            now() + make_interval(mins => ${minutesLeft}::int))
-  `;
-}
-
-/**
- * How far the session's wall clock is from UTC, in seconds. The limiter reads
- * that wall-clock expiry back as though it were UTC, so its Retry-After is
- * off by exactly this much outside UTC (zero in CI and on Supabase), and
- * clamped to 0 where the zone is far enough behind UTC.
- */
-async function sessionUtcOffsetSeconds() {
-  const [row] = await prisma.$queryRaw<{ offset: number }[]>`
-    SELECT EXTRACT(EPOCH FROM (now()::timestamp - (now() AT TIME ZONE 'UTC')))::int AS "offset"
-  `;
-  return row!.offset;
+  await prisma.rateLimit.create({
+    data: {
+      key: `bookings:${ip}`,
+      count,
+      expiresAt: new Date(Date.now() + minutesLeft * 60_000),
+    },
+  });
 }
 
 const reservationsWritten = () =>
@@ -294,13 +281,10 @@ describe("POST /api/bookings", () => {
 
     const retryAfter = Number(response.headers.get("Retry-After"));
     expect(Number.isInteger(retryAfter)).toBe(true);
-    // About half an hour is left on the window the row above opened, as
-    // the limiter computes it: shifted by the session's UTC offset and
-    // floored at zero, which is where a zone far enough behind UTC lands.
-    const skew = await sessionUtcOffsetSeconds();
-    const asTheLimiterSeesIt = (seconds: number) => Math.max(0, seconds + skew);
-    expect(retryAfter).toBeGreaterThanOrEqual(asTheLimiterSeesIt(29 * 60));
-    expect(retryAfter).toBeLessThanOrEqual(asTheLimiterSeesIt(30 * 60));
+    // About half an hour is left on the window the row above opened, in any
+    // session time zone.
+    expect(retryAfter).toBeGreaterThanOrEqual(29 * 60);
+    expect(retryAfter).toBeLessThanOrEqual(30 * 60);
 
     expect((await response.json()).success).toBe(false);
     expect(await reservationsWritten()).toBe(0);

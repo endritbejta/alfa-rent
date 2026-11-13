@@ -6,7 +6,7 @@ import { History } from "lucide-react";
 import type { AuditValue } from "@/lib/audit";
 import type { AuditHistoryItem } from "@/services/audit.service";
 import type { TranslationKey } from "@/lib/i18n/translations";
-import { businessWallClock } from "@/lib/reservation-lifecycle";
+import { businessWallClock } from "@/lib/business-time";
 import { useI18n } from "@/components/shared/locale-provider";
 import { SectionTitle } from "./detail-primitives";
 import { formatEur } from "@/lib/money";

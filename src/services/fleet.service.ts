@@ -2,9 +2,9 @@ import { Prisma, type Repair } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { NotFoundError } from "@/lib/errors";
 import {
-  businessMonthStart,
-  businessYearStart,
-} from "@/lib/reservation-lifecycle";
+  businessMonthStartAsRentalDate,
+  businessYearStartAsRentalDate,
+} from "@/lib/business-time";
 import type { RepairInput } from "@/lib/validations/repair";
 import { auditFields, recordAudit } from "@/lib/audit";
 import { getAuditHistory } from "@/services/audit.service";
@@ -87,13 +87,12 @@ export async function getVehicleFleetProfile(vehicleId: string) {
   if (!vehicle) throw new NotFoundError("Vehicle");
 
   const now = new Date();
-  // Repair dates are calendar values (a picked date stored at 00:00 UTC). The
-  // branch-local boundary is an instant at or before that midnight — Belgrade
-  // is ahead of UTC — and after the previous day's, so comparing one with the
-  // other is a comparison of calendar days. startOfYear/startOfMonth followed
-  // the server's timezone instead: UTC on Vercel, Belgrade locally.
-  const yearStart = businessYearStart(now);
-  const monthStart = businessMonthStart(now);
+  // Repair dates are calendar values (a picked date stored at 00:00 UTC), so
+  // they are compared with calendar boundaries of the branch's current year
+  // and month — not with instants, and not with startOfYear/startOfMonth,
+  // which follow the server's time zone (UTC on Vercel, Belgrade locally).
+  const yearStart = businessYearStartAsRentalDate(now);
+  const monthStart = businessMonthStartAsRentalDate(now);
   const sum = (rows: { cost: Prisma.Decimal }[]) =>
     rows.reduce((total, r) => total + Number(r.cost), 0);
 
@@ -142,7 +141,7 @@ const EARNED_STATUSES = ["ACTIVE", "COMPLETED"] as const;
  */
 export async function getVehicleDetail(vehicleId: string) {
   const now = new Date();
-  const yearStart = businessYearStart(now);
+  const yearStart = businessYearStartAsRentalDate(now);
 
   const [vehicle, earnedSum, repairSum, repairYearSum, history] =
     await Promise.all([
@@ -181,7 +180,7 @@ export async function getVehicleDetail(vehicleId: string) {
       prisma.repair.aggregate({
         _sum: { cost: true },
         // See getVehicleFleetProfile: calendar-dated rows against a
-        // branch-local boundary.
+        // calendar boundary.
         where: { vehicleId, date: { gte: yearStart } },
       }),
       getAuditHistory("vehicle", vehicleId),

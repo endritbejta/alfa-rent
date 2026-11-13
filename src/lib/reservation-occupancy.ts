@@ -4,7 +4,7 @@ import {
   businessDay,
   businessTodayAsRentalDate,
   rentalCalendarDay,
-} from "@/lib/reservation-lifecycle";
+} from "@/lib/business-time";
 
 /**
  * Which reservations keep a vehicle from being booked for a date range.

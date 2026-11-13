@@ -5,7 +5,7 @@ import {
   businessMonthStart,
   businessWeekStart,
   businessYearStart,
-} from "./reservation-lifecycle";
+} from "@/lib/business-time";
 
 /**
  * The dashboard's "revenue this month" KPI used businessMonthStart while the

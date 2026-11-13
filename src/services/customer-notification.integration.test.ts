@@ -43,7 +43,7 @@ vi.mock("@/lib/i18n/server", async () =>
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { businessDay } from "@/lib/reservation-lifecycle";
+import { businessDay } from "@/lib/business-time";
 import { createTestActor, removeTestActor } from "@/lib/testing/audit";
 import { purgeAuditEvents } from "@/lib/testing/audit";
 import { anonymiseCustomer } from "@/services/customer.service";

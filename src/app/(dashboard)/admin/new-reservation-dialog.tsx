@@ -31,6 +31,7 @@ import { toasts } from "@/components/dashboard/toaster";
 import { formatEur } from "@/lib/money";
 import { keyForPayload } from "@/lib/idempotency";
 import { cn } from "@/lib/utils";
+import { rentalDateParam } from "@/lib/business-time";
 
 export type VehicleOption = { id: string; name: string };
 
@@ -114,8 +115,8 @@ export function NewReservationDialog({
     let cancelled = false;
     void previewManualReservationAction({
       vehicleId,
-      pickupDate: `${range.from}T10:00:00Z`,
-      returnDate: `${range.to}T10:00:00Z`,
+      pickupDate: rentalDateParam(range.from),
+      returnDate: rentalDateParam(range.to),
     }).then((result) => {
       if (cancelled) return;
       setPreview({
@@ -173,8 +174,8 @@ export function NewReservationDialog({
         mode === "existing" && selected
           ? { kind: "existing" as const, id: selected.id }
           : { kind: "new" as const, ...newCustomer },
-      pickupDate: `${range.from}T10:00:00Z`,
-      returnDate: `${range.to}T10:00:00Z`,
+      pickupDate: rentalDateParam(range.from),
+      returnDate: rentalDateParam(range.to),
       status,
       notes: notes || undefined,
     };

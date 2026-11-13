@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { businessDay } from "./reservation-lifecycle";
+import { businessDay } from "@/lib/business-time";
 
 /**
  * Reporting buckets as branch calendar days.

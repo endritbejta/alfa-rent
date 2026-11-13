@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { ReservationStatus } from "@prisma/client";
-import { businessDay, rentalCalendarDay } from "@/lib/reservation-lifecycle";
+import {
+  atBusinessPickupTime,
+  businessDay,
+  rentalCalendarDay,
+} from "@/lib/business-time";
 import { idempotencyKeySchema } from "@/lib/idempotency";
 import { rentalDays } from "@/lib/rental-dates";
 import { CANCEL_REASON_MAX, CANCEL_REASON_MIN } from "@/lib/cancel-reason";
@@ -17,9 +21,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const returnNotBeforePickup = (d: { pickupDate: Date; returnDate: Date }) =>
   rentalCalendarDay(d.returnDate) >= rentalCalendarDay(d.pickupDate);
 
+/**
+ * Any parseable date is accepted, then pinned to the business pickup time
+ * of its calendar day (audit finding P3-3). The forms always sent T10:00Z,
+ * but the public API took whatever instant arrived and stored it, so the
+ * same days could be two different bookings to the idempotency check.
+ */
+const rentalDate = z.coerce.date().transform(atBusinessPickupTime);
+
 const dateRange = {
-  pickupDate: z.coerce.date(),
-  returnDate: z.coerce.date(),
+  pickupDate: rentalDate,
+  returnDate: rentalDate,
 };
 
 const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { removeTestActor } from "@/lib/testing/audit";
 import { AppError } from "@/lib/errors";
-import { BUSINESS_TIME_ZONE, businessDay } from "@/lib/reservation-lifecycle";
+import { BUSINESS_TIME_ZONE, businessDay } from "@/lib/business-time";
 import type { RentalInspectionInput } from "@/lib/validations/inspection";
 import { recordRentalInspection } from "@/services/inspection.service";
 

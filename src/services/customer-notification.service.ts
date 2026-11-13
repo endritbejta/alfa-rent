@@ -20,7 +20,7 @@ import { rentalDays } from "@/lib/rental-dates";
 import {
   businessTodayAsRentalDate,
   rentalCalendarDay,
-} from "@/lib/reservation-lifecycle";
+} from "@/lib/business-time";
 import { publicContact } from "@/lib/site-config";
 import { absoluteUrl } from "@/lib/site-url";
 

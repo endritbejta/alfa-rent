@@ -17,16 +17,16 @@ import { cn } from "@/lib/utils";
 /** Mirrors VehicleCard: photo, category and badge, name, specs, price row. */
 export function VehicleCardSkeleton() {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       <Skeleton className="aspect-[16/10] w-full" />
       <div>
         <div className="flex items-center justify-between gap-3">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-4 w-14" />
         </div>
-        <Skeleton className="mt-3 h-7 w-3/4 sm:h-8" />
-        <Skeleton className="mt-4 h-4 w-1/2" />
-        <div className="mt-6 flex items-end justify-between gap-4 border-t pt-5">
+        <Skeleton className="mt-2 h-7 w-3/4 sm:h-8" />
+        <Skeleton className="mt-2 h-4 w-1/2" />
+        <div className="mt-3 flex items-center justify-between gap-4">
           <Skeleton className="h-7 w-28" />
           <Skeleton className="h-5 w-20" />
         </div>

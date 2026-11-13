@@ -105,6 +105,10 @@ describe("database objects that schema.prisma does not model", () => {
     ["reservations", "reservations_total_price_nonnegative"],
     ["reservations", "reservations_late_days_nonnegative"],
     ["reservations", "reservations_late_charge_nonnegative"],
+    ["reservations", "reservations_daily_rate_nonnegative"],
+    ["reservations", "reservations_booked_total_nonnegative"],
+    ["reservations", "reservations_actual_days_positive"],
+    ["reservations", "reservations_early_return_consistent"],
     ["vehicles", "vehicles_price_per_day_positive"],
     ["payments", "payments_amount_positive"],
     ["users", "users_email_lowercase"],
@@ -196,6 +200,45 @@ describe("database objects that schema.prisma does not model", () => {
           data: { lateCharge: -5 },
         })
       ).rejects.toEqual(violates("reservations_late_charge_nonnegative"));
+      await expect(
+        prisma.reservation.update({
+          where: { id: reservationId },
+          data: { dailyRate: -1 },
+        })
+      ).rejects.toEqual(violates("reservations_daily_rate_nonnegative"));
+      await expect(
+        prisma.reservation.update({
+          where: { id: reservationId },
+          data: { bookedTotal: -1 },
+        })
+      ).rejects.toEqual(violates("reservations_booked_total_nonnegative"));
+      await expect(
+        prisma.reservation.update({
+          where: { id: reservationId },
+          data: { actualDays: 0 },
+        })
+      ).rejects.toEqual(violates("reservations_actual_days_positive"));
+      // Early returns: never also late, never billed above the booking, and
+      // a full booking is exactly the booking.
+      const early = { actualDays: 1, bookedTotal: 10 };
+      for (const data of [
+        { ...early, earlyReturnBilling: "ACTUAL_DAYS" as const, lateDays: 1 },
+        {
+          ...early,
+          earlyReturnBilling: "ACTUAL_DAYS" as const,
+          totalPrice: 11,
+        },
+        {
+          ...early,
+          earlyReturnBilling: "FULL_BOOKING" as const,
+          totalPrice: 5,
+        },
+        { earlyReturnBilling: "FULL_BOOKING" as const, actualDays: 1 },
+      ]) {
+        await expect(
+          prisma.reservation.update({ where: { id: reservationId }, data })
+        ).rejects.toEqual(violates("reservations_early_return_consistent"));
+      }
       await expect(
         prisma.payment.create({
           data: {

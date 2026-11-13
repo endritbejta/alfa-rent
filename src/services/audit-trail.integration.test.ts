@@ -300,7 +300,11 @@ describe("every staff write records exactly one event", () => {
   });
 
   it("inspections: start and complete a rental", async () => {
-    const reservationId = await reservation("CONFIRMED", 0, 1);
+    // Out and back today: an on-time return, so completing it is the one
+    // event. Back before a later return day it would also be an early
+    // return to bill, recorded as an event of its own (see
+    // early-return.integration.test).
+    const reservationId = await reservation("CONFIRMED", 0, 0);
     const input = (type: "PICKUP" | "RETURN", mileage: number) =>
       rentalInspectionSchema.parse({
         type,

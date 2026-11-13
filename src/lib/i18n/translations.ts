@@ -172,6 +172,10 @@ const en = {
     "This car came back after its return date (late days: {days}). Charge them, or waive them with a reason.",
   "err.lateDaysChanged":
     "The late days are now {days}. Check the return date and confirm again.",
+  "err.earlyReturnUnresolved":
+    "This car came back after {days} of {booked} booked days. Choose whether to bill the days used or the full booking.",
+  "err.earlyDaysChanged":
+    "The days used are now {days}. Check the return date and confirm again.",
   "err.lateStartUnconfirmed":
     "The pickup date has passed. Confirm the late handover to start this rental.",
   "err.occurredInFuture": "That date is in the future.",
@@ -590,6 +594,31 @@ const en = {
   "admin.lateChooseRequired":
     "Choose whether to charge or waive the late days.",
   "admin.lateReasonTooShort": "Give a reason of at least {min} characters.",
+  "admin.earlyReturnTitle": "Returned early: {count} of {booked} booked days",
+  "admin.earlyReturnHelp":
+    "Booked until {date}. Choose how to bill this rental before completing it.",
+  "admin.earlyBillActual": "Charge for the days used",
+  "admin.earlyBillActualSum": "{days} at {rate}",
+  "admin.earlyBillActualCapped": "Capped at the booked amount",
+  "admin.earlyBillFull": "Keep the full booking amount",
+  "admin.earlyBillFullSum": "As booked, unchanged",
+  "admin.earlyChooseRequired": "Choose how to bill the early return.",
+  "admin.scheduledReturn": "Scheduled return",
+  "admin.actualReturn": "Actual return",
+  "admin.bookedAmount": "Booked amount",
+  "admin.bookedDuration": "Booked duration",
+  "admin.daysUsed": "Days used",
+  "admin.agreedRate": "Daily rate",
+  "admin.agreedRateHelp": "The rate this booking was priced at",
+  "admin.pricedForDays": "priced for {count} days when booked",
+  "admin.finalAmount": "Final amount",
+  "admin.returnedEarly": "Returned early",
+  "admin.earlyBilledActual": "Billed for {count} of {booked} days",
+  "admin.earlyBilledFull": "Full booking kept ({count} of {booked} days used)",
+  "admin.originalAmount": "Original amount",
+  "admin.earlyChipActual": "early · {count} day billed",
+  "admin.earlyChipActualPlural": "early · {count} days billed",
+  "admin.earlyChipFull": "early · billed in full",
   "admin.requiredField": "Please fill out this field.",
   "admin.confirm": "Confirm",
   "admin.working": "Working…",
@@ -1133,6 +1162,7 @@ const en = {
   "audit.reservation.lateChargePlural": "Charged {count} late days ({amount})",
   "audit.reservation.lateWaive": "Waived {count} late day",
   "audit.reservation.lateWaivePlural": "Waived {count} late days",
+  "audit.reservation.earlyReturn": "Returned early, billed {amount}",
   "audit.customer.update": "Edited the customer",
   "audit.customer.merge": "Merged {count} duplicate records into this one",
   "audit.customer.anonymise": "Anonymised the customer",
@@ -1329,6 +1359,10 @@ const sq: TranslationDictionary = {
     "Kjo veturë u kthye pas datës së kthimit (ditë vonese: {days}). Faturoji, ose fali duke dhënë një arsye.",
   "err.lateDaysChanged":
     "Ditët e vonesës tani janë {days}. Kontrollo datën e kthimit dhe konfirmo sërish.",
+  "err.earlyReturnUnresolved":
+    "Kjo makinë u kthye pas {days} nga {booked} ditët e rezervuara. Zgjidhni nëse faturohen ditët e shfrytëzuara apo rezervimi i plotë.",
+  "err.earlyDaysChanged":
+    "Ditët e shfrytëzuara tani janë {days}. Kontrolloni datën e kthimit dhe konfirmoni sërish.",
   "err.lateStartUnconfirmed":
     "Data e marrjes ka kaluar. Konfirmo dorëzimin me vonesë për ta filluar këtë qira.",
   "err.occurredInFuture": "Kjo datë është në të ardhmen.",
@@ -1742,6 +1776,33 @@ const sq: TranslationDictionary = {
   "admin.lateChooseRequired":
     "Zgjidh nëse do t'i faturosh apo t'i falësh ditët e vonesës.",
   "admin.lateReasonTooShort": "Shkruaj një arsye me të paktën {min} karaktere.",
+  "admin.earlyReturnTitle":
+    "Kthim i hershëm: {count} nga {booked} ditë të rezervuara",
+  "admin.earlyReturnHelp":
+    "E rezervuar deri më {date}. Zgjidhni si të faturohet kjo qira para se ta përfundoni.",
+  "admin.earlyBillActual": "Llogarit sipas ditëve të shfrytëzuara",
+  "admin.earlyBillActualSum": "{days} me {rate}",
+  "admin.earlyBillActualCapped": "Kufizuar në shumën e rezervuar",
+  "admin.earlyBillFull": "Mbaj shumën e plotë të rezervimit",
+  "admin.earlyBillFullSum": "Siç u rezervua, pa ndryshim",
+  "admin.earlyChooseRequired": "Zgjidhni si të faturohet kthimi i hershëm.",
+  "admin.scheduledReturn": "Kthimi i planifikuar",
+  "admin.actualReturn": "Kthimi aktual",
+  "admin.bookedAmount": "Shuma e rezervuar",
+  "admin.bookedDuration": "Kohëzgjatja e rezervuar",
+  "admin.daysUsed": "Ditët e shfrytëzuara",
+  "admin.agreedRate": "Çmimi ditor",
+  "admin.agreedRateHelp": "Çmimi me të cilin u çmua ky rezervim",
+  "admin.pricedForDays": "çmuar për {count} ditë në rezervim",
+  "admin.finalAmount": "Shuma përfundimtare",
+  "admin.returnedEarly": "Kthyer herët",
+  "admin.earlyBilledActual": "Faturuar për {count} nga {booked} ditë",
+  "admin.earlyBilledFull":
+    "Mbajtur shuma e plotë ({count} nga {booked} ditë të shfrytëzuara)",
+  "admin.originalAmount": "Shuma fillestare",
+  "admin.earlyChipActual": "herët · {count} ditë e faturuar",
+  "admin.earlyChipActualPlural": "herët · {count} ditë të faturuara",
+  "admin.earlyChipFull": "herët · faturuar plotësisht",
   "admin.requiredField": "Plotësoje këtë fushë.",
   "admin.confirm": "Konfirmo",
   "admin.working": "Duke punuar…",
@@ -2292,6 +2353,7 @@ const sq: TranslationDictionary = {
     "Faturoi {count} ditë vonesë ({amount})",
   "audit.reservation.lateWaive": "Fali {count} ditë vonesë",
   "audit.reservation.lateWaivePlural": "Fali {count} ditë vonesë",
+  "audit.reservation.earlyReturn": "U kthye herët, u faturuan {amount}",
   "audit.customer.update": "Ndryshoi të dhënat e klientit",
   "audit.customer.merge": "Bashkoi {count} kartela të dyfishta në këtë",
   "audit.customer.anonymise": "Anonimizoi klientin",

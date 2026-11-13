@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Prisma } from "@prisma/client";
-import { calculateTotalPrice } from "./pricing";
+import { calculateTotalPrice, usedDaysCharge } from "./pricing";
 
 const d = (iso: string) => new Date(iso);
 
@@ -41,6 +41,35 @@ describe("calculateTotalPrice", () => {
         d("2026-11-26T10:00Z"),
         d("2026-11-25T10:00Z")
       )
+    ).toThrow(RangeError);
+  });
+});
+
+describe("usedDaysCharge", () => {
+  it("charges the used days at the booking's agreed rate", () => {
+    // The owner's Kia Rio: 26/day agreed, out and back on 13 Nov.
+    const charge = usedDaysCharge(
+      new Prisma.Decimal("26"),
+      1,
+      new Prisma.Decimal("78")
+    );
+    expect(charge.toFixed(2)).toBe("26.00");
+  });
+
+  it("never charges more than the booking", () => {
+    // Priced on the old exclusive count: 3 billed days for 13 → 16 Nov.
+    // Back on the 15th is 3 inclusive days, which must not exceed 78.
+    const charge = usedDaysCharge(
+      new Prisma.Decimal("26"),
+      4,
+      new Prisma.Decimal("78")
+    );
+    expect(charge.toFixed(2)).toBe("78.00");
+  });
+
+  it("refuses a day count below one", () => {
+    expect(() =>
+      usedDaysCharge(new Prisma.Decimal("26"), 0, new Prisma.Decimal("78"))
     ).toThrow(RangeError);
   });
 });

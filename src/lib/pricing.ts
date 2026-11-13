@@ -27,3 +27,24 @@ export function additionalDaysCharge(
   }
   return pricePerDay.mul(days);
 }
+
+/**
+ * An early return billed for the days actually used: those days at the rate
+ * the booking was agreed at, never more than the booking itself.
+ *
+ * The rate is the booking's, not the car's today and not total ÷ days —
+ * see `Reservation.dailyRate`. The cap matters for a booking priced on the
+ * old exclusive day count, or extended at a lower rate: there the used days
+ * at the agreed rate can come to more than was ever booked, and returning
+ * early must never cost more than staying.
+ */
+export function usedDaysCharge(
+  dailyRate: Prisma.Decimal,
+  days: number,
+  bookedTotal: Prisma.Decimal
+): Prisma.Decimal {
+  if (!Number.isInteger(days) || days < 1) {
+    throw new RangeError("days must be a positive integer");
+  }
+  return Prisma.Decimal.min(dailyRate.mul(days), bookedTotal);
+}

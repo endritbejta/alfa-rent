@@ -1,4 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [{ "path": "/api/cron/expired-requests", "schedule": "0 7 * * *" }]
+  "crons": [
+    { "path": "/api/cron/expired-requests", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/sweep-rate-limits", "schedule": "30 3 * * *" }
+  ]
 }

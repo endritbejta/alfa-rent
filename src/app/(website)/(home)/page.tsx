@@ -11,10 +11,9 @@ import {
 import { getPublicVehicles } from "@/services/vehicle.service";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { Button } from "@/components/ui/button";
-import { HeroSearch } from "@/components/forms/hero-search";
-import { HeroBackground } from "@/components/shared/hero-background";
 import { BusinessJsonLd } from "@/components/shared/business-json-ld";
 import { getI18n } from "@/lib/i18n/server";
+import { HomeHero } from "./home-hero";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,12 +26,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const dynamic = "force-dynamic";
-
-const PROOF = [
-  { icon: ShieldCheck, label: "home.proof.insured" },
-  { icon: Clock, label: "home.proof.flexible" },
-  { icon: BadgeEuro, label: "home.proof.transparent" },
-] satisfies { icon: typeof ShieldCheck; label: TranslationKey }[];
 
 const WHY = [
   {
@@ -90,36 +83,7 @@ export default async function HomePage() {
   return (
     <>
       <BusinessJsonLd description={t("home.metaDescription")} />
-      {/* Hero — charcoal band, availability-first search */}
-      <section className="bg-band text-band-foreground relative isolate overflow-hidden">
-        <HeroBackground />
-        <div className="relative z-10 mx-auto max-w-6xl px-5 pt-14 pb-14 lg:pt-20 lg:pb-16">
-          <span className="eyebrow text-band-muted">{t("home.eyebrow")}</span>
-          <h1 className="display-xl reveal mt-5 max-w-4xl text-balance">
-            {t("home.titleLine1")}
-            <br />
-            {t("home.titleLine2")}{" "}
-            <span className="text-brand">{t("home.titleAccent")}</span>
-          </h1>
-          <p className="text-band-muted mt-6 max-w-xl text-base sm:text-lg">
-            {t("home.intro")}
-          </p>
-
-          <HeroSearch />
-
-          <div className="border-band-border mt-10 flex flex-wrap gap-x-10 gap-y-3 border-t pt-6">
-            {PROOF.map(({ icon: Icon, label }) => (
-              <span
-                key={label}
-                className="text-band-muted flex items-center gap-2.5 text-sm"
-              >
-                <Icon className="text-brand h-4.5 w-4.5" />
-                {t(label)}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HomeHero />
 
       {/* Featured fleet */}
       <section

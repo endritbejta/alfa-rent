@@ -1,9 +1,14 @@
 import { format, parseISO } from "date-fns";
 import { sq as sqDateLocale, enUS } from "date-fns/locale";
 import type { Prisma } from "@prisma/client";
-import { cloudinaryJpegCrop } from "@/lib/cloudinary/image-loader";
 import { prisma } from "@/lib/db/prisma";
 import { parseRecipients, sendEmail, type SendResult } from "@/lib/email";
+import {
+  EMAIL_COLORS,
+  EMAIL_FONT,
+  emailCarPhotoUrl,
+  escapeHtml,
+} from "@/lib/email/html";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import {
   dictionaries,
@@ -57,40 +62,10 @@ export type BookingRequestEmailData = {
   adminUrl: string | null;
 };
 
-/** Customer-typed text goes into HTML; none of it may become markup. */
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+export { emailCarPhotoUrl };
 
-/**
- * The email header photo: 2:1, at twice the 560px column for high-density
- * screens, so a tall phone photo cannot push the booking below the fold.
- */
-export function emailCarPhotoUrl(src: string | null): string | null {
-  return cloudinaryJpegCrop(src, 1120, 560);
-}
-
-/** The app's palette, inlined: mail clients ignore stylesheets. */
-const C = {
-  page: "#f4f2f1",
-  card: "#ffffff",
-  ink: "#161414",
-  muted: "#5b5655",
-  line: "#e7e3e2",
-  soft: "#f7f5f4",
-  brand: "#dc2028",
-  pendingInk: "#92400e",
-  pendingBg: "#fef3c7",
-  photo: "#1e1c1c",
-} as const;
-
-const FONT =
-  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const C = EMAIL_COLORS;
+const FONT = EMAIL_FONT;
 
 /**
  * The staff notification for a new website booking request, as subject,

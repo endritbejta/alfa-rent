@@ -36,6 +36,11 @@ function emailConfig(): EmailConfig | null {
   return apiKey && from ? { apiKey, from } : null;
 }
 
+/** Whether a send would go anywhere: both RESEND_API_KEY and EMAIL_FROM set. */
+export function isEmailConfigured(): boolean {
+  return emailConfig() !== null;
+}
+
 /** Comma- or semicolon-separated addresses from an env var, trimmed. */
 export function parseRecipients(raw: string | undefined): string[] {
   return (raw ?? "")

@@ -358,6 +358,31 @@ const ACTIONS: Record<string, Entry> = {
     level: "ADMIN",
     call: call("vehicle-1", "repair-1"),
   },
+  "(dashboard)/admin/vehicles/actions.ts#addVehicleServiceAction": {
+    level: "ADMIN",
+    call: (action) =>
+      action(
+        ...([
+          "vehicle-1",
+          form({ "service-date": "2026-10-01", "service-cost": "89.90" }),
+        ] as never[])
+      ),
+  },
+  "(dashboard)/admin/vehicles/actions.ts#updateVehicleServiceAction": {
+    level: "ADMIN",
+    call: (action) =>
+      action(
+        ...([
+          "vehicle-1",
+          "service-1",
+          form({ "service-date": "2026-10-01", "service-cost": "95" }),
+        ] as never[])
+      ),
+  },
+  "(dashboard)/admin/vehicles/actions.ts#deleteVehicleServiceAction": {
+    level: "ADMIN",
+    call: call("vehicle-1", "service-1"),
+  },
 
   // --- account ---------------------------------------------------------------
   "account/password/actions.ts#changeOwnPasswordAction": {

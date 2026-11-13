@@ -2,6 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { format } from "date-fns";
+import { enUS, sq } from "date-fns/locale";
 import {
   VehicleCategory,
   VehicleStatus,
@@ -55,6 +57,10 @@ export type VehicleFormValues = {
   pricePerDay: number;
   description: string;
   status: VehicleStatus;
+  /**
+   * Read only: the newest row of the car's service history, which is
+   * recorded from the vehicle drawer. Not a form field.
+   */
   lastServiceDate: Date | null;
   nextServiceDate: Date | null;
   serviceNotes: string | null;
@@ -74,7 +80,7 @@ export function VehicleForm({
   onDeleteVehicle,
   repairsPanel,
 }: Props) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -382,18 +388,28 @@ export function VehicleForm({
               subtitle={t("admin.serviceSubtitle")}
             >
               <div className="grid gap-4">
-                <Field
-                  label={t("admin.lastService")}
-                  htmlFor="lastServiceDate"
-                  icon={CalendarDays}
-                >
-                  <DateField
-                    id="lastServiceDate"
-                    name="lastServiceDate"
-                    defaultValue={vehicle?.lastServiceDate}
-                    onChange={() => setDirty(true)}
-                  />
-                </Field>
+                {/* Services are a history now, each with its cost, recorded
+                    in the vehicle drawer. A date field here would either
+                    disagree with that list or invent a service with no
+                    cost, so the last one is shown, not edited. */}
+                {vehicle && (
+                  <div>
+                    <p className="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] uppercase">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {t("admin.lastService")}
+                    </p>
+                    <p className="text-sm">
+                      {vehicle.lastServiceDate
+                        ? format(vehicle.lastServiceDate, "dd MMM yyyy", {
+                            locale: locale === "sq" ? sq : enUS,
+                          })
+                        : t("admin.notSet")}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-[11px]">
+                      {t("admin.lastServiceFromHistory")}
+                    </p>
+                  </div>
+                )}
                 <Field
                   label={t("admin.nextDue")}
                   htmlFor="nextServiceDate"

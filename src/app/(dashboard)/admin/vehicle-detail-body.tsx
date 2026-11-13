@@ -10,10 +10,20 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { SectionTitle, Row } from "./detail-primitives";
 import { AuditHistory } from "./audit-history";
+import { VehicleServices } from "./vehicle-services";
+import { toLocalDay } from "@/components/forms/date-range-picker";
+import { MIN_MONTHS_TO_AVERAGE } from "@/lib/vehicle-costs";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 
-export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
+export function VehicleDetailBody({
+  detail,
+  onChanged,
+}: {
+  detail: VehicleDetail;
+  /** Reloads the drawer in place after a service is recorded or changed. */
+  onChanged: () => void;
+}) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
   // Whole euros: these are running totals on compact metric tiles.
@@ -21,6 +31,11 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
   const { vehicle, costs } = detail;
   const [cover, ...rest] = vehicle.images;
   const active = vehicle.reservations.find((r) => r.status === "ACTIVE");
+  /** A stored calendar value (00:00 UTC), as that same day here. */
+  const day = (d: Date) =>
+    format(toLocalDay(d), "dd MMM yyyy", { locale: dateLocale });
+  // Too little history to average: a dash, never a figure ×12 of one bill.
+  const average = (n: number | null) => (n === null ? "—" : eur(n));
 
   return (
     <div className="space-y-6">
@@ -87,9 +102,15 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
             hint={t("admin.recordedCostsHint")}
           />
           <Metric
-            label={t("admin.repairsPerYear")}
-            value={eur(costs.repairsPerYear)}
-            hint={t("admin.averageSinceAdded")}
+            label={t("admin.costsPerYear")}
+            value={average(costs.perYear)}
+            hint={
+              costs.perYear === null
+                ? t("admin.averageTooEarly", { months: MIN_MONTHS_TO_AVERAGE })
+                : t("admin.averageSince", {
+                    date: day(new Date(`${costs.since}T00:00:00Z`)),
+                  })
+            }
           />
           <Metric
             label={t("admin.net")}
@@ -99,14 +120,14 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
           />
         </div>
         <div className="space-y-2 text-sm">
-          <Row label={t("admin.lastServiceCost")}>{eur(costs.lastService)}</Row>
+          <Row label={t("admin.servicesCount", { count: costs.serviceCount })}>
+            {eur(costs.services)}
+          </Row>
           <Row label={t("admin.repairs", { count: costs.repairCount })}>
             {eur(costs.repairs)}
           </Row>
-          <Row label={t("admin.repairsYear")}>{eur(costs.repairsThisYear)}</Row>
-          <Row label={t("admin.repairsPerMonth")}>
-            {eur(costs.repairsPerMonth)}
-          </Row>
+          <Row label={t("admin.costsThisYear")}>{eur(costs.thisYear)}</Row>
+          <Row label={t("admin.costsPerMonth")}>{average(costs.perMonth)}</Row>
         </div>
       </section>
 
@@ -127,10 +148,8 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
         <SectionTitle icon={Wrench}>{t("admin.maintenance")}</SectionTitle>
         <div className="space-y-2 text-sm">
           <Row label={t("admin.lastService")}>
-            {vehicle.lastServiceDate
-              ? format(vehicle.lastServiceDate, "dd MMM yyyy", {
-                  locale: dateLocale,
-                })
+            {costs.lastService
+              ? day(costs.lastService.date)
               : t("admin.notSet")}
           </Row>
           <Row label={t("admin.nextDue")}>
@@ -167,6 +186,8 @@ export function VehicleDetailBody({ detail }: { detail: VehicleDetail }) {
           </ul>
         )}
       </section>
+
+      <VehicleServices detail={detail} onChanged={onChanged} />
 
       {/* Availability */}
       <section>

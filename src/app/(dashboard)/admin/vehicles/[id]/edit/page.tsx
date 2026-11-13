@@ -70,7 +70,8 @@ export default async function EditVehiclePage({
           pricePerDay: Number(vehicle.pricePerDay),
           description: vehicle.description,
           status: vehicle.status,
-          lastServiceDate: vehicle.lastServiceDate,
+          // The newest service row, not the frozen column.
+          lastServiceDate: profile.lastServiceDate,
           nextServiceDate: vehicle.nextServiceDate,
           serviceNotes: vehicle.serviceNotes,
           images: vehicle.images.map((image) => ({

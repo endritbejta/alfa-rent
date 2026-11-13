@@ -69,13 +69,17 @@ export type VehicleDetail = Omit<RawVehicleDetail, "vehicle"> & {
     | "registrationDate"
     | "registrationExpiry"
     | "registrationCost"
+    | "lastServiceDate"
     | "serviceCost"
     | "repairs"
+    | "services"
     | "reservations"
   > & {
     pricePerDay: number;
-    serviceCost: number | null;
     repairs: (Omit<RawVehicleDetail["vehicle"]["repairs"][number], "cost"> & {
+      cost: number;
+    })[];
+    services: (Omit<RawVehicleDetail["vehicle"]["services"][number], "cost"> & {
       cost: number;
     })[];
     reservations: (Omit<
@@ -83,24 +87,40 @@ export type VehicleDetail = Omit<RawVehicleDetail, "vehicle"> & {
       "totalPrice"
     > & { totalPrice: number })[];
   };
+  /**
+   * Whether to offer ADMIN-only actions (recording services). A hint for
+   * the UI, never access control: the actions themselves call requireRole.
+   */
+  viewerIsAdmin: boolean;
 };
 
-function plainVehicle(d: RawVehicleDetail): VehicleDetail {
-  // Registration is no longer tracked; the columns are kept only so existing
-  // data survives, and must not reach the client (registrationCost is a
-  // Decimal, which cannot cross the server/client boundary).
+function plainVehicle(
+  d: RawVehicleDetail,
+  viewerIsAdmin: boolean
+): VehicleDetail {
+  // Registration is no longer tracked, and the last-service columns are
+  // frozen since services became rows (the newest row is the last service).
+  // Those columns are kept only so existing data survives, and must not
+  // reach the client: nothing there should read a stale value, and the
+  // costs are Decimals, which cannot cross the server/client boundary.
   /* eslint-disable @typescript-eslint/no-unused-vars */
-  const { registrationDate, registrationExpiry, registrationCost, ...vehicle } =
-    d.vehicle;
+  const {
+    registrationDate,
+    registrationExpiry,
+    registrationCost,
+    lastServiceDate,
+    serviceCost,
+    ...vehicle
+  } = d.vehicle;
   /* eslint-enable @typescript-eslint/no-unused-vars */
   return {
     ...d,
+    viewerIsAdmin,
     vehicle: {
       ...vehicle,
       pricePerDay: Number(d.vehicle.pricePerDay),
-      serviceCost:
-        d.vehicle.serviceCost === null ? null : Number(d.vehicle.serviceCost),
       repairs: d.vehicle.repairs.map((r) => ({ ...r, cost: Number(r.cost) })),
+      services: d.vehicle.services.map((s) => ({ ...s, cost: Number(s.cost) })),
       reservations: d.vehicle.reservations.map((r) => ({
         ...r,
         totalPrice: Number(r.totalPrice),
@@ -112,9 +132,11 @@ function plainVehicle(d: RawVehicleDetail): VehicleDetail {
 export async function getVehicleDetailAction(
   id: string
 ): Promise<{ data: VehicleDetail } | { error: string }> {
-  await requireUser();
+  const user = await requireUser();
   try {
-    return { data: plainVehicle(await getVehicleDetail(id)) };
+    return {
+      data: plainVehicle(await getVehicleDetail(id), user.role === "ADMIN"),
+    };
   } catch (error) {
     return { error: await errorMessage(error) };
   }

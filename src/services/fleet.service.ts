@@ -1,12 +1,19 @@
-import { Prisma, type Repair } from "@prisma/client";
+import { Prisma, type Repair, type VehicleService } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   businessMonthStartAsRentalDate,
+  businessTodayAsRentalDate,
   businessYearStartAsRentalDate,
 } from "@/lib/business-time";
 import type { RepairInput } from "@/lib/validations/repair";
-import { auditFields, recordAudit } from "@/lib/audit";
+import type { VehicleServiceInput } from "@/lib/validations/vehicle-service";
+import { auditFields, diffFields, recordAudit } from "@/lib/audit";
+import {
+  historyStartDay,
+  monthsOfHistory,
+  vehicleCosts,
+} from "@/lib/vehicle-costs";
 import { getAuditHistory } from "@/services/audit.service";
 
 /** A repair as the audit trail describes it, on the vehicle's history. */
@@ -64,6 +71,129 @@ export async function deleteRepair(id: string, actorId: string): Promise<void> {
   });
 }
 
+/** A service as the audit trail describes it, on the vehicle's history. */
+function serviceFields(service: VehicleService) {
+  return auditFields({
+    serviceId: service.id,
+    date: service.date,
+    cost: service.cost,
+    mileage: service.mileage,
+  });
+}
+
+/**
+ * A service is history: it has happened. One booked for next month is what
+ * nextServiceDate is for, and counting it now would put a cost on the car
+ * before it is paid and make it "the last service" before it is done.
+ */
+function assertNotInFuture(date: Date, now: Date) {
+  if (date > businessTodayAsRentalDate(now)) {
+    throw new ValidationError("A service cannot be dated in the future", {
+      key: "err.serviceInFuture",
+    });
+  }
+}
+
+/**
+ * The columns a service input writes. Optional fields become `null`, never
+ * `undefined`: in an update, undefined means "leave unchanged", so a mileage
+ * the operator cleared would silently survive.
+ */
+function serviceData(input: VehicleServiceInput) {
+  return {
+    date: input.date,
+    cost: new Prisma.Decimal(input.cost),
+    mileage: input.mileage ?? null,
+    notes: input.notes || null,
+  };
+}
+
+export async function addVehicleService(
+  vehicleId: string,
+  input: VehicleServiceInput,
+  actorId: string,
+  now = new Date()
+): Promise<VehicleService> {
+  assertNotInFuture(input.date, now);
+  return prisma.$transaction(async (tx) => {
+    const vehicle = await tx.vehicle.findUnique({
+      where: { id: vehicleId },
+      select: { id: true },
+    });
+    if (!vehicle) throw new NotFoundError("Vehicle");
+
+    const service = await tx.vehicleService.create({
+      data: { vehicleId, createdById: actorId, ...serviceData(input) },
+    });
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.addService",
+      entityId: vehicleId,
+      after: serviceFields(service),
+    });
+    return service;
+  });
+}
+
+/**
+ * Edits a service of this vehicle. The vehicle id is part of the lookup, so
+ * a service id from another car is "not found" rather than editable through
+ * this one. A save that changes nothing writes nothing and records nothing.
+ */
+export async function updateVehicleService(
+  vehicleId: string,
+  serviceId: string,
+  input: VehicleServiceInput,
+  actorId: string,
+  now = new Date()
+): Promise<VehicleService> {
+  assertNotInFuture(input.date, now);
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.vehicleService.findFirst({
+      where: { id: serviceId, vehicleId },
+    });
+    if (!existing) throw new NotFoundError("Record");
+
+    const data = serviceData(input);
+    const diff = diffFields(existing, data);
+    if (!diff) return existing;
+
+    const service = await tx.vehicleService.update({
+      where: { id: serviceId },
+      data,
+    });
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.updateService",
+      entityId: vehicleId,
+      before: { serviceId, ...diff.before },
+      after: { serviceId, ...diff.after },
+    });
+    return service;
+  });
+}
+
+/** Recorded on the vehicle, from the row itself. */
+export async function deleteVehicleService(
+  vehicleId: string,
+  serviceId: string,
+  actorId: string
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.vehicleService.findFirst({
+      where: { id: serviceId, vehicleId },
+    });
+    if (!existing) throw new NotFoundError("Record");
+    await tx.vehicleService.delete({ where: { id: serviceId } });
+    await recordAudit(tx, {
+      actorId,
+      action: "vehicle.deleteService",
+      entityId: vehicleId,
+      before: serviceFields(existing),
+    });
+  });
+}
+
 /**
  * Everything the admin needs to judge whether a vehicle still earns its
  * keep: repair history plus the rolled-up spend that makes an expensive
@@ -78,10 +208,13 @@ export async function getVehicleFleetProfile(vehicleId: string) {
       model: true,
       plate: true,
       year: true,
-      lastServiceDate: true,
-      nextServiceDate: true,
-      serviceNotes: true,
       repairs: { orderBy: { date: "desc" } },
+      // Only the newest: the edit form shows when the car was last serviced.
+      services: {
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        take: 1,
+        select: { date: true },
+      },
     },
   });
   if (!vehicle) throw new NotFoundError("Vehicle");
@@ -103,6 +236,7 @@ export async function getVehicleFleetProfile(vehicleId: string) {
   return {
     vehicle,
     repairs: vehicle.repairs,
+    lastServiceDate: vehicle.services[0]?.date ?? null,
     stats: {
       totalCost: lifetime,
       count: vehicle.repairs.length,
@@ -133,94 +267,120 @@ const EARNED_STATUSES = ["ACTIVE", "COMPLETED"] as const;
  * car's takings stopped growing after its twelfth rental while its costs kept
  * climbing — the exact car the owner most needs an honest number for.
  *
- * Costs are reported as what they are. Repairs are a full history; servicing
- * is only the cost of the *last* service, because services are not recorded
- * as rows. Adding the two and annualising the result produced a "per year"
- * figure that meant nothing, so only the repair history is averaged over
- * time, and "recorded costs" says plainly that it is repairs plus one service.
+ * Costs are every repair plus every service (audit P2-5c). Services used to
+ * be one pair of columns holding only the *last* one, so each new service
+ * erased the cost of the one before from the car's figures; they are rows
+ * now, and "last service" is simply the newest. The maths, including when
+ * the per-year average is too early to show, is in lib/vehicle-costs.ts.
  */
-export async function getVehicleDetail(vehicleId: string) {
-  const now = new Date();
+export async function getVehicleDetail(vehicleId: string, now = new Date()) {
   const yearStart = businessYearStartAsRentalDate(now);
 
-  const [vehicle, earnedSum, repairSum, repairYearSum, history] =
-    await Promise.all([
-      prisma.vehicle.findUnique({
-        where: { id: vehicleId },
-        include: {
-          images: { orderBy: { sortOrder: "asc" } },
-          repairs: { orderBy: { date: "desc" } },
-          // Display only — the drawer lists recent bookings. Never sum these.
-          reservations: {
-            where: {
-              status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
-            },
-            orderBy: { pickupDate: "desc" },
-            take: 12,
-            select: {
-              id: true,
-              status: true,
-              pickupDate: true,
-              returnDate: true,
-              totalPrice: true,
-              customer: { select: { firstName: true, lastName: true } },
-            },
+  const [
+    vehicle,
+    earnedSum,
+    repairSum,
+    repairYearSum,
+    serviceSum,
+    serviceYearSum,
+    history,
+  ] = await Promise.all([
+    prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        repairs: { orderBy: { date: "desc" } },
+        // Newest first: the first row is the last service. createdAt breaks
+        // a tie between two services on one day.
+        services: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
+        // Display only — the drawer lists recent bookings. Never sum these.
+        reservations: {
+          where: {
+            status: { in: ["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED"] },
+          },
+          orderBy: { pickupDate: "desc" },
+          take: 12,
+          select: {
+            id: true,
+            status: true,
+            pickupDate: true,
+            returnDate: true,
+            totalPrice: true,
+            customer: { select: { firstName: true, lastName: true } },
           },
         },
-      }),
-      prisma.reservation.aggregate({
-        _sum: { totalPrice: true },
-        where: { vehicleId, status: { in: [...EARNED_STATUSES] } },
-      }),
-      prisma.repair.aggregate({
-        _sum: { cost: true },
-        _count: true,
-        where: { vehicleId },
-      }),
-      prisma.repair.aggregate({
-        _sum: { cost: true },
-        // See getVehicleFleetProfile: calendar-dated rows against a
-        // calendar boundary.
-        where: { vehicleId, date: { gte: yearStart } },
-      }),
-      getAuditHistory("vehicle", vehicleId),
-    ]);
+      },
+    }),
+    prisma.reservation.aggregate({
+      _sum: { totalPrice: true },
+      where: { vehicleId, status: { in: [...EARNED_STATUSES] } },
+    }),
+    prisma.repair.aggregate({
+      _sum: { cost: true },
+      _min: { date: true },
+      _count: true,
+      where: { vehicleId },
+    }),
+    prisma.repair.aggregate({
+      _sum: { cost: true },
+      // See getVehicleFleetProfile: calendar-dated rows against a
+      // calendar boundary.
+      where: { vehicleId, date: { gte: yearStart } },
+    }),
+    prisma.vehicleService.aggregate({
+      _sum: { cost: true },
+      _min: { date: true },
+      _count: true,
+      where: { vehicleId },
+    }),
+    prisma.vehicleService.aggregate({
+      _sum: { cost: true },
+      where: { vehicleId, date: { gte: yearStart } },
+    }),
+    getAuditHistory("vehicle", vehicleId),
+  ]);
   if (!vehicle) throw new NotFoundError("Vehicle");
 
   // Summed as Decimal in the database, converted once here at the edge.
   const earned = Number(earnedSum._sum.totalPrice ?? 0);
   const repairs = Number(repairSum._sum.cost ?? 0);
-  const repairsThisYear = Number(repairYearSum._sum.cost ?? 0);
-  const lastService = Number(vehicle.serviceCost ?? 0);
-  const recorded = repairs + lastService;
+  const services = Number(serviceSum._sum.cost ?? 0);
+  const thisYear =
+    Number(repairYearSum._sum.cost ?? 0) +
+    Number(serviceYearSum._sum.cost ?? 0);
 
-  // Months in the system, floored at 1 so a new arrival isn't divided by
-  // zero. createdAt is when the car was added here, not when it was bought.
-  const monthsOwned = Math.max(
-    1,
-    Math.round(
-      (now.getTime() - vehicle.createdAt.getTime()) / (30 * 24 * 60 * 60 * 1000)
-    )
-  );
+  const since = historyStartDay(vehicle.createdAt, [
+    repairSum._min.date,
+    serviceSum._min.date,
+  ]);
+  const months = monthsOfHistory(since, now);
+  const figures = vehicleCosts({ earned, repairs, services, months });
+  const last = vehicle.services[0] ?? null;
 
   return {
     vehicle,
     history,
     costs: {
-      /** Cost of the most recent service only — not a history. */
-      lastService,
+      /** The newest service row, or null when none is recorded. */
+      lastService: last ? { date: last.date, cost: Number(last.cost) } : null,
+      /** Every recorded service, lifetime. */
+      services,
+      serviceCount: serviceSum._count,
       /** Every recorded repair, lifetime. */
       repairs,
-      repairsThisYear,
       repairCount: repairSum._count,
-      /** Lifetime repairs averaged over the car's time in the system. */
-      repairsPerYear: (repairs / monthsOwned) * 12,
-      repairsPerMonth: repairs / monthsOwned,
-      /** Repairs plus the last service: everything the system has a cost for. */
-      recorded,
+      /** Repairs and services dated in the branch's current calendar year. */
+      thisYear,
+      /** The calendar day the averages run from. */
+      since,
+      /** Recorded costs averaged per month/year; null under three months. */
+      perMonth: figures.perMonth,
+      perYear: figures.perYear,
+      /** Every repair plus every service. */
+      recorded: figures.recorded,
       /** All ACTIVE and COMPLETED rentals, lifetime. */
       earned,
-      net: earned - recorded,
+      net: figures.net,
     },
   };
 }

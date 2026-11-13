@@ -75,7 +75,7 @@ export function AuthFrame({
           <BrandLogo className="text-xl" preload />
           <LanguageSelector
             compact
-            className="text-band-foreground h-11 border-white/20 bg-black/30 px-3"
+            className="text-band-foreground h-11 border-white/20 bg-black/30"
           />
         </div>
       </header>

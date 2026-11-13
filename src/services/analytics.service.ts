@@ -284,7 +284,8 @@ export async function getReservationInsights() {
     activityRows,
     todaysPickups,
     todaysReturns,
-    overdue,
+    overduePickups,
+    overdueReturns,
     pendingActionable,
   ] = await Promise.all([
     prisma.reservation.groupBy({ by: ["status"], _count: true }),
@@ -304,13 +305,14 @@ export async function getReservationInsights() {
         returnDate: { gte: todayStart, lt: todayEnd },
       },
     }),
+    // "Overdue" is two different jobs, counted apart so the status tabs can
+    // each flag their own: a car that should have gone out, and one that
+    // should have come back. Their sum is the header's overdue figure.
     prisma.reservation.count({
-      where: {
-        OR: [
-          { status: "CONFIRMED", pickupDate: { lt: businessToday } },
-          { status: "ACTIVE", returnDate: { lt: businessToday } },
-        ],
-      },
+      where: { status: "CONFIRMED", pickupDate: { lt: businessToday } },
+    }),
+    prisma.reservation.count({
+      where: { status: "ACTIVE", returnDate: { lt: businessToday } },
     }),
     prisma.reservation.count({ where: actionableRequestWhere(now) }),
   ]);
@@ -326,7 +328,11 @@ export async function getReservationInsights() {
     activitySeries: dailySeries(activityRows, 14),
     todaysPickups,
     todaysReturns,
-    overdue,
+    overdue: overduePickups + overdueReturns,
+    /** CONFIRMED whose pickup day has passed with no handover recorded. */
+    overduePickups,
+    /** ACTIVE whose return day has passed with no return recorded. */
+    overdueReturns,
   };
 }
 

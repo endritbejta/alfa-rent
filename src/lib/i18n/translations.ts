@@ -164,8 +164,11 @@ const en = {
   "err.returnInspectionRequired": "The return inspection is required first",
   "err.pickupInspectionExists": "The pickup inspection is already recorded",
   "err.returnInspectionExists": "The return inspection is already recorded",
-  "err.rentalWindowEnded":
-    "This rental window has ended. Update the dates or cancel the reservation.",
+  "err.lateStartUnconfirmed":
+    "The pickup date has passed. Confirm the late handover to start this rental.",
+  "err.occurredInFuture": "That date is in the future.",
+  "err.handoverBeforePickup": "The handover cannot be before the pickup date.",
+  "err.returnBeforeHandover": "The return cannot be before the handover.",
   "err.pickupOnPickupDate":
     "The pickup inspection is available on the pickup date.",
   "err.vehicleMustBeAvailable": "The vehicle must be available before handover",
@@ -534,7 +537,15 @@ const en = {
   "admin.saveCompleteRental": "Save and complete rental",
   "admin.availablePickupDate": "Available on the pickup date",
   "admin.pickupMileage": "At pickup: {km} km",
-  "admin.rentalWindowEnded": "Rental window has ended",
+  "admin.lateStartTitle": "The pickup date has passed",
+  "admin.lateStartHelp":
+    "This rental was due to start on {date}. Record the day the car actually left. Until its return is recorded it counts as overdue, so complete it as soon as the car is back.",
+  "admin.handoverDate": "Handover date",
+  "admin.lateStartConfirm":
+    "I confirm the pickup date has passed and the car was handed over late.",
+  "admin.returnDate": "Return date",
+  "admin.returnDateHelp":
+    "Scheduled return: {date}. Change it if the car came back earlier.",
   "admin.requiredField": "Please fill out this field.",
   "admin.confirm": "Confirm",
   "admin.working": "Working…",
@@ -1188,8 +1199,12 @@ const sq: TranslationDictionary = {
   "err.returnInspectionRequired": "Duhet së pari inspektimi i kthimit",
   "err.pickupInspectionExists": "Inspektimi i marrjes është regjistruar tashmë",
   "err.returnInspectionExists": "Inspektimi i kthimit është regjistruar tashmë",
-  "err.rentalWindowEnded":
-    "Kjo periudhë e qirasë ka përfunduar. Përditëso datat ose anulo rezervimin.",
+  "err.lateStartUnconfirmed":
+    "Data e marrjes ka kaluar. Konfirmo dorëzimin me vonesë për ta filluar këtë qira.",
+  "err.occurredInFuture": "Kjo datë është në të ardhmen.",
+  "err.handoverBeforePickup":
+    "Dorëzimi nuk mund të jetë para datës së marrjes.",
+  "err.returnBeforeHandover": "Kthimi nuk mund të jetë para dorëzimit.",
   "err.pickupOnPickupDate": "Inspektimi i marrjes bëhet në datën e marrjes.",
   "err.vehicleMustBeAvailable": "Vetura duhet të jetë e lirë para dorëzimit",
   "err.mileageBelowPickup":
@@ -1552,7 +1567,15 @@ const sq: TranslationDictionary = {
   "admin.saveCompleteRental": "Ruaj dhe përfundo qiranë",
   "admin.availablePickupDate": "E disponueshme në datën e marrjes",
   "admin.pickupMileage": "Në marrje: {km} km",
-  "admin.rentalWindowEnded": "Afati i qirasë ka përfunduar",
+  "admin.lateStartTitle": "Data e marrjes ka kaluar",
+  "admin.lateStartHelp":
+    "Kjo qira duhej të fillonte më {date}. Shëno ditën kur vetura doli në të vërtetë. Derisa të regjistrohet kthimi, llogaritet me vonesë, ndaj përfundoje sapo të kthehet vetura.",
+  "admin.handoverDate": "Data e dorëzimit",
+  "admin.lateStartConfirm":
+    "Konfirmoj që data e marrjes ka kaluar dhe vetura u dorëzua me vonesë.",
+  "admin.returnDate": "Data e kthimit",
+  "admin.returnDateHelp":
+    "Kthimi i planifikuar: {date}. Ndryshoje nëse vetura u kthye më herët.",
   "admin.requiredField": "Plotësoje këtë fushë.",
   "admin.confirm": "Konfirmo",
   "admin.working": "Duke punuar…",

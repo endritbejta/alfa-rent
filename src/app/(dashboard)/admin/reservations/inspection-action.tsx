@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
-import { ClipboardCheck } from "lucide-react";
+import { format } from "date-fns";
+import { ClipboardCheck, TriangleAlert } from "lucide-react";
 import {
   getPickupMileageAction,
   recordRentalInspectionAction,
@@ -44,6 +45,15 @@ export function InspectionAction({
   const type = status === "CONFIRMED" ? "PICKUP" : "RETURN";
   const visible = status === "CONFIRMED" || status === "ACTIVE";
   const disabled = type === "PICKUP" && !timing.canStart;
+  // A start after the pickup day is a late one: allowed, but confirmed and
+  // dated. A return after the return day can likewise be dated, so a rental
+  // started late can be completed on the day the car really came back.
+  const lateStart = type === "PICKUP" && timing.lateStart;
+  const lateReturn = type === "RETURN" && timing.today > timing.returnDay;
+  // Once the whole window has gone, the car most likely left on the day it
+  // was booked for; inside the window, most likely today.
+  const defaultHandover =
+    timing.today > timing.returnDay ? timing.pickupDay : timing.today;
   const [open, setOpen] = useState(false);
   const [fuel, setFuel] = useState(100);
   const [damage, setDamage] = useState(false);
@@ -89,8 +99,14 @@ export function InspectionAction({
 
   const submit = (formData: FormData) => {
     setError(null);
+    if (lateStart && formData.get("lateStartConfirmed") !== "on") {
+      setError(t("err.lateStartUnconfirmed"));
+      return;
+    }
     if (
       !String(formData.get("mileage") ?? "").trim() ||
+      ((lateStart || lateReturn) &&
+        !String(formData.get("occurredOn") ?? "").trim()) ||
       !String(formData.get("signerName") ?? "").trim() ||
       formData.get("customerAcknowledged") !== "on" ||
       (formData.get("damageFound") === "on" &&
@@ -120,13 +136,7 @@ export function InspectionAction({
         size="sm"
         variant="success"
         disabled={disabled}
-        title={
-          disabled
-            ? timing.startBlockedReason === "Rental window has ended"
-              ? t("admin.rentalWindowEnded")
-              : t("admin.availablePickupDate")
-            : undefined
-        }
+        title={disabled ? t("admin.availablePickupDate") : undefined}
         onClick={() => setOpen(true)}
       >
         <ClipboardCheck className="h-3.5 w-3.5" />
@@ -150,6 +160,75 @@ export function InspectionAction({
 
           <form action={submit} noValidate className="space-y-4">
             <input type="hidden" name="type" value={type} />
+
+            {lateStart && (
+              <div
+                role="note"
+                className="border-destructive/40 bg-destructive/5 space-y-3 rounded-none border p-3"
+              >
+                <p className="text-destructive flex items-center gap-2 text-sm font-semibold">
+                  <TriangleAlert aria-hidden className="h-4 w-4 shrink-0" />
+                  {t("admin.lateStartTitle")}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {t("admin.lateStartHelp", {
+                    date: formatDay(timing.pickupDay),
+                  })}
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${reservationId}-occurred`}>
+                    {t("admin.handoverDate")}
+                  </Label>
+                  <Input
+                    id={`${reservationId}-occurred`}
+                    name="occurredOn"
+                    type="date"
+                    required
+                    min={timing.pickupDay}
+                    max={timing.today}
+                    defaultValue={defaultHandover}
+                    className="w-auto"
+                  />
+                </div>
+                <label className="flex cursor-pointer items-start gap-2 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    name="lateStartConfirmed"
+                    required
+                    className="accent-brand mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  {t("admin.lateStartConfirm")}
+                </label>
+              </div>
+            )}
+
+            {lateReturn && (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${reservationId}-occurred`}>
+                  {t("admin.returnDate")}
+                </Label>
+                <Input
+                  id={`${reservationId}-occurred`}
+                  name="occurredOn"
+                  type="date"
+                  required
+                  // The server bounds it by the recorded handover too.
+                  min={timing.pickupDay}
+                  max={timing.today}
+                  defaultValue={timing.today}
+                  aria-describedby={`${reservationId}-occurred-help`}
+                  className="w-auto"
+                />
+                <p
+                  id={`${reservationId}-occurred-help`}
+                  className="text-muted-foreground text-xs"
+                >
+                  {t("admin.returnDateHelp", {
+                    date: formatDay(timing.returnDay),
+                  })}
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -320,11 +399,14 @@ export function InspectionAction({
 
       {disabled && timing.startBlockedReason && (
         <p className="text-muted-foreground order-last basis-full text-right text-xs">
-          {timing.startBlockedReason === "Rental window has ended"
-            ? t("admin.rentalWindowEnded")
-            : t("admin.availablePickupDate")}
+          {t("admin.availablePickupDate")}
         </p>
       )}
     </>
   );
+}
+
+/** A `YYYY-MM-DD` calendar day for display; noon keeps it on its own day. */
+function formatDay(day: string): string {
+  return format(new Date(`${day}T12:00:00`), "dd MMM yyyy");
 }

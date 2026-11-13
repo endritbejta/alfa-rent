@@ -27,6 +27,17 @@ export const rentalInspectionSchema = z
       error: "Customer acknowledgement is required",
     }),
     photos: z.array(inspectionPhotoReceiptSchema).max(MAX_INSPECTION_PHOTOS),
+    /**
+     * Ticked by staff when the pickup day has already passed: a handover
+     * recorded late must be a deliberate act, not a stray click.
+     */
+    lateStartConfirmed: z.boolean().optional(),
+    /**
+     * The business day the handover or return actually happened, when it is
+     * recorded after the fact. The service bounds it: never in the future,
+     * never before the pickup day (or, for a return, the handover).
+     */
+    occurredOn: z.iso.date().optional(),
   })
   .superRefine((input, context) => {
     if (input.damageFound && !input.damageNotes) {

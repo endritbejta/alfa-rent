@@ -5,6 +5,17 @@ export const BUSINESS_TIME_ZONE = "Europe/Belgrade";
 export type ReservationTiming = {
   canStart: boolean;
   startBlockedReason: string | null;
+  /**
+   * CONFIRMED and the pickup day has passed with no handover recorded.
+   * Starting it is still allowed — the car may well have gone out and
+   * nobody pressed Start — but it needs an explicit confirmation, and staff
+   * record the day it actually left.
+   */
+  lateStart: boolean;
+  /** Calendar days as `YYYY-MM-DD`, so a client can bound a date input. */
+  pickupDay: string;
+  returnDay: string;
+  today: string;
   attention:
     | "PICKUP_TODAY"
     | "PICKUP_OVERDUE"
@@ -147,12 +158,13 @@ export function getReservationTiming(
   const beforePickup = today < pickup;
   const afterReturn = today > returnDay;
 
-  let startBlockedReason: string | null = null;
-  if (reservation.status === "CONFIRMED" && beforePickup) {
-    startBlockedReason = "Available on the pickup date";
-  } else if (reservation.status === "CONFIRMED" && afterReturn) {
-    startBlockedReason = "Rental window has ended";
-  }
+  // Only the start is guarded. A rental whose whole window has passed can
+  // still be started — it happened, staff just forgot to press Start — and
+  // is then flagged as a late start rather than refused.
+  const startBlockedReason =
+    reservation.status === "CONFIRMED" && beforePickup
+      ? "Available on the pickup date"
+      : null;
 
   let attention: ReservationTiming["attention"] = null;
   if (reservation.status === "CONFIRMED") {
@@ -166,9 +178,35 @@ export function getReservationTiming(
   }
 
   return {
-    canStart:
-      reservation.status === "CONFIRMED" && !beforePickup && !afterReturn,
+    canStart: reservation.status === "CONFIRMED" && !beforePickup,
     startBlockedReason,
+    lateStart: reservation.status === "CONFIRMED" && today > pickup,
+    pickupDay: pickup,
+    returnDay,
+    today,
     attention,
   };
+}
+
+/**
+ * The instant to record for a handover or return staff enter after the
+ * fact, given only the day it happened.
+ *
+ * Today means now. An earlier day takes the scheduled time of day (rental
+ * dates are naive calendar values: `T10:00:00Z` is 10:00 at the branch),
+ * which is the best guess there is and keeps the record on the right day.
+ * On a clock-change day that guess can be an hour out; the day is what
+ * matters. Never later than `now`.
+ */
+export function recordedRentalInstant(
+  day: string,
+  scheduled: Date,
+  now = new Date()
+): Date {
+  if (day >= businessDay(now)) return now;
+  const minutes = scheduled.getUTCHours() * 60 + scheduled.getUTCMinutes();
+  const instant = new Date(
+    businessCalendarStart(day).getTime() + minutes * 60_000
+  );
+  return instant > now ? now : instant;
 }

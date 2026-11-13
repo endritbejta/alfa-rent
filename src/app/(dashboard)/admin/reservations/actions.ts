@@ -83,6 +83,8 @@ export async function recordRentalInspectionAction(
       signerName: formData.get("signerName"),
       customerAcknowledged: formData.get("customerAcknowledged") === "on",
       photos: parseInspectionPhotos(formData.get("photos")),
+      lateStartConfirmed: formData.get("lateStartConfirmed") === "on",
+      occurredOn: formData.get("occurredOn") || undefined,
     });
     await recordRentalInspection(reservationId, user.id, input);
   } catch (error) {

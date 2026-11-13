@@ -12,7 +12,12 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
-import { getReservationTiming } from "@/lib/reservation-lifecycle";
+import {
+  businessDay,
+  getReservationTiming,
+  recordedRentalInstant,
+  rentalCalendarDay,
+} from "@/lib/reservation-lifecycle";
 import type { RentalInspectionInput } from "@/lib/validations/inspection";
 import { reportError } from "@/lib/observability";
 
@@ -20,6 +25,52 @@ function expectedInspection(status: string): InspectionType | null {
   if (status === "CONFIRMED") return "PICKUP";
   if (status === "ACTIVE") return "RETURN";
   return null;
+}
+
+/**
+ * The instant to store as `startedAt` / `completedAt`.
+ *
+ * Bounded so a backdated record can't contradict the rest: a handover not
+ * before the pickup day, a return not before the handover, neither in the
+ * future. The scheduled dates are never touched, so the exclusion
+ * constraint, revenue (which follows the booked days) and the overdue
+ * counts all keep reading the booking as it was made.
+ */
+function resolveOccurredAt(
+  reservation: {
+    pickupDate: Date;
+    returnDate: Date;
+    startedAt: Date | null;
+  },
+  input: Pick<RentalInspectionInput, "type" | "occurredOn">,
+  now: Date
+): Date {
+  const day = input.occurredOn;
+  if (!day) return now;
+  if (day > businessDay(now)) {
+    throw new ValidationError("That date is in the future.", {
+      key: "err.occurredInFuture",
+    });
+  }
+  if (input.type === "PICKUP") {
+    if (day < rentalCalendarDay(reservation.pickupDate)) {
+      throw new ValidationError(
+        "The handover cannot be before the pickup date.",
+        { key: "err.handoverBeforePickup" }
+      );
+    }
+    return recordedRentalInstant(day, reservation.pickupDate, now);
+  }
+  const startedAt = reservation.startedAt;
+  if (startedAt && day < businessDay(startedAt)) {
+    throw new ValidationError("The return cannot be before the handover.", {
+      key: "err.returnBeforeHandover",
+    });
+  }
+  const at = recordedRentalInstant(day, reservation.returnDate, now);
+  // Same day as the handover but an earlier scheduled hour: the return
+  // can't precede the start, so it lands on the start.
+  return startedAt && at < startedAt ? startedAt : at;
 }
 
 /**
@@ -96,15 +147,21 @@ export async function recordRentalInspection(
 
     if (input.type === "PICKUP") {
       const timing = getReservationTiming(reservation, now);
+      // Never before the pickup day: the car is promised from that day, and
+      // the exclusion constraint only knows the scheduled range.
       if (!timing.canStart) {
-        const ended = timing.startBlockedReason === "Rental window has ended";
         throw new ValidationError(
-          ended
-            ? "This rental window has ended. Update the dates or cancel the reservation."
-            : "The pickup inspection is available on the pickup date.",
-          {
-            key: ended ? "err.rentalWindowEnded" : "err.pickupOnPickupDate",
-          }
+          "The pickup inspection is available on the pickup date.",
+          { key: "err.pickupOnPickupDate" }
+        );
+      }
+      // After it, a start is a late one and must be confirmed as such —
+      // including once the whole window has passed, which used to be
+      // refused outright even though the rental had happened.
+      if (timing.lateStart && !input.lateStartConfirmed) {
+        throw new ValidationError(
+          "The pickup date has passed. Confirm the late handover to start this rental.",
+          { key: "err.lateStartUnconfirmed" }
         );
       }
       if (reservation.vehicle.status !== "AVAILABLE") {
@@ -129,6 +186,10 @@ export async function recordRentalInspection(
         );
       }
     }
+
+    // When it actually happened. Today (or no day given) is now; an earlier
+    // day is a handover or return being recorded after the fact.
+    const occurredAt = resolveOccurredAt(reservation, input, now);
 
     const folder = inspectionFolder(reservationId, input.type);
     for (const photo of input.photos) {
@@ -170,7 +231,7 @@ export async function recordRentalInspection(
     if (input.type === "PICKUP") {
       const advanced = await tx.reservation.updateMany({
         where: { id: reservationId, status: "CONFIRMED" },
-        data: { status: "ACTIVE", startedAt: now },
+        data: { status: "ACTIVE", startedAt: occurredAt },
       });
       if (advanced.count !== 1) {
         throw new ConflictError(
@@ -191,7 +252,7 @@ export async function recordRentalInspection(
     } else {
       const advanced = await tx.reservation.updateMany({
         where: { id: reservationId, status: "ACTIVE" },
-        data: { status: "COMPLETED", completedAt: now },
+        data: { status: "COMPLETED", completedAt: occurredAt },
       });
       if (advanced.count !== 1) {
         throw new ConflictError(

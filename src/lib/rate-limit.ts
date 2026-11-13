@@ -36,17 +36,27 @@ export async function consumeRateLimit(
 
   let rows: { count: number; expiresAt: Date }[];
   try {
+    /*
+     * "expiresAt" is `timestamp without time zone` holding UTC, which is how
+     * Prisma writes and reads every DateTime. Bare now() is a timestamptz,
+     * and comparing or storing it against that column goes through the
+     * session's TimeZone: harmless on Supabase (UTC), but an hour or two off
+     * on a Europe/Belgrade database — Retry-After came out too long, and a
+     * row written through Prisma read as already expired. Pinning the clock
+     * to UTC makes the limiter independent of the session (audit P3-3).
+     */
     rows = await prisma.$queryRaw<{ count: number; expiresAt: Date }[]>`
       INSERT INTO rate_limits ("key", "count", "expiresAt")
-      VALUES (${key}, 1, now() + make_interval(secs => ${windowSeconds}))
+      VALUES (${key}, 1,
+              (now() AT TIME ZONE 'UTC') + make_interval(secs => ${windowSeconds}))
       ON CONFLICT ("key") DO UPDATE SET
         "count" = CASE
-          WHEN rate_limits."expiresAt" < now() THEN 1
+          WHEN rate_limits."expiresAt" < (now() AT TIME ZONE 'UTC') THEN 1
           ELSE rate_limits."count" + 1
         END,
         "expiresAt" = CASE
-          WHEN rate_limits."expiresAt" < now()
-            THEN now() + make_interval(secs => ${windowSeconds})
+          WHEN rate_limits."expiresAt" < (now() AT TIME ZONE 'UTC')
+            THEN (now() AT TIME ZONE 'UTC') + make_interval(secs => ${windowSeconds})
           ELSE rate_limits."expiresAt"
         END
       RETURNING "count", "expiresAt"

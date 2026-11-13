@@ -28,9 +28,12 @@ const SURFACE_HUES: Record<Status, string> = {
 export function StatusBadge({
   status,
   variant = "surface",
+  dot = false,
 }: {
   status: Status;
   variant?: "surface" | "overlay";
+  /** A small square in the status colour before the label, for tables. */
+  dot?: boolean;
 }) {
   const { t } = useI18n();
   // "Available" is the default state; only exceptions are worth flagging.
@@ -38,12 +41,13 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center text-xs font-medium",
+        "inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap",
         variant === "overlay"
           ? "text-white"
           : SURFACE_HUES[status].split(" ")[0]
       )}
     >
+      {dot && <span aria-hidden className="size-1.5 shrink-0 bg-current" />}
       {t(STATUS_KEYS[status])}
     </span>
   );

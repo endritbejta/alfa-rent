@@ -1,5 +1,6 @@
 "use client";
 
+import { enUS, sq } from "date-fns/locale";
 import { useI18n } from "@/components/shared/locale-provider";
 import { cn } from "@/lib/utils";
 import {
@@ -71,6 +72,8 @@ export function EarlyReturnChoice({
   onChange: (choice: EarlyChoice) => void;
 }) {
   const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
+  const day = (value: string) => formatDay(value, dateLocale);
   const usedDays = earlyReturnDays(pickupDay, returnDay, returnedOn);
   if (usedDays === null) return null;
 
@@ -93,12 +96,12 @@ export function EarlyReturnChoice({
   const facts: [string, React.ReactNode][] = [
     [t("admin.customer"), customerName],
     [t("admin.vehicle"), vehicleName],
-    [t("admin.pickup"), formatDay(pickupDay)],
-    [t("admin.scheduledReturn"), formatDay(returnDay)],
+    [t("admin.pickup"), day(pickupDay)],
+    [t("admin.scheduledReturn"), day(returnDay)],
     [
       t("admin.actualReturn"),
       <span key="actual" className="text-foreground font-semibold">
-        {formatDay(returnedOn)}
+        {day(returnedOn)}
       </span>,
     ],
     [
@@ -156,7 +159,7 @@ export function EarlyReturnChoice({
         id={`${idPrefix}-early-help`}
         className="text-muted-foreground -mt-2 text-xs"
       >
-        {t("admin.earlyReturnHelp", { date: formatDay(returnDay) })}
+        {t("admin.earlyReturnHelp", { date: day(returnDay) })}
       </p>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 border-y py-3 text-xs">

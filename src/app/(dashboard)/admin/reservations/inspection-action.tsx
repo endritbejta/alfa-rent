@@ -1,5 +1,6 @@
 "use client";
 
+import { enUS, sq } from "date-fns/locale";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
 import { ClipboardCheck, TriangleAlert } from "lucide-react";
@@ -77,6 +78,7 @@ export function InspectionAction({
   hideTrigger?: boolean;
 }) {
   const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const type = status === "CONFIRMED" ? "PICKUP" : "RETURN";
   const visible = status === "CONFIRMED" || status === "ACTIVE";
   const disabled = type === "PICKUP" && !timing.canStart;
@@ -205,8 +207,11 @@ export function InspectionAction({
           size="sm"
           // Once the whole rental is in the past, recording it as completed is
           // the usual move; starting it stays for a car that is still out.
+          // Before the pickup day it is shown, quietly, but not offered.
           variant={
-            type === "PICKUP" && timing.canRecordPast ? "outline" : "success"
+            disabled || (type === "PICKUP" && timing.canRecordPast)
+              ? "outline"
+              : "success"
           }
           disabled={disabled}
           title={disabled ? t("admin.availablePickupDate") : undefined}
@@ -253,7 +258,7 @@ export function InspectionAction({
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {t("admin.lateStartHelp", {
-                    date: formatDay(timing.pickupDay),
+                    date: formatDay(timing.pickupDay, dateLocale),
                   })}
                 </p>
                 <div className="space-y-1.5">
@@ -311,7 +316,7 @@ export function InspectionAction({
                   className="text-muted-foreground text-xs"
                 >
                   {t("admin.returnDateHelp", {
-                    date: formatDay(timing.returnDay),
+                    date: formatDay(timing.returnDay, dateLocale),
                   })}
                 </p>
               </div>
@@ -510,12 +515,6 @@ export function InspectionAction({
           </form>
         </DialogContent>
       </Dialog>
-
-      {disabled && timing.startBlockedReason && (
-        <p className="text-muted-foreground order-last basis-full text-right text-xs">
-          {t("admin.availablePickupDate")}
-        </p>
-      )}
     </>
   );
 }

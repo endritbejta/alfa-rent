@@ -39,26 +39,27 @@ export type CustomerInput = {
  * there is an identity to trust.
  */
 export async function findOrCreateCustomerByEmail(
+  tx: Prisma.TransactionClient,
   input: CustomerInput
 ): Promise<Customer> {
   const email = input.email.toLowerCase();
-  const existing = await prisma.customer.findUnique({ where: { email } });
-  if (existing) return existing;
-
-  try {
-    return await prisma.customer.create({ data: { ...input, email } });
-  } catch (error) {
-    // Two bookings for a new email can race between the read and the write;
-    // the unique index settles it, and the loser just reads the winner's row.
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      const raced = await prisma.customer.findUnique({ where: { email } });
-      if (raced) return raced;
-    }
-    throw error;
-  }
+  /*
+   * Runs inside the booking's transaction (audit finding P3-5), so a booking
+   * refused after this point takes the new customer with it instead of
+   * leaving an orphan behind.
+   *
+   * That rules out the old race handling — create, catch the unique
+   * violation, read the winner's row — because in Postgres an error aborts
+   * the whole transaction. ON CONFLICT DO NOTHING (createMany with
+   * skipDuplicates) settles the race without raising: when two bookings for
+   * a new email collide, the second insert waits for the first to commit and
+   * then quietly does nothing, and both read the one row.
+   */
+  await tx.customer.createMany({
+    data: [{ ...input, email }],
+    skipDuplicates: true,
+  });
+  return tx.customer.findUniqueOrThrow({ where: { email } });
 }
 
 /**

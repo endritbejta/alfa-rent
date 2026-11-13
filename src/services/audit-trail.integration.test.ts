@@ -454,6 +454,13 @@ describe("every staff write records exactly one event", () => {
     vehicleIds.add(vehicleId);
     expectEvent(create, "vehicle.create", vehicleId, ids.admin);
     expect(create.after).toMatchObject({ pricePerDay: "60.00" });
+    // The plate stays internal: never in the public URL (P3-2).
+    const created = await prisma.vehicle.findUniqueOrThrow({
+      where: { id: vehicleId },
+      select: { slug: true, plate: true },
+    });
+    expect(created.slug).toMatch(/^audit-created-2025-[a-z0-9]{8}$/);
+    expect(created.slug).not.toContain(created.plate!.toLowerCase());
 
     const update = await oneEvent(ids.admin, () =>
       updateVehicle(

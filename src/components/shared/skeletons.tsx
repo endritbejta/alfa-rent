@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
  *
  * There used to be a single route-group fallback — a charcoal hero band over
  * boxed cards — and every public page wore it while loading. The fleet page
- * has no band, the car page is a gallery and a
+ * has no band and its cards have no box, the car page is a gallery and a
  * booking rail, and the booking page is a form; each flashed a page it was
  * not before turning into itself. Now each loading state is the page's own
  * silhouette, so arriving content settles into place instead of replacing
@@ -17,16 +17,16 @@ import { cn } from "@/lib/utils";
 /** Mirrors VehicleCard: photo, category and badge, name, specs, price row. */
 export function VehicleCardSkeleton() {
   return (
-    <div className="bg-card flex flex-col border">
+    <div className="flex flex-col gap-4">
       <Skeleton className="aspect-[16/10] w-full" />
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
+      <div>
         <div className="flex items-center justify-between gap-3">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-4 w-14" />
         </div>
         <Skeleton className="mt-2 h-7 w-3/4 sm:h-8" />
-        <Skeleton className="mt-3 mb-4 h-4 w-1/2" />
-        <div className="mt-auto flex items-end justify-between gap-4 border-t pt-4">
+        <Skeleton className="mt-2 h-4 w-1/2" />
+        <div className="mt-3 flex items-center justify-between gap-4">
           <Skeleton className="h-7 w-28" />
           <Skeleton className="h-5 w-20" />
         </div>

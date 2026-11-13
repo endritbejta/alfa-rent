@@ -159,10 +159,6 @@ const en = {
   "err.photoNotThisVehicle": "That photo does not belong to this vehicle",
   "err.uploadUnverified":
     "An upload could not be verified. Remove the photo and add it again.",
-  "err.photoNotRemoved":
-    "One photo could not be removed. Save again to finish.",
-  "err.photosNotRemoved":
-    "{count} photos could not be removed. Save again to finish.",
   "err.notInspectable": "This reservation cannot be inspected: {status}.",
   "err.pickupInspectionRequired": "The pickup inspection is required first",
   "err.returnInspectionRequired": "The return inspection is required first",
@@ -1320,9 +1316,6 @@ const sq: TranslationDictionary = {
   "err.photoNotThisVehicle": "Kjo foto nuk i takon kësaj veture",
   "err.uploadUnverified":
     "Një ngarkim nuk u verifikua. Hiqe foton dhe shtoje përsëri.",
-  "err.photoNotRemoved": "Një foto nuk u hoq. Ruaj përsëri për ta përfunduar.",
-  "err.photosNotRemoved":
-    "{count} foto nuk u hoqën. Ruaj përsëri për ta përfunduar.",
   "err.notInspectable": "Ky rezervim nuk mund të inspektohet: {status}.",
   "err.pickupInspectionRequired": "Duhet së pari inspektimi i marrjes",
   "err.returnInspectionRequired": "Duhet së pari inspektimi i kthimit",

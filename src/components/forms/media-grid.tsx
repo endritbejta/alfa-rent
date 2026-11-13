@@ -205,6 +205,7 @@ export function MediaGrid({
       body.append("signature", signature.signature);
       body.append("folder", signature.folder);
       body.append("transformation", signature.transformation);
+      body.append("allowed_formats", signature.allowedFormats);
 
       // XHR rather than fetch: fetch cannot report upload progress.
       const xhr = new XMLHttpRequest();

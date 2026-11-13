@@ -63,6 +63,7 @@ export function InspectionPhotoUpload({
       body.append("signature", upload.signature);
       body.append("folder", upload.folder);
       body.append("transformation", upload.transformation);
+      body.append("allowed_formats", upload.allowedFormats);
 
       const request = new XMLHttpRequest();
       request.open(

@@ -1010,6 +1010,7 @@ export async function getReservationDetail(id: string) {
           },
         },
       },
+      backfilledBy: { select: { name: true } },
       inspections: {
         orderBy: { createdAt: "asc" },
         include: {

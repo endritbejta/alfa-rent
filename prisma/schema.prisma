@@ -64,21 +64,22 @@ enum PaymentStatus {
 }
 
 model User {
-  id                 String             @id @default(cuid())
-  name               String
-  email              String             @unique
-  password           String
-  role               Role               @default(EMPLOYEE)
-  active             Boolean            @default(true)
+  id                     String             @id @default(cuid())
+  name                   String
+  email                  String             @unique
+  password               String
+  role                   Role               @default(EMPLOYEE)
+  active                 Boolean            @default(true)
   /// Incrementing this immediately invalidates every previously issued JWT.
-  sessionVersion     Int                @default(0)
+  sessionVersion         Int                @default(0)
   /// Set when an admin creates the account or resets its password. The
   /// admin knows that temporary password, so the admin layout sends the
   /// holder to /account/password until they have chosen their own.
-  mustChangePassword Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  inspections        RentalInspection[]
+  mustChangePassword     Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  inspections            RentalInspection[]
+  backfilledReservations Reservation[]      @relation("ReservationBackfill")
 
   @@map("users")
 }
@@ -209,13 +210,21 @@ model Reservation {
   /// so punctuality and overdue rentals can be audited later.
   startedAt              DateTime?
   completedAt            DateTime?
+  /// Set when the rental was recorded after the fact in one step (no
+  /// inspections) because nobody started it while it happened: when, by
+  /// whom, and the staff's reason. Personal data may appear in the note, so
+  /// anonymising a customer clears it.
+  backfilledAt           DateTime?
+  backfilledById         String?
+  backfillNote           String?
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
-  vehicle     Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  customer    Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  inspections RentalInspection[]
-  payments    Payment[]
+  vehicle      Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  customer     Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  backfilledBy User?              @relation("ReservationBackfill", fields: [backfilledById], references: [id], onDelete: SetNull)
+  inspections  RentalInspection[]
+  payments     Payment[]
 
   @@index([vehicleId, pickupDate, returnDate])
   @@index([customerId])

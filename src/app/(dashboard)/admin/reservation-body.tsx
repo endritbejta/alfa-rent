@@ -19,6 +19,7 @@ import { SectionTitle, Row } from "./detail-primitives";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { InspectionAction } from "./reservations/inspection-action";
+import { RecordPastRental } from "./reservations/record-past-rental";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 import { formatNumber } from "@/lib/number-format";
@@ -112,6 +113,25 @@ export function ReservationBody({
               })}
             </Row>
           )}
+          {detail.backfilledAt && (
+            // The audit trace: this rental was entered in one step after it
+            // was over, without inspections, and why.
+            <Row label={t("admin.recordedAfterFact")}>
+              <span>
+                {t("admin.recordedAfterFactBy", {
+                  date: format(detail.backfilledAt, "dd MMM yyyy, HH:mm", {
+                    locale: dateLocale,
+                  }),
+                  name: detail.backfilledBy?.name ?? "—",
+                })}
+                {detail.backfillNote && (
+                  <span className="text-muted-foreground block text-xs">
+                    {detail.backfillNote}
+                  </span>
+                )}
+              </span>
+            </Row>
+          )}
           {detail.notes && (
             <p className="bg-secondary text-muted-foreground rounded-none p-3 text-xs">
               {detail.notes}
@@ -129,6 +149,11 @@ export function ReservationBody({
 
         <div className="mt-3">
           <div className="flex flex-wrap justify-end gap-2">
+            <RecordPastRental
+              reservationId={detail.id}
+              timing={detail.timing}
+              onSuccess={onChanged}
+            />
             <InspectionAction
               reservationId={detail.id}
               status={detail.status}

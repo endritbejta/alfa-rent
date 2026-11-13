@@ -757,6 +757,9 @@ const en = {
   "car.metaTitle": "{car} for rent — {price} EUR/day",
   "admin.staffNav": "Staff",
   "admin.changePassword": "Change password",
+  "admin.accountSettings": "Account and settings",
+  "admin.preferences": "Preferences",
+  "admin.security": "Security",
   "staff.description":
     "Who can sign in to the admin, and what they can do there.",
   "staff.add": "Add staff",
@@ -1765,6 +1768,9 @@ const sq: TranslationDictionary = {
   "car.metaTitle": "{car} me qira — {price} EUR/ditë",
   "admin.staffNav": "Stafi",
   "admin.changePassword": "Ndrysho fjalëkalimin",
+  "admin.accountSettings": "Llogaria dhe cilësimet",
+  "admin.preferences": "Preferencat",
+  "admin.security": "Siguria",
   "staff.description":
     "Kush mund të kyçet në panel dhe çfarë mund të bëjë aty.",
   "staff.add": "Shto staf",

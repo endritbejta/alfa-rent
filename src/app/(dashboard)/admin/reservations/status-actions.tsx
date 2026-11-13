@@ -27,6 +27,9 @@ export function StatusActions({
   status,
   expired = false,
   onSuccess,
+  hideCancel = false,
+  cancelOpen,
+  onCancelOpenChange,
 }: {
   reservationId: string;
   status: ReservationStatus;
@@ -38,18 +41,34 @@ export function StatusActions({
   expired?: boolean;
   /** Fired once the transition lands — drawers use it to dismiss. */
   onSuccess?: () => void;
+  /**
+   * Leave the Cancel button out, for a parent that offers it from its own
+   * control (the row's "more actions" menu) and drives the confirmation
+   * through `cancelOpen`.
+   */
+  hideCancel?: boolean;
+  cancelOpen?: boolean;
+  onCancelOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // CANCELLED is terminal, so it is asked about first rather than applied on
   // a single click that sits right next to Confirm.
-  const [confirmingCancel, setConfirmingCancel] = useState(false);
-  const actions = (NEXT_ACTIONS[status] ?? []).filter(
+  const [ownConfirming, setOwnConfirming] = useState(false);
+  const confirmingCancel = cancelOpen ?? ownConfirming;
+  const setConfirmingCancel = (next: boolean) => {
+    if (cancelOpen === undefined) setOwnConfirming(next);
+    onCancelOpenChange?.(next);
+  };
+  const available = (NEXT_ACTIONS[status] ?? []).filter(
     (action) => !(expired && action.to === "CONFIRMED")
   );
+  const actions = available.filter(
+    (action) => !(hideCancel && action.to === "CANCELLED")
+  );
 
-  if (actions.length === 0) return null;
+  if (available.length === 0) return null;
 
   const apply = (to: ReservationStatus) => {
     setError(null);
@@ -66,29 +85,37 @@ export function StatusActions({
   };
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex justify-end gap-2">
-        {actions.map((action) => (
-          <Button
-            key={action.to}
-            size="sm"
-            variant={action.destructive ? "ghost" : "success"}
-            className={
-              action.destructive
-                ? "text-destructive hover:text-destructive"
-                : undefined
-            }
-            disabled={pending}
-            onClick={() =>
-              action.to === "CANCELLED"
-                ? setConfirmingCancel(true)
-                : apply(action.to)
-            }
-          >
-            {t(action.label as TranslationKey)}
-          </Button>
-        ))}
-      </div>
+    // With every button handed to a parent's menu, the wrapper would still
+    // be an (empty) flex item and add a gap; `contents` removes its box.
+    <div
+      className={
+        actions.length > 0 ? "flex flex-col items-end gap-1" : "contents"
+      }
+    >
+      {actions.length > 0 && (
+        <div className="flex justify-end gap-2">
+          {actions.map((action) => (
+            <Button
+              key={action.to}
+              size="sm"
+              variant={action.destructive ? "ghost" : "success"}
+              className={
+                action.destructive
+                  ? "text-destructive hover:text-destructive"
+                  : undefined
+              }
+              disabled={pending}
+              onClick={() =>
+                action.to === "CANCELLED"
+                  ? setConfirmingCancel(true)
+                  : apply(action.to)
+              }
+            >
+              {t(action.label as TranslationKey)}
+            </Button>
+          ))}
+        </div>
+      )}
       {error && (
         <p role="alert" className="text-destructive text-xs">
           {error}

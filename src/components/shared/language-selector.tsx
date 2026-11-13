@@ -88,7 +88,10 @@ export function LanguageSelector({
   return (
     <label
       className={cn(
-        "has-[select:focus-visible]:ring-ring/50 relative inline-flex h-9 cursor-pointer items-center rounded-none border border-current/20 text-xs has-[select:focus-visible]:ring-3",
+        // The select draws no outline of its own (outline-none, so the
+        // chevron area does not get a second box), so the frame shows the
+        // keyboard focus instead.
+        "has-[select:focus-visible]:outline-ring relative inline-flex h-9 cursor-pointer items-center rounded-none border border-current/20 text-xs has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2",
         className
       )}
     >

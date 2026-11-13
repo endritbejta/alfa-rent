@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth";
 import { getI18n } from "@/lib/i18n/server";
 import { AuthFrame } from "@/components/shared/auth-frame";
-import { BrandLogo } from "@/components/shared/brand-logo";
 import { Button } from "@/components/ui/button";
-import { CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { ChangePasswordForm } from "./change-password-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -36,21 +34,15 @@ export default async function ChangePasswordPage() {
 
   return (
     <AuthFrame
-      icon={KeyRound}
-      asideTitle={t("account.asideTitle")}
-      asideBody={t("account.asideBody")}
-      asideTitleAs="p"
+      eyebrow={t("auth.eyebrow")}
+      headline={t("account.asideTitle")}
+      subline={t("account.asideBody")}
+      headlineAs="p"
+      title={forced ? t("account.chooseTitle") : t("account.changeTitle")}
+      titleAs="h1"
+      description={forced ? t("account.chooseLede") : t("account.changeLede")}
     >
-      <CardHeader>
-        <BrandLogo className="mb-8 md:hidden" preload />
-        <h1 className="font-heading text-2xl leading-snug font-medium">
-          {forced ? t("account.chooseTitle") : t("account.changeTitle")}
-        </h1>
-        <CardDescription>
-          {forced ? t("account.chooseLede") : t("account.changeLede")}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <div className="space-y-4">
         <ChangePasswordForm email={user.email} forced={forced} />
         {/* Someone on a temporary password has nowhere to go back to: the
             admin would only send them here again. Signing out is their way
@@ -78,7 +70,7 @@ export default async function ChangePasswordPage() {
             {t("admin.backDashboard")}
           </Button>
         )}
-      </CardContent>
+      </div>
     </AuthFrame>
   );
 }

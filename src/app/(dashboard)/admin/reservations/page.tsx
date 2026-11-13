@@ -162,7 +162,7 @@ export default async function ReservationsPage({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className={`${HEAD} pl-0`}>
+                  <TableHead className={`${HEAD} pl-3`}>
                     {t("admin.customer")}
                   </TableHead>
                   <TableHead className={HEAD}>{t("admin.vehicle")}</TableHead>
@@ -173,7 +173,7 @@ export default async function ReservationsPage({
                     {t("admin.total")}
                   </TableHead>
                   <TableHead className={HEAD}>{t("admin.status")}</TableHead>
-                  <TableHead className={`${HEAD} pr-0 text-right`}>
+                  <TableHead className={`${HEAD} pr-3 text-right`}>
                     <span className="sr-only">{t("admin.actions")}</span>
                   </TableHead>
                 </TableRow>

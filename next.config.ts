@@ -1,21 +1,16 @@
 import type { NextConfig } from "next";
+import { staticSecurityHeaders } from "./src/lib/csp";
 
+/*
+ * Headers that are the same on every route. The route-scoped ones — the
+ * nonce-free part of the CSP and X-Frame-Options — come from
+ * staticSecurityHeaders below, and the nonce policy itself from src/proxy.ts
+ * (both in src/lib/csp.ts, which says why it is split that way).
+ */
 const securityHeaders: { key: string; value: string }[] = [
-  {
-    key: "Content-Security-Policy",
-    value:
-      "base-uri 'self'; form-action 'self'; frame-ancestors 'self' https://endritsportfolio.netlify.app; object-src 'none'",
-  },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
-
-  // Allow the portfolio to embed this site in an iframe.
-  {
-    key: "X-Frame-Options",
-    value: "ALLOW-FROM https://endritsportfolio.netlify.app",
-  },
-
   {
     key: "Permissions-Policy",
     value: "camera=(), geolocation=(), microphone=()",
@@ -28,10 +23,11 @@ const securityHeaders: { key: string; value: string }[] = [
  * http://localhost; emitting HSTS there can make browsers upgrade a working
  * local URL to an HTTPS endpoint that does not exist.
  */
-if (
+const servedOverHttps =
   process.env.NODE_ENV === "production" &&
-  process.env.AUTH_URL?.startsWith("https://")
-) {
+  !!process.env.AUTH_URL?.startsWith("https://");
+
+if (servedOverHttps) {
   securityHeaders.push({
     key: "Strict-Transport-Security",
     value: "max-age=31536000",
@@ -39,12 +35,16 @@ if (
 }
 
 const nextConfig: NextConfig = {
+  // Advertising the framework only helps someone matching it against CVEs.
+  poweredByHeader: false,
+
   async headers() {
     return [
       {
         source: "/:path*",
         headers: securityHeaders,
       },
+      ...staticSecurityHeaders(servedOverHttps),
     ];
   },
 

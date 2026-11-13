@@ -1,4 +1,6 @@
+import { timingSafeEqual } from "node:crypto";
 import { v2 as cloudinary } from "cloudinary";
+import { vehicleFolder } from "./folders";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -14,9 +16,6 @@ cloudinary.config({
    */
   timeout: 15_000,
 });
-
-/** All app assets live under one root folder in the Cloudinary media library. */
-const ROOT_FOLDER = "alfa-rent-a-car";
 
 /**
  * Applied at upload time so Cloudinary stores the normalized asset rather
@@ -35,9 +34,9 @@ export type UploadedImage = {
  * The file never passes through a Vercel function: that path is capped at a
  * 4.5 MB request body platform-wide, which two phone photos exceed, and it
  * buffered every upload in function memory. `api_secret` stays on the server
- * — only the derived signature is handed out, and it covers `folder` and
- * `transformation`, so a caller cannot retarget the upload or skip the
- * resize by editing the request.
+ * — only the derived signature is handed out, and it covers `folder`,
+ * `transformation` and `allowed_formats`, so a caller cannot retarget the
+ * upload, skip the resize or upload a non-image by editing the request.
  */
 export type UploadSignature = {
   signature: string;
@@ -46,40 +45,35 @@ export type UploadSignature = {
   cloudName: string;
   folder: string;
   transformation: string;
+  allowedFormats: string;
 };
 
-/** cuid (vehicle ids) or uuid (draft ids) — anything else could escape the folder. */
-const SAFE_ID = /^[a-z0-9-]{8,64}$/i;
-
-function assertSafeId(id: string): string {
-  if (!SAFE_ID.test(id)) throw new Error("Unsafe upload folder segment");
-  return id;
-}
+export {
+  draftFolder,
+  inspectionFolder,
+  isDraftUpload,
+  isVehicleGalleryUpload,
+  vehicleFolder,
+} from "./folders";
 
 /**
- * A vehicle's assets live together so they can be browsed and cleaned up as
- * a unit. A vehicle being created has no id yet, so its uploads land in a
- * draft folder and are renamed into place once the row exists.
+ * The formats the upload widgets accept (media-grid, inspection uploads),
+ * signed into every upload so a caller holding a signature cannot use it to
+ * store something else — an SVG with script in it, a PDF, a video — in our
+ * account. The browser-side `accept` lists are a convenience; this is the
+ * check. Formats are the extensions Cloudinary detects, not MIME types.
  */
-export function vehicleFolder(vehicleId: string): string {
-  return `${ROOT_FOLDER}/vehicles/${assertSafeId(vehicleId)}`;
-}
-
-export function draftFolder(draftId: string): string {
-  return `${ROOT_FOLDER}/vehicles/_drafts/${assertSafeId(draftId)}`;
-}
-
-export function inspectionFolder(
-  reservationId: string,
-  type: "PICKUP" | "RETURN"
-): string {
-  return `${ROOT_FOLDER}/inspections/${assertSafeId(reservationId)}/${type.toLowerCase()}`;
-}
+export const ALLOWED_UPLOAD_FORMATS = "jpg,jpeg,png,webp,avif";
 
 export function signUpload(folder: string): UploadSignature {
   const timestamp = Math.round(Date.now() / 1000);
   const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder, transformation: INCOMING_TRANSFORMATION },
+    {
+      timestamp,
+      folder,
+      transformation: INCOMING_TRANSFORMATION,
+      allowed_formats: ALLOWED_UPLOAD_FORMATS,
+    },
     process.env.CLOUDINARY_API_SECRET!
   );
 
@@ -90,6 +84,7 @@ export function signUpload(folder: string): UploadSignature {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
     folder,
     transformation: INCOMING_TRANSFORMATION,
+    allowedFormats: ALLOWED_UPLOAD_FORMATS,
   };
 }
 
@@ -111,7 +106,19 @@ export function verifyUploadSignature(asset: {
     { public_id: asset.publicId, version: asset.version },
     process.env.CLOUDINARY_API_SECRET!
   );
-  return expected === asset.signature;
+  return constantTimeEqual(expected, asset.signature);
+}
+
+/**
+ * `===` returns at the first differing character, so the time it takes leaks
+ * how much of a guessed signature was right. timingSafeEqual does not, but it
+ * throws on buffers of different lengths — and the length of a SHA-1 hex
+ * digest is public anyway, so checking it first gives nothing away.
+ */
+function constantTimeEqual(expected: string, actual: string): boolean {
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(actual, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /** Built from the verified publicId — never from a client-supplied URL. */

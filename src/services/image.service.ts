@@ -5,6 +5,10 @@ import {
   moveIntoVehicleFolder,
   verifyUploadSignature,
 } from "@/lib/cloudinary";
+import {
+  isDraftUpload,
+  isVehicleGalleryUpload,
+} from "@/lib/cloudinary/folders";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { reportError } from "@/lib/observability";
 import {
@@ -23,7 +27,8 @@ import {
  *
  * Every item here originated in the browser, including the publicIds, so
  * nothing is trusted before `verifyUploadSignature` proves Cloudinary issued
- * it and the id is confirmed to belong to this vehicle.
+ * it and its folder shows it was uploaded for this vehicle (or for the draft
+ * of a vehicle being created).
  */
 export async function syncVehicleImages(
   vehicleId: string,
@@ -61,6 +66,13 @@ export async function syncVehicleImages(
           { key: "err.photoNotThisVehicle" }
         );
       }
+    } else if (!isVehicleGalleryUpload(item.publicId, vehicleId)) {
+      // Signed by Cloudinary, but for something else: another vehicle's
+      // gallery or an inspection. Attaching it would let this gallery
+      // destroy an image that one still shows.
+      throw new ValidationError("That photo does not belong to this vehicle", {
+        key: "err.photoNotThisVehicle",
+      });
     } else if (!verifyUploadSignature(item)) {
       throw new ValidationError(
         "An upload could not be verified. Remove the photo and add it again.",
@@ -74,31 +86,13 @@ export async function syncVehicleImages(
   );
   const removed = vehicle.images.filter((image) => !kept.has(image.id));
 
-  /*
-   * Cloudinary before the database, deliberately: if a destroy fails the row
-   * survives and the operator can retry, where the reverse order would leave
-   * an asset nothing points at. What changed is that the calls no longer wait
-   * on each other — replacing eight photos used to be up to thirty-two
-   * strictly sequential round trips, alternating between Cloudinary and
-   * Postgres.
-   *
-   * allSettled rather than all: one destroy failing should not keep the other
-   * seven rows, whose assets are already gone.
-   */
-  const destroyed = await Promise.allSettled(
-    removed.map((image) => deleteImage(image.publicId))
-  );
-  const goneIds = removed
-    .filter((_, i) => destroyed[i]?.status === "fulfilled")
-    .map((image) => image.id);
-
   // Drafts were parked in a folder of their own before the vehicle existed.
   // Nothing has been written yet, so a failure here is safe to throw on.
   const moved: string[] = [];
   const assets = await Promise.all(
     items.map(async (item) => {
       if (item.kind === "existing") return null;
-      if (!item.publicId.includes("/_drafts/")) {
+      if (!isDraftUpload(item.publicId)) {
         return {
           publicId: item.publicId,
           url: buildImageUrl(item.publicId, item.version),
@@ -119,7 +113,9 @@ export async function syncVehicleImages(
    */
   try {
     await prisma.$transaction([
-      prisma.vehicleImage.deleteMany({ where: { id: { in: goneIds } } }),
+      prisma.vehicleImage.deleteMany({
+        where: { id: { in: removed.map((image) => image.id) } },
+      }),
       ...items.flatMap((item, index) =>
         item.kind === "existing"
           ? [
@@ -158,15 +154,39 @@ export async function syncVehicleImages(
     throw error;
   }
 
-  const failed = removed.length - goneIds.length;
-  if (failed > 0) {
-    throw new ValidationError(
-      failed === 1
-        ? "One photo could not be removed. Save again to finish."
-        : `${failed} photos could not be removed. Save again to finish.`,
-      failed === 1
-        ? { key: "err.photoNotRemoved" }
-        : { key: "err.photosNotRemoved", values: { count: failed } }
+  /*
+   * Database first, hosted files second — the order deleteVehicle settled on,
+   * for the same reason. The transaction above can fail after the checks
+   * passed: two tabs saving the same gallery race, and the loser's update hits
+   * a row the winner already removed. Destroying first left that loser's rows
+   * in place pointing at images that no longer existed, which nothing could
+   * repair. This way a failed save changes nothing anywhere.
+   *
+   * What it costs is that a destroy failing now strands an asset with no row
+   * pointing at it. That is invisible to customers, costs a little storage,
+   * and is recoverable from the report below; a broken gallery was none of
+   * those. So a failed destroy does not fail the save: the gallery the
+   * operator asked for is exactly what was committed.
+   *
+   * allSettled rather than all: one destroy failing should not stop the rest.
+   */
+  const destroyed = await Promise.allSettled(
+    removed.map((image) => deleteImage(image.publicId))
+  );
+  const stranded = removed
+    .filter((_, i) => destroyed[i]?.status === "rejected")
+    .map((image) => image.publicId);
+  if (stranded.length > 0) {
+    const firstFailure = destroyed.find((r) => r.status === "rejected");
+    reportError(
+      firstFailure?.status === "rejected"
+        ? firstFailure.reason
+        : new Error("Cloudinary destroy failed"),
+      {
+        scope: "sync-vehicle-images-destroy",
+        vehicleId,
+        strandedPublicIds: stranded,
+      }
     );
   }
 }

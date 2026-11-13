@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  LATE_WAIVER_REASON_MAX,
+  LATE_WAIVER_REASON_MIN,
+} from "@/lib/late-return";
 
 export const MAX_INSPECTION_PHOTOS = 6;
 export const inspectionTypeSchema = z.enum(["PICKUP", "RETURN"]);
@@ -8,6 +12,43 @@ export const inspectionPhotoReceiptSchema = z.object({
   version: z.number().int().positive(),
   signature: z.string().min(1).max(200),
 });
+
+/**
+ * How staff settle a return after the booked return day (audit P2-4).
+ *
+ * CHARGE carries the number of days the dialog showed: the service computes
+ * its own and refuses a mismatch, so staff are never charged a different
+ * figure from the one they confirmed. WAIVE needs a reason.
+ */
+export const lateReturnSchema = z.discriminatedUnion("resolution", [
+  z.object({
+    resolution: z.literal("CHARGE"),
+    days: z.coerce.number().int().positive(),
+  }),
+  z.object({
+    resolution: z.literal("WAIVE"),
+    reason: z
+      .string()
+      .trim()
+      .min(LATE_WAIVER_REASON_MIN)
+      .max(LATE_WAIVER_REASON_MAX),
+  }),
+]);
+
+export type LateReturnInput = z.infer<typeof lateReturnSchema>;
+
+/** The form's fields as the actions read them; absent for an on-time return. */
+export function lateReturnFromForm(
+  formData: FormData
+): Record<string, unknown> | undefined {
+  const resolution = formData.get("lateResolution");
+  if (!resolution) return undefined;
+  return {
+    resolution,
+    days: formData.get("lateDays") ?? undefined,
+    reason: formData.get("lateWaiverReason") ?? undefined,
+  };
+}
 
 export const rentalInspectionSchema = z
   .object({
@@ -38,6 +79,8 @@ export const rentalInspectionSchema = z
      * never before the pickup day (or, for a return, the handover).
      */
     occurredOn: z.iso.date().optional(),
+    /** Required by the service when the return is after the return day. */
+    lateReturn: lateReturnSchema.optional(),
   })
   .superRefine((input, context) => {
     if (input.damageFound && !input.damageNotes) {
@@ -62,6 +105,8 @@ export const pastRentalSchema = z.object({
   returnedOn: z.iso.date(),
   note: z.string().trim().min(5).max(500),
   confirmed: z.literal(true),
+  /** Required by the service when `returnedOn` is after the return day. */
+  lateReturn: lateReturnSchema.optional(),
 });
 
 export type PastRentalInput = z.infer<typeof pastRentalSchema>;

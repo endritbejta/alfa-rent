@@ -49,6 +49,12 @@ enum ReservationStatus {
   CANCELLED
 }
 
+/// How staff settled a rental that came back after its booked return day.
+enum LateReturnResolution {
+  CHARGED
+  WAIVED
+}
+
 enum InspectionType {
   PICKUP
   RETURN
@@ -183,21 +189,21 @@ model Customer {
 }
 
 model Reservation {
-  id                     String            @id @default(cuid())
+  id                     String                @id @default(cuid())
   vehicleId              String
   customerId             String
   pickupDate             DateTime
   returnDate             DateTime
-  status                 ReservationStatus @default(PENDING)
-  totalPrice             Decimal           @db.Decimal(10, 2)
+  status                 ReservationStatus     @default(PENDING)
+  totalPrice             Decimal               @db.Decimal(10, 2)
   notes                  String?
   /// Hash of the customer-held capability token required to start payment.
   /// The raw token is returned once and is never stored.
-  paymentAccessTokenHash String?           @unique
+  paymentAccessTokenHash String?               @unique
   /// The Idempotency-Key the creating request carried. A retry with the same
   /// key gets this reservation back instead of making a second one. Null for
   /// requests that sent none and for everything created before the column.
-  idempotencyKey         String?           @unique
+  idempotencyKey         String?               @unique
   /// What a public booking's form submitted, kept even when the email
   /// matched an existing customer whose record is (deliberately) left as it
   /// is. Staff compare it with the customer on file. Null for staff bookings
@@ -218,8 +224,17 @@ model Reservation {
   backfilledAt           DateTime?
   backfilledById         String?
   backfillNote           String?
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  /// Set when the car came back after its booked return day (audit P2-4).
+  /// The booked dates are not moved: these record the days past the return
+  /// day, what was charged for them (already included in totalPrice; 0.00
+  /// when waived), how staff settled it, and, when waived, why. The reason
+  /// is staff free text that may name the customer, so anonymising clears it.
+  lateDays               Int?
+  lateCharge             Decimal?              @db.Decimal(10, 2)
+  lateResolution         LateReturnResolution?
+  lateWaiverReason       String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 
   vehicle      Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   customer     Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)

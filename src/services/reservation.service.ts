@@ -14,7 +14,7 @@ import {
   ValidationError,
   phrase,
 } from "@/lib/errors";
-import { calculateTotalPrice } from "@/lib/pricing";
+import { additionalDaysCharge, calculateTotalPrice } from "@/lib/pricing";
 import {
   latestReturnBefore,
   rentalDayStart,
@@ -635,8 +635,15 @@ export async function previewManualReservation(
 }
 
 const reservationListInclude = {
+  // pricePerDay is a Decimal: the page converts it before it reaches a row.
   vehicle: {
-    select: { brand: true, model: true, plate: true, slug: true },
+    select: {
+      brand: true,
+      model: true,
+      plate: true,
+      slug: true,
+      pricePerDay: true,
+    },
   },
   // Phone and notes too: the pending queue compares the request's
   // submitted details with these, and can copy them onto the record.
@@ -1014,7 +1021,7 @@ export async function extendReservation(
       rentalDays(reservation.pickupDate, reservation.returnDate);
 
     const totalPrice = reservation.totalPrice.add(
-      reservation.vehicle.pricePerDay.mul(extraDays)
+      additionalDaysCharge(reservation.vehicle.pricePerDay, extraDays)
     );
     const changed = await tx.reservation.updateMany({
       where: {

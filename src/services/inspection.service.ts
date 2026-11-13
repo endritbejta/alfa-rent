@@ -1,4 +1,4 @@
-import { type InspectionType } from "@prisma/client";
+import { Prisma, type InspectionType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   buildImageUrl,
@@ -19,11 +19,14 @@ import {
   rentalCalendarDay,
 } from "@/lib/reservation-lifecycle";
 import type {
+  LateReturnInput,
   PastRentalInput,
   RentalInspectionInput,
 } from "@/lib/validations/inspection";
 import { reportError } from "@/lib/observability";
-import { auditFields, recordAudit } from "@/lib/audit";
+import { auditFields, recordAudit, type AuditEventInput } from "@/lib/audit";
+import { lateReturnDays } from "@/lib/late-return";
+import { additionalDaysCharge } from "@/lib/pricing";
 
 function expectedInspection(status: string): InspectionType | null {
   if (status === "CONFIRMED") return "PICKUP";
@@ -78,6 +81,98 @@ function resolveOccurredAt(
 }
 
 /**
+ * Settles a return after the booked return day (audit P2-4): staff either
+ * charge the extra days or waive them with a reason. Nothing is asked of an
+ * on-time return.
+ *
+ * The booked dates stay as they were. Charging adds to `totalPrice` and
+ * records the days beside the booking, so it can never trip the exclusion
+ * constraint — the late days are the ones most likely to overlap the car's
+ * next booking — and the overdue counts, the calendar and the punctuality
+ * record keep reading the booking as made. Revenue per rental day spreads
+ * `lateCharge` over the late days themselves; see analytics' revenueByBucket.
+ *
+ * The extra days are priced as an extension would price them: the car's
+ * rate today, in Decimal, through the same helper.
+ *
+ * Returns the columns to write with the completion and the audit event that
+ * records the decision, or nothing when there is nothing to settle.
+ */
+function settleLateReturn(
+  reservation: {
+    id: string;
+    returnDate: Date;
+    totalPrice: Prisma.Decimal;
+    vehicle: { pricePerDay: Prisma.Decimal };
+  },
+  returnedOn: string,
+  choice: LateReturnInput | undefined,
+  actorId: string
+): {
+  data: Prisma.ReservationUpdateManyMutationInput;
+  event: AuditEventInput | null;
+} {
+  const days = lateReturnDays(
+    rentalCalendarDay(reservation.returnDate),
+    returnedOn
+  );
+  if (days === 0) return { data: {}, event: null };
+  if (!choice) {
+    throw new ValidationError(
+      `This car came back ${days} day(s) after its return date. Charge the extra days or waive them with a reason.`,
+      { key: "err.lateReturnUnresolved", values: { days } }
+    );
+  }
+  if (choice.resolution === "WAIVE") {
+    return {
+      data: {
+        lateDays: days,
+        lateCharge: new Prisma.Decimal(0),
+        lateResolution: "WAIVED",
+        lateWaiverReason: choice.reason,
+      },
+      event: {
+        actorId,
+        action: "reservation.lateWaive",
+        entityId: reservation.id,
+        after: auditFields({ lateDays: days, lateResolution: "WAIVED" }),
+        // Free text that may name the customer: kept in `reason`, which
+        // anonymisation scrubs, and never in `after`.
+        reason: choice.reason,
+      },
+    };
+  }
+  // The dialog showed a number; charging any other would be charging
+  // something staff never confirmed.
+  if (choice.days !== days) {
+    throw new ValidationError(
+      `The return is ${days} day(s) late, not ${choice.days}. Check the return date and confirm again.`,
+      { key: "err.lateDaysChanged", values: { days } }
+    );
+  }
+  const lateCharge = additionalDaysCharge(
+    reservation.vehicle.pricePerDay,
+    days
+  );
+  const totalPrice = reservation.totalPrice.add(lateCharge);
+  return {
+    data: { lateDays: days, lateCharge, lateResolution: "CHARGED", totalPrice },
+    event: {
+      actorId,
+      action: "reservation.lateCharge",
+      entityId: reservation.id,
+      before: auditFields({ totalPrice: reservation.totalPrice }),
+      after: auditFields({
+        lateDays: days,
+        pricePerDay: reservation.vehicle.pricePerDay,
+        lateCharge,
+        totalPrice,
+      }),
+    },
+  };
+}
+
+/**
  * Records the physical inspection and advances the rental in one transaction.
  * There is no state where a rental is marked active/completed but its required
  * condition record failed to save.
@@ -104,7 +199,7 @@ export async function recordRentalInspection(
       where: { id: reservationId },
       include: {
         vehicle: {
-          select: { status: true },
+          select: { status: true, pricePerDay: true },
         },
         inspections: {
           select: { type: true, mileage: true },
@@ -269,9 +364,22 @@ export async function recordRentalInspection(
         }),
       });
     } else {
+      // The business day it came back: the dated one, or today.
+      const late = settleLateReturn(
+        reservation,
+        input.occurredOn ?? businessDay(now),
+        input.lateReturn,
+        createdById
+      );
       const advanced = await tx.reservation.updateMany({
-        where: { id: reservationId, status: "ACTIVE" },
-        data: { status: "COMPLETED", completedAt: occurredAt },
+        // The return date too: an extension in the meantime changes both
+        // the late days and the total this was priced from.
+        where: {
+          id: reservationId,
+          status: "ACTIVE",
+          returnDate: reservation.returnDate,
+        },
+        data: { status: "COMPLETED", completedAt: occurredAt, ...late.data },
       });
       if (advanced.count !== 1) {
         throw new ConflictError(
@@ -317,6 +425,7 @@ export async function recordRentalInspection(
           ...(released.count === 1 && { vehicleStatus: "AVAILABLE" }),
         }),
       });
+      if (late.event) await recordAudit(tx, late.event);
     }
 
     return inspection;
@@ -340,7 +449,9 @@ const OCCUPYING_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
  *   one (mileage 0, a signature nobody gave) would corrupt the record. The
  *   reason goes in `backfillNote` instead.
  * - Change the booked dates. The exclusion constraint, revenue (per booked
- *   day) and the overdue counts keep reading the booking as made.
+ *   day) and the overdue counts keep reading the booking as made. A return
+ *   after the booked one is settled like any late return (charged or
+ *   waived; see settleLateReturn), beside the booking, not by moving it.
  *
  * What it keeps: never before the pickup day, never in the future, the
  * CONFIRMED-only transition guard, and no actual return that runs into the
@@ -356,6 +467,7 @@ export async function recordPastRental(
   return prisma.$transaction(async (tx) => {
     const reservation = await tx.reservation.findUnique({
       where: { id: reservationId },
+      include: { vehicle: { select: { pricePerDay: true } } },
     });
     if (!reservation) throw new NotFoundError("Reservation");
 
@@ -422,8 +534,21 @@ export async function recordPastRental(
       }
     }
 
+    // Back after the booked return day: settled here exactly as at a
+    // normal return, so recording it after the fact is no way around it.
+    const late = settleLateReturn(
+      reservation,
+      returnedOn,
+      input.lateReturn,
+      userId
+    );
+
     const recorded = await tx.reservation.updateMany({
-      where: { id: reservationId, status: "CONFIRMED" },
+      where: {
+        id: reservationId,
+        status: "CONFIRMED",
+        returnDate: reservation.returnDate,
+      },
       data: {
         status: "COMPLETED",
         startedAt,
@@ -431,6 +556,7 @@ export async function recordPastRental(
         backfilledAt: now,
         backfilledById: userId,
         backfillNote: input.note,
+        ...late.data,
       },
     });
     if (recorded.count !== 1) {
@@ -448,5 +574,6 @@ export async function recordPastRental(
       after: auditFields({ status: "COMPLETED", startedAt, completedAt }),
       reason: input.note,
     });
+    if (late.event) await recordAudit(tx, late.event);
   });
 }

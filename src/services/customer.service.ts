@@ -478,6 +478,7 @@ export async function anonymiseCustomer(
         notes: null,
         // Staff free text too: a reason may name the customer.
         backfillNote: null,
+        lateWaiverReason: null,
         contactFirstName: null,
         contactLastName: null,
         contactEmail: null,

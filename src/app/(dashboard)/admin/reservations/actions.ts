@@ -19,6 +19,7 @@ import {
 } from "@/lib/validations/reservation";
 import {
   inspectionTypeSchema,
+  lateReturnFromForm,
   parseInspectionPhotos,
   pastRentalSchema,
   rentalInspectionSchema,
@@ -88,6 +89,7 @@ export async function recordRentalInspectionAction(
       photos: parseInspectionPhotos(formData.get("photos")),
       lateStartConfirmed: formData.get("lateStartConfirmed") === "on",
       occurredOn: formData.get("occurredOn") || undefined,
+      lateReturn: lateReturnFromForm(formData),
     });
     await recordRentalInspection(reservationId, user.id, input);
   } catch (error) {
@@ -97,6 +99,8 @@ export async function recordRentalInspectionAction(
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");
   revalidatePath("/admin/vehicles");
+  // A late return's charge is revenue.
+  revalidatePath("/admin/analytics");
   // A pickup inspection marks the vehicle RENTED and a return releases it,
   // and the storefront shows that status.
   updateTag(PUBLIC_VEHICLES_TAG);
@@ -119,6 +123,7 @@ export async function recordPastRentalAction(
       returnedOn: formData.get("returnedOn"),
       note: formData.get("note"),
       confirmed: formData.get("confirmed") === "on",
+      lateReturn: lateReturnFromForm(formData),
     });
     await recordPastRental(reservationId, user.id, input);
   } catch (error) {

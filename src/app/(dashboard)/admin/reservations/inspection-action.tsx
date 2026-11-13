@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
-import { format } from "date-fns";
 import { ClipboardCheck, TriangleAlert } from "lucide-react";
 import {
   getPickupMileageAction,
@@ -10,6 +9,13 @@ import {
   signInspectionUploadAction,
 } from "./actions";
 import { InspectionPhotoUpload } from "./inspection-photo-upload";
+import { formatDay } from "./format-day";
+import {
+  LateReturnChoice,
+  NO_LATE_CHOICE,
+  lateChoiceProblem,
+  type LateChoice,
+} from "./late-return-choice";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,6 +39,8 @@ export function InspectionAction({
   status,
   timing,
   signerName,
+  pricePerDay,
+  totalPrice,
   onSuccess,
   open: openProp,
   onOpenChange,
@@ -42,6 +50,9 @@ export function InspectionAction({
   status: ReservationStatus;
   timing: ReservationTiming;
   signerName: string;
+  /** The car's rate today and the booking's total, for a late return. */
+  pricePerDay: number;
+  totalPrice: number;
   onSuccess?: () => void;
   /**
    * Controlled open state, for a parent that opens the dialog from its own
@@ -77,6 +88,10 @@ export function InspectionAction({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [pickupMileage, setPickupMileage] = useState<number | null>(null);
+  // The day the car came back. Controlled, so a return dated after the
+  // booked return day shows its late days and price as the date changes.
+  const [returnedOn, setReturnedOn] = useState(timing.today);
+  const [lateChoice, setLateChoice] = useState<LateChoice>(NO_LATE_CHOICE);
 
   // The return form shows where the odometer started.
   useEffect(() => {
@@ -111,6 +126,23 @@ export function InspectionAction({
   );
 
   if (!visible) return null;
+
+  /**
+   * The late-return choice is checked before the action runs, not inside it:
+   * React resets an action form once its action returns, so refusing there
+   * would wipe the mileage and signature staff just entered.
+   */
+  const checkLateChoice = (event: React.FormEvent<HTMLFormElement>) => {
+    if (type !== "RETURN") return;
+    const problem = lateChoiceProblem(timing.returnDay, returnedOn, lateChoice);
+    if (!problem) return;
+    event.preventDefault();
+    setError(
+      problem.key === "admin.lateReasonTooShort"
+        ? t(problem.key, { min: problem.min })
+        : t(problem.key)
+    );
+  };
 
   const submit = (formData: FormData) => {
     setError(null);
@@ -181,7 +213,12 @@ export function InspectionAction({
             </DialogDescription>
           </DialogHeader>
 
-          <form action={submit} noValidate className="space-y-4">
+          <form
+            action={submit}
+            onSubmit={checkLateChoice}
+            noValidate
+            className="space-y-4"
+          >
             <input type="hidden" name="type" value={type} />
 
             {lateStart && (
@@ -238,7 +275,8 @@ export function InspectionAction({
                   // The server bounds it by the recorded handover too.
                   min={timing.pickupDay}
                   max={timing.today}
-                  defaultValue={timing.today}
+                  value={returnedOn}
+                  onChange={(event) => setReturnedOn(event.target.value)}
                   aria-describedby={`${reservationId}-occurred-help`}
                   className="w-auto"
                 />
@@ -251,6 +289,18 @@ export function InspectionAction({
                   })}
                 </p>
               </div>
+            )}
+
+            {type === "RETURN" && (
+              <LateReturnChoice
+                idPrefix={reservationId}
+                returnDay={timing.returnDay}
+                returnedOn={returnedOn}
+                pricePerDay={pricePerDay}
+                totalPrice={totalPrice}
+                choice={lateChoice}
+                onChange={setLateChoice}
+              />
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -427,9 +477,4 @@ export function InspectionAction({
       )}
     </>
   );
-}
-
-/** A `YYYY-MM-DD` calendar day for display; noon keeps it on its own day. */
-export function formatDay(day: string): string {
-  return format(new Date(`${day}T12:00:00`), "dd MMM yyyy");
 }

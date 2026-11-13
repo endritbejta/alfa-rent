@@ -32,12 +32,17 @@ export function RowActions({
   status,
   timing,
   customerName,
+  pricePerDay,
+  totalPrice,
 }: {
   reservationId: string;
   status: ReservationStatus;
   timing: ReservationTiming;
   /** Shown on the menu's label and pre-filled as the inspection signer. */
   customerName: string;
+  /** Plain numbers: the car's rate today and the total, for a late return. */
+  pricePerDay: number;
+  totalPrice: number;
 }) {
   const { t } = useI18n();
   const [starting, setStarting] = useState(false);
@@ -57,13 +62,20 @@ export function RowActions({
   return (
     <div className="flex items-center justify-end gap-1.5">
       {recordPast ? (
-        <RecordPastRental reservationId={reservationId} timing={timing} />
+        <RecordPastRental
+          reservationId={reservationId}
+          timing={timing}
+          pricePerDay={pricePerDay}
+          totalPrice={totalPrice}
+        />
       ) : (
         <InspectionAction
           reservationId={reservationId}
           status={status}
           timing={timing}
           signerName={customerName}
+          pricePerDay={pricePerDay}
+          totalPrice={totalPrice}
         />
       )}
       {startInMenu && (
@@ -72,6 +84,8 @@ export function RowActions({
           status={status}
           timing={timing}
           signerName={customerName}
+          pricePerDay={pricePerDay}
+          totalPrice={totalPrice}
           hideTrigger
           open={starting}
           onOpenChange={setStarting}

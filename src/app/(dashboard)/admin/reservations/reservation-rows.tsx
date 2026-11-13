@@ -10,6 +10,8 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { RowActions } from "./row-actions";
+import { LateReturnNote } from "@/components/shared/late-return-note";
+import type { LateReturnSummary } from "@/lib/late-return";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
@@ -23,6 +25,10 @@ export type Row = {
   totalPrice: string;
   status: ReservationStatus;
   timing: ReservationTiming;
+  /** The car's rate today, for a late return's charge. */
+  pricePerDay: number;
+  /** How a return after the booked return day was settled, if it was. */
+  late: LateReturnSummary | null;
   vehicle: { brand: string; model: string; plate: string | null };
   customer: { firstName: string; lastName: string; email: string };
 };
@@ -95,6 +101,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             <div className="flex flex-wrap items-center gap-1.5">
               <StatusBadge status={r.status} />
               <ReservationAttention attention={r.timing.attention} />
+              <LateReturnNote late={r.late} />
             </div>
           </TableCell>
           <TableCell
@@ -109,6 +116,8 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
               status={r.status}
               timing={r.timing}
               customerName={`${r.customer.firstName} ${r.customer.lastName}`}
+              pricePerDay={r.pricePerDay}
+              totalPrice={Number(r.totalPrice)}
             />
           </TableCell>
         </TableRow>
@@ -166,6 +175,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
               <div className="flex flex-col items-end gap-1">
                 <StatusBadge status={r.status} />
                 <ReservationAttention attention={r.timing.attention} />
+                <LateReturnNote late={r.late} />
               </div>
             </div>
             <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
@@ -192,6 +202,8 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                 status={r.status}
                 timing={r.timing}
                 customerName={`${r.customer.firstName} ${r.customer.lastName}`}
+                pricePerDay={r.pricePerDay}
+                totalPrice={Number(r.totalPrice)}
               />
             </div>
           </div>

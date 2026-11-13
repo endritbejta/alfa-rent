@@ -24,10 +24,22 @@ import { parsePageParam } from "@/lib/validations/common";
 import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
 import { RESERVATION_STATUS_KEYS as STATUS_KEYS } from "@/lib/status-labels";
+import { lateReturnSummary } from "@/lib/late-return";
 
 export const dynamic = "force-dynamic";
 
 const STATUSES = Object.values(ReservationStatus);
+
+/** The list's vehicle without its Decimal rate, which cannot reach a client. */
+function listVehicle(vehicle: {
+  brand: string;
+  model: string;
+  plate: string | null;
+  slug: string;
+}) {
+  const { brand, model, plate, slug } = vehicle;
+  return { brand, model, plate, slug };
+}
 
 export default async function ReservationsPage({
   searchParams,
@@ -64,7 +76,9 @@ export default async function ReservationsPage({
     totalPrice: String(r.totalPrice),
     status: r.status,
     timing: getReservationTiming(r, now),
-    vehicle: r.vehicle,
+    pricePerDay: Number(r.vehicle.pricePerDay),
+    late: lateReturnSummary(r),
+    vehicle: listVehicle(r.vehicle),
     customer: r.customer,
   }));
 
@@ -109,7 +123,7 @@ export default async function ReservationsPage({
             totalPrice: String(r.totalPrice),
             createdAt: r.createdAt,
             notes: r.notes,
-            vehicle: r.vehicle,
+            vehicle: listVehicle(r.vehicle),
             customerId: r.customerId,
             customer: {
               firstName: r.customer.firstName,

@@ -114,6 +114,13 @@ beforeAll(async () => {
     contactLastName: "Krasniqi",
     contactEmail: "arta.private@example.test",
     contactPhone: "+383 49 555 111",
+    // A late return waived with a reason that names the customer.
+    ...(status === "COMPLETED" && {
+      lateDays: 2,
+      lateCharge: "0.00",
+      lateResolution: "WAIVED" as const,
+      lateWaiverReason: "Arta's flight was cancelled, owner agreed",
+    }),
   });
   await prisma.reservation.createMany({
     data: [
@@ -215,8 +222,11 @@ describe("anonymiseCustomer", () => {
         contactLastName: null,
         contactEmail: null,
         contactPhone: null,
+        lateWaiverReason: null,
       });
     }
+    // The late days themselves are a fact about the rental, and stay.
+    expect(customer.reservations.map((r) => r.lateDays)).toContain(2);
     const [inspection] = customer.reservations[0].inspections;
     expect(inspection).toMatchObject({
       signerName: ANONYMISED_SIGNER,

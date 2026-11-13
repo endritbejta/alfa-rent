@@ -27,12 +27,14 @@ const ITEM =
  *   COMPLETED,
  *   CANCELLED         nothing — the status says it all.
  *
- * Secondary — behind "⋯", and only when there is something to put there:
- * Cancel for a request or booking, and Start for a past booking whose car
- * may still be out. An action is in one place or the other, never both.
+ * Secondary — Cancel for a request or booking, and Start for a past booking
+ * whose car may still be out. One secondary action is shown as it is, a
+ * quiet button beside the primary: a menu holding a single item only hides
+ * it behind an extra click. Two or more go behind "⋯". An action is in one
+ * place or the other, never both.
  *
- * The "⋯" slot is reserved even when empty, so every primary button in the
- * column ends on the same edge. Each action keeps its own dialog, rendered
+ * The secondary slot has one width whether it holds a button, "⋯" or
+ * nothing, so every primary button in the column ends on the same edge. Each action keeps its own dialog, rendered
  * here with its trigger hidden, so the menu popup can close without
  * unmounting the dialog it opened. Availability ("from the pickup date") is
  * the drawer's to explain, not a sentence beside every row.
@@ -72,8 +74,9 @@ export function RowActions({
   // An expired request can only be cancelled. With nothing else to offer, a
   // menu holding one item would only hide it, so Cancel stays a button.
   const onlyCancel = status === "PENDING" && expired;
-  const cancelInMenu = canCancel && !onlyCancel;
-  const hasMenu = startInMenu || cancelInMenu;
+  // Cancel beside a primary step, rather than as the step itself.
+  const cancelSecondary = canCancel && !onlyCancel;
+  const hasMenu = startInMenu && cancelSecondary;
   // Nothing at all to do: no column furniture either.
   const hasActions = canCancel || status === "ACTIVE";
   if (!hasActions) return null;
@@ -82,7 +85,7 @@ export function RowActions({
 
   return (
     // One width for every primary button, so the column reads as a column.
-    <div className="flex items-center justify-end gap-1.5 [&_button:not([aria-haspopup])]:min-w-28">
+    <div className="flex items-center justify-end gap-1.5 [&>*:not(:last-child)_button]:min-w-28 [&>button]:min-w-28">
       {recordPast ? (
         <RecordPastRental
           reservationId={reservationId}
@@ -115,58 +118,68 @@ export function RowActions({
         reservationId={reservationId}
         status={status}
         expired={expired}
-        hideCancel={cancelInMenu}
-        cancelOpen={cancelInMenu ? cancelling : undefined}
-        onCancelOpenChange={cancelInMenu ? setCancelling : undefined}
+        hideCancel={cancelSecondary}
+        cancelOpen={cancelSecondary ? cancelling : undefined}
+        onCancelOpenChange={cancelSecondary ? setCancelling : undefined}
       />
 
-      {hasMenu ? (
-        <Menu.Root>
-          <Menu.Trigger
-            aria-label={t("admin.moreActionsFor", { name: customerName })}
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="hit-area text-muted-foreground hover:text-foreground size-8"
-              />
-            }
-          >
-            <MoreHorizontal />
-          </Menu.Trigger>
-          <Menu.Portal>
-            <Menu.Positioner
-              align="end"
-              sideOffset={4}
-              className="isolate z-50 outline-none"
+      <div className="flex w-20 shrink-0 justify-end">
+        {hasMenu ? (
+          <Menu.Root>
+            <Menu.Trigger
+              aria-label={t("admin.moreActionsFor", { name: customerName })}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="hit-area text-muted-foreground hover:text-foreground size-8"
+                />
+              }
             >
-              <Menu.Popup className="glass-l4 text-popover-foreground min-w-48 origin-(--transform-origin) rounded-none border py-1 shadow-md outline-hidden transition-[opacity,scale] duration-[var(--motion-hover)] ease-[var(--ease-standard)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
-                {startInMenu && (
-                  <Menu.Item className={ITEM} onClick={() => setStarting(true)}>
-                    <ClipboardCheck />
-                    {t("admin.startRental")}
-                  </Menu.Item>
-                )}
-                {startInMenu && cancelInMenu && (
+              <MoreHorizontal />
+            </Menu.Trigger>
+            <Menu.Portal>
+              <Menu.Positioner
+                align="end"
+                sideOffset={4}
+                className="isolate z-50 outline-none"
+              >
+                <Menu.Popup className="glass-l4 text-popover-foreground min-w-48 origin-(--transform-origin) rounded-none border py-1 shadow-md outline-hidden transition-[opacity,scale] duration-[var(--motion-hover)] ease-[var(--ease-standard)] data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0">
+                  {startInMenu && (
+                    <Menu.Item
+                      className={ITEM}
+                      onClick={() => setStarting(true)}
+                    >
+                      <ClipboardCheck />
+                      {t("admin.startRental")}
+                    </Menu.Item>
+                  )}
                   <Menu.Separator className="bg-border my-1 h-px" />
-                )}
-                {cancelInMenu && (
-                  <Menu.Item
-                    className={`${ITEM} text-destructive`}
-                    onClick={() => setCancelling(true)}
-                  >
-                    <XCircle />
-                    {t("admin.cancelReservationConfirm")}
-                  </Menu.Item>
-                )}
-              </Menu.Popup>
-            </Menu.Positioner>
-          </Menu.Portal>
-        </Menu.Root>
-      ) : (
-        // The menu's place, kept so primary buttons line up down the column.
-        <span aria-hidden className="size-8 shrink-0" />
-      )}
+                  {
+                    <Menu.Item
+                      className={`${ITEM} text-destructive`}
+                      onClick={() => setCancelling(true)}
+                    >
+                      <XCircle />
+                      {t("admin.cancelReservationConfirm")}
+                    </Menu.Item>
+                  }
+                </Menu.Popup>
+              </Menu.Positioner>
+            </Menu.Portal>
+          </Menu.Root>
+        ) : cancelSecondary ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:text-destructive px-2.5"
+            aria-label={t("admin.cancelReservationFor", { name: customerName })}
+            onClick={() => setCancelling(true)}
+          >
+            {t("common.cancel")}
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -172,6 +172,10 @@ const en = {
     "Only a confirmed rental whose return date has passed can be recorded after the fact.",
   "err.backfillOverlapsNext":
     "This car was booked again from {from}, so it cannot have come back on {until}.",
+  "err.lateReturnUnresolved":
+    "This car came back after its return date (late days: {days}). Charge them, or waive them with a reason.",
+  "err.lateDaysChanged":
+    "The late days are now {days}. Check the return date and confirm again.",
   "err.lateStartUnconfirmed":
     "The pickup date has passed. Confirm the late handover to start this rental.",
   "err.occurredInFuture": "That date is in the future.",
@@ -571,6 +575,25 @@ const en = {
   "admin.returnDate": "Return date",
   "admin.returnDateHelp":
     "Scheduled return: {date}. Change it if the car came back earlier.",
+  "admin.returnedLate": "Returned {count} day late",
+  "admin.returnedLatePlural": "Returned {count} days late",
+  "admin.lateChip": "{count} day late",
+  "admin.lateChipPlural": "{count} days late",
+  "admin.lateCharged": "{amount} charged for the late days",
+  "admin.lateWaived": "Late days waived",
+  "admin.lateWaivedChip": "waived",
+  "admin.lateReturnHelp":
+    "Booked back on {date}. Charge the extra days at today's rate, or waive them with a reason.",
+  "admin.lateCharge": "Charge {count} extra day",
+  "admin.lateChargePlural": "Charge {count} extra days",
+  "admin.lateChargeSum": "{rate} × {count} = {amount}. New total: {total}.",
+  "admin.lateWaive": "Waive the late days",
+  "admin.lateWaiverReason": "Why are they waived?",
+  "admin.lateWaiverPlaceholder":
+    "E.g. broke down on the road, agreed with the owner.",
+  "admin.lateChooseRequired":
+    "Choose whether to charge or waive the late days.",
+  "admin.lateReasonTooShort": "Give a reason of at least {min} characters.",
   "admin.requiredField": "Please fill out this field.",
   "admin.confirm": "Confirm",
   "admin.working": "Working…",
@@ -1070,6 +1093,10 @@ const en = {
   "audit.reservation.start": "Handed the car over",
   "audit.reservation.complete": "Took the car back",
   "audit.reservation.recordPast": "Recorded the rental after the fact",
+  "audit.reservation.lateCharge": "Charged {count} late day ({amount})",
+  "audit.reservation.lateChargePlural": "Charged {count} late days ({amount})",
+  "audit.reservation.lateWaive": "Waived {count} late day",
+  "audit.reservation.lateWaivePlural": "Waived {count} late days",
   "audit.customer.update": "Edited the customer",
   "audit.customer.merge": "Merged {count} duplicate records into this one",
   "audit.customer.anonymise": "Anonymised the customer",
@@ -1265,6 +1292,10 @@ const sq: TranslationDictionary = {
     "Vetëm një qira e konfirmuar, data e kthimit e së cilës ka kaluar, mund të regjistrohet më vonë.",
   "err.backfillOverlapsNext":
     "Kjo veturë ishte rezervuar sërish nga {from}, prandaj nuk mund të jetë kthyer më {until}.",
+  "err.lateReturnUnresolved":
+    "Kjo veturë u kthye pas datës së kthimit (ditë vonese: {days}). Faturoji, ose fali duke dhënë një arsye.",
+  "err.lateDaysChanged":
+    "Ditët e vonesës tani janë {days}. Kontrollo datën e kthimit dhe konfirmo sërish.",
   "err.lateStartUnconfirmed":
     "Data e marrjes ka kaluar. Konfirmo dorëzimin me vonesë për ta filluar këtë qira.",
   "err.occurredInFuture": "Kjo datë është në të ardhmen.",
@@ -1659,6 +1690,25 @@ const sq: TranslationDictionary = {
   "admin.returnDate": "Data e kthimit",
   "admin.returnDateHelp":
     "Kthimi i planifikuar: {date}. Ndryshoje nëse vetura u kthye më herët.",
+  "admin.returnedLate": "U kthye me {count} ditë vonesë",
+  "admin.returnedLatePlural": "U kthye me {count} ditë vonesë",
+  "admin.lateChip": "{count} ditë vonesë",
+  "admin.lateChipPlural": "{count} ditë vonesë",
+  "admin.lateCharged": "{amount} u faturuan për ditët e vonesës",
+  "admin.lateWaived": "Ditët e vonesës u falën",
+  "admin.lateWaivedChip": "falur",
+  "admin.lateReturnHelp":
+    "Kthimi ishte rezervuar për {date}. Faturo ditët shtesë me tarifën e sotme, ose fali duke dhënë një arsye.",
+  "admin.lateCharge": "Faturo {count} ditë shtesë",
+  "admin.lateChargePlural": "Faturo {count} ditë shtesë",
+  "admin.lateChargeSum": "{rate} × {count} = {amount}. Totali i ri: {total}.",
+  "admin.lateWaive": "Fali ditët e vonesës",
+  "admin.lateWaiverReason": "Pse po falen?",
+  "admin.lateWaiverPlaceholder":
+    "P.sh. u prish në rrugë, u ra dakord me pronarin.",
+  "admin.lateChooseRequired":
+    "Zgjidh nëse do t'i faturosh apo t'i falësh ditët e vonesës.",
+  "admin.lateReasonTooShort": "Shkruaj një arsye me të paktën {min} karaktere.",
   "admin.requiredField": "Plotësoje këtë fushë.",
   "admin.confirm": "Konfirmo",
   "admin.working": "Duke punuar…",
@@ -2164,6 +2214,11 @@ const sq: TranslationDictionary = {
   "audit.reservation.start": "Dorëzoi veturën",
   "audit.reservation.complete": "Pranoi veturën në kthim",
   "audit.reservation.recordPast": "Regjistroi qiranë pasi kishte përfunduar",
+  "audit.reservation.lateCharge": "Faturoi {count} ditë vonesë ({amount})",
+  "audit.reservation.lateChargePlural":
+    "Faturoi {count} ditë vonesë ({amount})",
+  "audit.reservation.lateWaive": "Fali {count} ditë vonesë",
+  "audit.reservation.lateWaivePlural": "Fali {count} ditë vonesë",
   "audit.customer.update": "Ndryshoi të dhënat e klientit",
   "audit.customer.merge": "Bashkoi {count} kartela të dyfishta në këtë",
   "audit.customer.anonymise": "Anonimizoi klientin",

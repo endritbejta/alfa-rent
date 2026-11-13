@@ -14,7 +14,7 @@ import {
   ValidationError,
   phrase,
 } from "@/lib/errors";
-import { calculateTotalPrice } from "@/lib/pricing";
+import { additionalDaysCharge, calculateTotalPrice } from "@/lib/pricing";
 import {
   latestReturnBefore,
   rentalDayStart,
@@ -1014,7 +1014,7 @@ export async function extendReservation(
       rentalDays(reservation.pickupDate, reservation.returnDate);
 
     const totalPrice = reservation.totalPrice.add(
-      reservation.vehicle.pricePerDay.mul(extraDays)
+      additionalDaysCharge(reservation.vehicle.pricePerDay, extraDays)
     );
     const changed = await tx.reservation.updateMany({
       where: {

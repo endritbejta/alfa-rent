@@ -25,7 +25,8 @@ const REVENUE_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
  * A reservation's price is spread evenly over the days it covers, and each
  * day's share counts in the period that day falls in. A rental from 28 Feb to
  * 3 Mar is part February and part March; an extension's money lands on the
- * days it adds. Revenue used to be counted in full on the day the booking was
+ * days it adds, and a late-return charge on the days the car was kept past
+ * its return day. Revenue used to be counted in full on the day the booking was
  * *created*, so a March rental booked in November was November revenue.
  *
  * The days are the ones a rental occupies: pickup day through return day,
@@ -53,9 +54,13 @@ async function revenueByBucket(
     SELECT to_char(date_trunc(${unit}, d.day), 'YYYY-MM-DD') AS bucket,
            ROUND(SUM(r.share), 2) AS revenue
     FROM (
-      SELECT x."totalPrice" / x.n AS share, x."pickupDate"::date AS first_day, x.n
+      -- The booked days share the booked price: the total less any charge
+      -- for days kept past the return day.
+      SELECT (x."totalPrice" - x.late) / x.n AS share,
+             x."pickupDate"::date AS first_day, x.n
       FROM (
         SELECT "totalPrice", "pickupDate",
+               COALESCE("lateCharge", 0) AS late,
                ("returnDate"::date - "pickupDate"::date + 1) AS n
         FROM reservations
         WHERE status::text = ANY(${[...REVENUE_STATUSES]})
@@ -63,6 +68,17 @@ async function revenueByBucket(
           AND "pickupDate" < ${to}::date
           AND "returnDate" >= ${from}::date
       ) x
+      UNION ALL
+      -- A late-return charge belongs to the late days themselves, which
+      -- follow the booked return day. The booked dates are never moved to
+      -- cover them (see settleLateReturn), so they are spread here.
+      SELECT "lateCharge" / "lateDays", "returnDate"::date + 1, "lateDays"
+      FROM reservations
+      WHERE status::text = ANY(${[...REVENUE_STATUSES]})
+        AND "lateCharge" > 0
+        AND "lateDays" > 0
+        AND "returnDate"::date + 1 < ${to}::date
+        AND "returnDate"::date + "lateDays" >= ${from}::date
     ) r
     CROSS JOIN LATERAL generate_series(
       r.first_day, r.first_day + (r.n - 1), interval '1 day'

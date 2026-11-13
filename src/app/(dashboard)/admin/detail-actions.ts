@@ -14,9 +14,10 @@ type RawReservation = Awaited<ReturnType<typeof getReservationDetail>>;
  */
 export type ReservationDetail = Omit<
   RawReservation,
-  "totalPrice" | "vehicle" | "customer"
+  "totalPrice" | "lateCharge" | "vehicle" | "customer"
 > & {
   totalPrice: number;
+  lateCharge: number | null;
   vehicle: Omit<RawReservation["vehicle"], "pricePerDay"> & {
     pricePerDay: number;
   };
@@ -32,6 +33,7 @@ function plainReservation(r: RawReservation): ReservationDetail {
   return {
     ...r,
     totalPrice: Number(r.totalPrice),
+    lateCharge: r.lateCharge === null ? null : Number(r.lateCharge),
     vehicle: { ...r.vehicle, pricePerDay: Number(r.vehicle.pricePerDay) },
     customer: {
       ...r.customer,
@@ -123,8 +125,8 @@ type RawCustomerDetail = Awaited<ReturnType<typeof getCustomerById>>;
 export type CustomerDetail = Omit<RawCustomerDetail, "reservations"> & {
   reservations: (Omit<
     RawCustomerDetail["reservations"][number],
-    "totalPrice"
-  > & { totalPrice: number })[];
+    "totalPrice" | "lateCharge"
+  > & { totalPrice: number; lateCharge: number | null })[];
   /**
    * Whether to offer ADMIN-only actions. A hint for the UI, never access
    * control: the actions themselves call requireRole.
@@ -145,6 +147,7 @@ export async function getCustomerDetailAction(
         reservations: customer.reservations.map((r) => ({
           ...r,
           totalPrice: Number(r.totalPrice),
+          lateCharge: r.lateCharge === null ? null : Number(r.lateCharge),
         })),
       },
     };

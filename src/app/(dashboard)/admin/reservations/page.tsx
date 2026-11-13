@@ -91,6 +91,11 @@ export default async function ReservationsPage({
       <StatusFilter
         counts={insights.statusCounts}
         pendingActionable={insights.pendingActionable}
+        urgent={{
+          PENDING: insights.pendingActionable,
+          CONFIRMED: insights.overduePickups,
+          ACTIVE: insights.overdueReturns,
+        }}
         active={statusFilter}
       />
 

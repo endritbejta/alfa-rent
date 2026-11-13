@@ -6,6 +6,7 @@ import {
   expiredRequestWhere,
   getReservationTiming,
   isExpiredRequest,
+  recordedRentalInstant,
 } from "./reservation-lifecycle";
 
 const reservation = (
@@ -60,14 +61,73 @@ describe("reservation lifecycle timing", () => {
     expect(timing.attention).toBe("RETURN_OVERDUE");
   });
 
-  it("does not start a rental after its whole booking window has passed", () => {
+  it("does not flag a start on the pickup day as late", () => {
+    const timing = getReservationTiming(
+      reservation("CONFIRMED"),
+      new Date("2026-07-24T20:00:00.000Z")
+    );
+    expect(timing.canStart).toBe(true);
+    expect(timing.lateStart).toBe(false);
+  });
+
+  it("allows a start after the pickup day, flagged as late", () => {
+    const timing = getReservationTiming(
+      reservation("CONFIRMED"),
+      new Date("2026-07-25T08:00:00.000Z")
+    );
+    expect(timing.canStart).toBe(true);
+    expect(timing.lateStart).toBe(true);
+    expect(timing.startBlockedReason).toBeNull();
+  });
+
+  it("still allows a late start once the whole booking window has passed", () => {
     const timing = getReservationTiming(
       reservation("CONFIRMED"),
       new Date("2026-07-28T08:00:00.000Z")
     );
-    expect(timing.canStart).toBe(false);
-    expect(timing.startBlockedReason).toBe("Rental window has ended");
+    expect(timing.canStart).toBe(true);
+    expect(timing.lateStart).toBe(true);
+    expect(timing.startBlockedReason).toBeNull();
     expect(timing.attention).toBe("PICKUP_OVERDUE");
+    expect(timing).toMatchObject({
+      pickupDay: "2026-07-24",
+      returnDay: "2026-07-27",
+      today: "2026-07-28",
+    });
+  });
+
+  it("never flags an active rental as a late start", () => {
+    const timing = getReservationTiming(
+      reservation("ACTIVE"),
+      new Date("2026-07-28T08:00:00.000Z")
+    );
+    expect(timing.canStart).toBe(false);
+    expect(timing.lateStart).toBe(false);
+  });
+});
+
+describe("recordedRentalInstant", () => {
+  const scheduled = new Date("2026-07-24T10:00:00.000Z");
+  const now = new Date("2026-07-28T13:45:00.000Z");
+
+  it("is now when the day is today", () => {
+    expect(recordedRentalInstant("2026-07-28", scheduled, now)).toBe(now);
+  });
+
+  it("puts an earlier day at the scheduled branch time (summer, UTC+2)", () => {
+    expect(
+      recordedRentalInstant("2026-07-24", scheduled, now).toISOString()
+    ).toBe("2026-07-24T08:00:00.000Z");
+  });
+
+  it("follows winter time too (UTC+1)", () => {
+    expect(
+      recordedRentalInstant(
+        "2026-01-24",
+        new Date("2026-01-20T10:00:00.000Z"),
+        new Date("2026-02-01T12:00:00.000Z")
+      ).toISOString()
+    ).toBe("2026-01-24T09:00:00.000Z");
   });
 });
 

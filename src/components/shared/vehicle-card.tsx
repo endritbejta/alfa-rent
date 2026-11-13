@@ -74,8 +74,8 @@ export async function VehicleCard({
     <article
       className="fleet-card group has-[.card-link:focus-visible]:outline-ring relative flex flex-col gap-4 has-[.card-link:focus-visible]:outline-2 has-[.card-link:focus-visible]:outline-offset-4 md:group-data-[view=one]/fleet:grid md:group-data-[view=one]/fleet:grid-cols-12 md:group-data-[view=one]/fleet:items-center md:group-data-[view=one]/fleet:gap-10 md:group-data-[view=one]/fleet:py-10"
       // Lets the fleet's layout switch move this card rather than redraw it.
-      // Inline, with the transition's CSS in FleetView: Turbopack's CSS pass
-      // drops view-transition rules from the stylesheet.
+      // Inline, with the transition's CSS in public/fleet-view-transition.css:
+      // Turbopack's CSS pass drops view-transition rules from the stylesheet.
       style={{
         viewTransitionName: `fleet-${vehicle.id}`,
         viewTransitionClass: "fleet-card",

@@ -163,9 +163,10 @@ and `libpq` rejects them.
 ```bash
 # Paste the URL at the prompt so it never lands in shell history.
 read -rs PGURL
+DUMP="alfa-rent-$(date -u +%Y%m%dT%H%MZ).dump"
 pg_dump --format=custom \
   --schema=public --extension=btree_gist \
-  --file="alfa-rent-$(date -u +%Y%m%dT%H%MZ).dump" \
+  --file="$DUMP" \
   "$PGURL"
 unset PGURL
 ```
@@ -189,9 +190,14 @@ Why these flags (each one was checked in the rehearsal):
 Check it is readable and complete before storing it:
 
 ```bash
-pg_restore --list alfa-rent-*.dump | grep -E "EXTENSION - btree_gist|CONSTRAINT public reservations reservations_no_overlap|ROW SECURITY" | wc -l
-# expect 14: the extension, the constraint, and one ROW SECURITY line per table (12)
+pg_restore --list "$DUMP" | grep -E "EXTENSION - btree_gist|CONSTRAINT public reservations reservations_no_overlap|ROW SECURITY" | wc -l
+# expect 14 today: the extension, the constraint, and one ROW SECURITY line
+# per table (the 11 @@map tables in schema.prisma plus _prisma_migrations)
 ```
+
+Use the exact file name (`$DUMP`), not a glob: with two dumps in the folder,
+`pg_restore --list` refuses the second argument, and the pipe turns that
+error into a misleading `0`.
 
 ### 4.2 Encryption, storage, retention
 
@@ -324,10 +330,16 @@ restore loses them:
 scripts/verify-restore.sh "$SCRATCH_URL"
 ```
 
+It reads the expected table list from `prisma/schema.prisma`, so a table the
+restore lost entirely fails the check. It keeps `sslmode` and the other
+libpq options in the URL, drops only Prisma's own (`pgbouncer`,
+`connection_limit`, …), and passes the password to `psql` through
+`PGPASSWORD` rather than its command line.
+
 ```
 ok    reservations_no_overlap exclusion constraint (x)
 ok    btree_gist extension (1.7)
-ok    row-level security on every public table (12/12)
+ok    row-level security on every table (12/12)
 ok    rental_inspections CHECK constraints (rental_inspections_fuel_level_check, rental_inspections_mileage_check)
 
 All four unmodelled objects are present.
@@ -348,15 +360,18 @@ Never set it with a production URL.
 **Option C, the SQL by hand** (Supabase SQL editor or `psql`):
 
 ```sql
--- 1. Exclusion constraint: expect one row, contype = 'x'
-SELECT conname, contype FROM pg_constraint WHERE conname = 'reservations_no_overlap';
+-- 1. Exclusion constraint on reservations: expect one row, contype = 'x'
+SELECT conname, contype FROM pg_constraint
+WHERE conname = 'reservations_no_overlap' AND conrelid = 'public.reservations'::regclass;
 
 -- 2. Extension: expect one row
 SELECT extname, extversion FROM pg_extension WHERE extname = 'btree_gist';
 
--- 3. RLS: expect no rows (every public table has RLS on), and >= 12 tables in total
+-- 3. RLS: expect no rows (every public table has RLS on) ...
 SELECT relname FROM pg_class
 WHERE relnamespace = 'public'::regnamespace AND relkind = 'r' AND NOT relrowsecurity;
+-- ... and every table present: 12 today, the 11 @@map names in
+-- schema.prisma plus _prisma_migrations. Fewer means a table was lost.
 SELECT count(*) FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relkind = 'r';
 
 -- 4. CHECKs: expect both names
@@ -408,10 +423,20 @@ WHERE finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 1;
 
 Then:
 
-1. Staff accounts exist and are active (`SELECT email, role, active FROM users;`).
+1. **Staff access went back in time too.** The restored `users` rows are as
+   they were at the restore point. Anyone deactivated, any password reset,
+   any "sign out everywhere" (which bumps `sessionVersion`) after that point
+   is undone, and because sessions are JWTs signed with `AUTH_SECRET`, a
+   revoked session becomes valid again. If production is still readable,
+   list what changed since:
+   `SELECT email, role, active, "sessionVersion", "updatedAt" FROM users WHERE "updatedAt" > '<restore point UTC>';`
+   Each of those must be re-applied after cutover (admin → Staff), and
+   `AUTH_SECRET` is rotated in §7.5 whatever the cause.
 2. Open a few bookings you know about and check dates, customer and price.
-3. **Lost window:** list website requests from the staff notification emails
-   sent after the restore point; they must be re-entered after cutover.
+3. **Lost window (first pass):** list website requests from the staff
+   notification emails sent after the restore point. Old production keeps
+   accepting requests until the new deployment is live, so this list is
+   finished in §7.6, not here.
 4. **Re-anonymise.** If production is still readable, list customers
    anonymised after the restore point and anonymise them again in the
    restored database after cutover (admin → customer → Anonymise):
@@ -430,7 +455,9 @@ Only after §5.4 passes and §6 looks right.
    - Save the new values in the password manager first.
 2. **Redeploy production** (Deployments → latest production → Redeploy). The
    build runs `prisma migrate deploy` against the new `DIRECT_URL`, which
-   applies any migrations newer than the restore point.
+   applies any migrations newer than the restore point. **Write down the
+   time (UTC) the new deployment went live**: requests before it went to the
+   old database.
 3. **Smoke test**: sign in to the admin, open the reservations list and the
    fleet calendar, open one vehicle page on the public site.
 4. **Run §5.4 once more** against the now-live database (the build may have
@@ -439,18 +466,25 @@ Only after §5.4 passes and §6 looks right.
    - **always**: the old project's database password (or pause the old
      project once you are sure you no longer need it), so nothing can keep
      writing to it;
-   - **if the cause was a compromise**: `AUTH_SECRET` (signs everyone out),
-     staff passwords (admin → Staff → reset password, which forces a change
-     at next sign-in; PR #24),
-     `CLOUDINARY_API_SECRET`, `RESEND_API_KEY`, and the Supabase dashboard
-     members and their 2FA.
-6. Re-enter the lost-window bookings (§6.3) and re-anonymise (§6.4). Tell
-   staff they can work again.
+   - **always, for any restore to an earlier point**: `AUTH_SECRET`, then
+     redeploy. It signs everyone out, which is the point: the restored
+     `sessionVersion` values would otherwise accept sessions that were
+     revoked after the restore point (§6.1). Then re-apply the staff
+     changes from §6.1: deactivate, reset passwords, sign out everywhere;
+   - **if the cause was a compromise**: also every staff password
+     (admin → Staff → reset password, which forces a change at next
+     sign-in; PR #24), `CLOUDINARY_API_SECRET`, `RESEND_API_KEY`, and the
+     Supabase dashboard members and their 2FA.
+6. **Lost window (final):** list the staff notification emails from the
+   restore point up to the go-live time from step 2, not just the §6.3
+   list, and re-enter those bookings. Re-anonymise (§6.4). Tell staff they
+   can work again.
 7. Record the restore in the [rehearsal log](#9-rehearsal-log), real or not.
 
 Restoring **in place** (Supabase "Restore" on the production project) skips
 §7.1, but takes the site offline for the duration and cannot be rehearsed
-first. Use it only if the scratch path is impossible, and only after
+first. It still needs the `AUTH_SECRET` rotation and staff re-application
+from §7.5. Use it only if the scratch path is impossible, and only after
 §5–§6 have been run on a scratch clone of the same backup.
 
 ---
@@ -517,6 +551,14 @@ public` entry left out (`--use-list`) on a fresh database; then passed
    `psql` does not.
 8. Cleanup: all three scratch databases and the temporary role dropped, dump
    files deleted.
+9. After review, the script was re-tested on a fresh local scratch copy. A
+   dropped table (`payment_events`) now fails the RLS check (it previously
+   passed as 11/11). A decoy `rental_inspections_mileage_check` on a table in
+   another schema no longer satisfies the CHECK test. `sslmode=require` in
+   the URL is honoured, while `pgbouncer`/`connection_limit` are dropped. A
+   percent-encoded password reaches `psql` decoded, through `PGPASSWORD`,
+   and not in its arguments. Server notices on stderr no longer break the
+   parsing.
 
 Template for the next entry: date · who · source and restore point · target ·
 time from decision to verified scratch · time to cutover (if any) · §5.4

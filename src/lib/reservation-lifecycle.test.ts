@@ -78,6 +78,26 @@ describe("reservation lifecycle timing", () => {
     expect(timing.canStart).toBe(true);
     expect(timing.lateStart).toBe(true);
     expect(timing.startBlockedReason).toBeNull();
+    // Still running: it can't be recorded as a finished rental yet.
+    expect(timing.canRecordPast).toBe(false);
+  });
+
+  it("offers recording as completed only once the return day has passed", () => {
+    const onReturnDay = getReservationTiming(
+      reservation("CONFIRMED"),
+      new Date("2026-07-27T20:00:00.000Z")
+    );
+    expect(onReturnDay.canRecordPast).toBe(false);
+    const after = getReservationTiming(
+      reservation("CONFIRMED"),
+      new Date("2026-07-28T08:00:00.000Z")
+    );
+    expect(after.canRecordPast).toBe(true);
+    const active = getReservationTiming(
+      reservation("ACTIVE"),
+      new Date("2026-07-28T08:00:00.000Z")
+    );
+    expect(active.canRecordPast).toBe(false);
   });
 
   it("still allows a late start once the whole booking window has passed", () => {

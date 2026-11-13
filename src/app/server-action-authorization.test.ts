@@ -256,6 +256,21 @@ const ACTIONS: Record<string, Entry> = {
         ] as never[])
       ),
   },
+  "(dashboard)/admin/reservations/actions.ts#recordPastRentalAction": {
+    level: "EMPLOYEE",
+    call: (action) =>
+      action(
+        ...([
+          "reservation-1",
+          form({
+            startedOn: "2026-10-07",
+            returnedOn: "2026-10-15",
+            note: "Forgot to start it at the counter.",
+            confirmed: "on",
+          }),
+        ] as never[])
+      ),
+  },
   "(dashboard)/admin/reservations/actions.ts#updateReservationStatusAction": {
     level: "EMPLOYEE",
     call: call("reservation-1", "CONFIRMED"),

@@ -18,7 +18,10 @@ import {
   recordedRentalInstant,
   rentalCalendarDay,
 } from "@/lib/reservation-lifecycle";
-import type { RentalInspectionInput } from "@/lib/validations/inspection";
+import type {
+  PastRentalInput,
+  RentalInspectionInput,
+} from "@/lib/validations/inspection";
 import { reportError } from "@/lib/observability";
 
 function expectedInspection(status: string): InspectionType | null {
@@ -287,5 +290,124 @@ export async function recordRentalInspection(
     }
 
     return inspection;
+  });
+}
+
+/** Statuses whose scheduled days a car really spent (or will spend) out. */
+const OCCUPYING_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
+
+/**
+ * Records a whole rental that happened but was never started in the system:
+ * staff forgot to press Start, and by now its return day has passed too.
+ * One step instead of two inspections nobody can fill in after the fact.
+ *
+ * What it deliberately does not do:
+ * - Touch the vehicle's status. That describes the car now; this rental is
+ *   over. The handover path's "must be AVAILABLE" rule would otherwise
+ *   refuse every past rental of a car that is out again today, and force
+ *   several past rentals of one car to be entered strictly in order.
+ * - Create inspections. There was no recorded inspection, and inventing
+ *   one (mileage 0, a signature nobody gave) would corrupt the record. The
+ *   reason goes in `backfillNote` instead.
+ * - Change the booked dates. The exclusion constraint, revenue (per booked
+ *   day) and the overdue counts keep reading the booking as made.
+ *
+ * What it keeps: never before the pickup day, never in the future, the
+ * CONFIRMED-only transition guard, and no actual return that runs into the
+ * car's next booking. `backfilledAt` / `backfilledById` / `backfillNote`
+ * are the audit trace that it was entered this way.
+ */
+export async function recordPastRental(
+  reservationId: string,
+  userId: string,
+  input: PastRentalInput,
+  now = new Date()
+) {
+  return prisma.$transaction(async (tx) => {
+    const reservation = await tx.reservation.findUnique({
+      where: { id: reservationId },
+    });
+    if (!reservation) throw new NotFoundError("Reservation");
+
+    const timing = getReservationTiming(reservation, now);
+    if (!timing.canRecordPast) {
+      throw new ValidationError(
+        "Only a confirmed rental whose return date has passed can be recorded after the fact.",
+        { key: "err.pastRentalNotOver" }
+      );
+    }
+    const { startedOn, returnedOn } = input;
+    if (startedOn > timing.today || returnedOn > timing.today) {
+      throw new ValidationError("That date is in the future.", {
+        key: "err.occurredInFuture",
+      });
+    }
+    if (startedOn < timing.pickupDay) {
+      throw new ValidationError(
+        "The handover cannot be before the pickup date.",
+        { key: "err.handoverBeforePickup" }
+      );
+    }
+    if (returnedOn < startedOn) {
+      throw new ValidationError("The return cannot be before the handover.", {
+        key: "err.returnBeforeHandover",
+      });
+    }
+
+    const startedAt = recordedRentalInstant(
+      startedOn,
+      reservation.pickupDate,
+      now
+    );
+    const returnedAt = recordedRentalInstant(
+      returnedOn,
+      reservation.returnDate,
+      now
+    );
+    const completedAt = returnedAt < startedAt ? startedAt : returnedAt;
+
+    // Kept late past its booked return: the car can't also have been out on
+    // its next booking. The constraint only sees booked ranges, so this is
+    // the one overlap it could not catch.
+    if (returnedOn > timing.returnDay) {
+      const next = await tx.reservation.findFirst({
+        where: {
+          id: { not: reservation.id },
+          vehicleId: reservation.vehicleId,
+          status: { in: [...OCCUPYING_STATUSES] },
+          pickupDate: { gte: reservation.returnDate, lt: completedAt },
+        },
+        orderBy: { pickupDate: "asc" },
+        select: { pickupDate: true },
+      });
+      if (next) {
+        const from = rentalCalendarDay(next.pickupDate);
+        throw new ConflictError(
+          `This car was booked again from ${from}, so it cannot have come back on ${returnedOn}.`,
+          {
+            key: "err.backfillOverlapsNext",
+            values: { from, until: returnedOn },
+          }
+        );
+      }
+    }
+
+    const recorded = await tx.reservation.updateMany({
+      where: { id: reservationId, status: "CONFIRMED" },
+      data: {
+        status: "COMPLETED",
+        startedAt,
+        completedAt,
+        backfilledAt: now,
+        backfilledById: userId,
+        backfillNote: input.note,
+      },
+    });
+    if (recorded.count !== 1) {
+      throw new ConflictError(
+        "Reservation changed while you were working. Refresh and try again.",
+        { key: "err.changedUnderYou" }
+      );
+    }
   });
 }

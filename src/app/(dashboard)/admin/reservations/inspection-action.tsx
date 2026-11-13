@@ -134,7 +134,11 @@ export function InspectionAction({
     <>
       <Button
         size="sm"
-        variant="success"
+        // Once the whole rental is in the past, recording it as completed is
+        // the usual move; starting it stays for a car that is still out.
+        variant={
+          type === "PICKUP" && timing.canRecordPast ? "outline" : "success"
+        }
         disabled={disabled}
         title={disabled ? t("admin.availablePickupDate") : undefined}
         onClick={() => setOpen(true)}
@@ -407,6 +411,6 @@ export function InspectionAction({
 }
 
 /** A `YYYY-MM-DD` calendar day for display; noon keeps it on its own day. */
-function formatDay(day: string): string {
+export function formatDay(day: string): string {
   return format(new Date(`${day}T12:00:00`), "dd MMM yyyy");
 }

@@ -11,6 +11,7 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { InspectionAction } from "./inspection-action";
+import { RecordPastRental } from "./record-past-rental";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
@@ -106,6 +107,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             onKeyDown={(e) => e.stopPropagation()}
           >
             <div className="flex flex-wrap justify-end gap-2">
+              <RecordPastRental reservationId={r.id} timing={r.timing} />
               <InspectionAction
                 reservationId={r.id}
                 status={r.status}
@@ -196,6 +198,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
               onKeyDown={(e) => e.stopPropagation()}
             >
               <div className="flex flex-wrap justify-end gap-2">
+                <RecordPastRental reservationId={r.id} timing={r.timing} />
                 <InspectionAction
                   reservationId={r.id}
                   status={r.status}

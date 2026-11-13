@@ -51,6 +51,21 @@ export const rentalInspectionSchema = z
 
 export type RentalInspectionInput = z.infer<typeof rentalInspectionSchema>;
 
+/**
+ * A rental recorded after the fact in one step: the days it went out and
+ * came back, and why there are no inspections. No mileage and no photos —
+ * nobody has a three-week-old odometer reading — so the reason is required
+ * instead, and the confirmation says this is being entered late.
+ */
+export const pastRentalSchema = z.object({
+  startedOn: z.iso.date(),
+  returnedOn: z.iso.date(),
+  note: z.string().trim().min(5).max(500),
+  confirmed: z.literal(true),
+});
+
+export type PastRentalInput = z.infer<typeof pastRentalSchema>;
+
 export function parseInspectionPhotos(raw: FormDataEntryValue | null) {
   if (typeof raw !== "string" || raw.trim() === "") return [];
   let decoded: unknown;

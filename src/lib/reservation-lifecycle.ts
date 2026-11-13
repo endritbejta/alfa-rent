@@ -12,6 +12,13 @@ export type ReservationTiming = {
    * record the day it actually left.
    */
   lateStart: boolean;
+  /**
+   * CONFIRMED and the return day has passed too: the whole rental is in the
+   * past. It can be recorded after the fact in one step (handover and
+   * return together, no inspections), as well as started late if the car is
+   * in fact still out.
+   */
+  canRecordPast: boolean;
   /** Calendar days as `YYYY-MM-DD`, so a client can bound a date input. */
   pickupDay: string;
   returnDay: string;
@@ -181,6 +188,7 @@ export function getReservationTiming(
     canStart: reservation.status === "CONFIRMED" && !beforePickup,
     startBlockedReason,
     lateStart: reservation.status === "CONFIRMED" && today > pickup,
+    canRecordPast: reservation.status === "CONFIRMED" && afterReturn,
     pickupDay: pickup,
     returnDay,
     today,

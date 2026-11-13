@@ -434,6 +434,8 @@ export async function anonymiseCustomer(
       where: { customerId: id },
       data: {
         notes: null,
+        // Staff free text too: a reason may name the customer.
+        backfillNote: null,
         contactFirstName: null,
         contactLastName: null,
         contactEmail: null,

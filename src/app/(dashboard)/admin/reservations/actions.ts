@@ -19,6 +19,7 @@ import {
 import {
   inspectionTypeSchema,
   parseInspectionPhotos,
+  pastRentalSchema,
   rentalInspectionSchema,
 } from "@/lib/validations/inspection";
 import {
@@ -27,6 +28,7 @@ import {
 } from "@/services/reservation.service";
 import {
   getPickupMileage,
+  recordPastRental,
   recordRentalInspection,
 } from "@/services/inspection.service";
 
@@ -97,6 +99,34 @@ export async function recordRentalInspectionAction(
   // A pickup inspection marks the vehicle RENTED and a return releases it,
   // and the storefront shows that status.
   updateTag(PUBLIC_VEHICLES_TAG);
+  return undefined;
+}
+
+/**
+ * A rental that happened but was never started, recorded in one step once
+ * it is over. Same level as the inspections it stands in for. The vehicle's
+ * status is untouched, so the storefront's tag stays valid.
+ */
+export async function recordPastRentalAction(
+  reservationId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await requireRole("EMPLOYEE");
+  try {
+    const input = pastRentalSchema.parse({
+      startedOn: formData.get("startedOn"),
+      returnedOn: formData.get("returnedOn"),
+      note: formData.get("note"),
+      confirmed: formData.get("confirmed") === "on",
+    });
+    await recordPastRental(reservationId, user.id, input);
+  } catch (error) {
+    return { error: await errorMessage(error) };
+  }
+  revalidatePath("/admin/reservations");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/calendar");
+  revalidatePath("/admin/analytics");
   return undefined;
 }
 

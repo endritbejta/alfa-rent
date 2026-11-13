@@ -164,6 +164,10 @@ const en = {
   "err.returnInspectionRequired": "The return inspection is required first",
   "err.pickupInspectionExists": "The pickup inspection is already recorded",
   "err.returnInspectionExists": "The return inspection is already recorded",
+  "err.pastRentalNotOver":
+    "Only a confirmed rental whose return date has passed can be recorded after the fact.",
+  "err.backfillOverlapsNext":
+    "This car was booked again from {from}, so it cannot have come back on {until}.",
   "err.lateStartUnconfirmed":
     "The pickup date has passed. Confirm the late handover to start this rental.",
   "err.occurredInFuture": "That date is in the future.",
@@ -537,6 +541,22 @@ const en = {
   "admin.saveCompleteRental": "Save and complete rental",
   "admin.availablePickupDate": "Available on the pickup date",
   "admin.pickupMileage": "At pickup: {km} km",
+  "admin.recordPastRental": "Record completed rental",
+  "admin.recordPastTitle": "Record a completed rental",
+  "admin.recordPastHelp":
+    "For a rental that took place but was never started here. It is marked completed in one step, without inspections. The car's current status is left as it is.",
+  "admin.recordPastBooked": "Booked {from} – {until}.",
+  "admin.recordPastStarted": "Handed over on",
+  "admin.recordPastReturned": "Returned on",
+  "admin.recordPastNote": "Why are the inspections missing?",
+  "admin.recordPastNotePlaceholder":
+    "e.g. Forgot to press Start; the car went out and came back as booked. No odometer readings.",
+  "admin.recordPastConfirm":
+    "I confirm this rental took place and is being recorded after the fact.",
+  "admin.recordPastSaving": "Recording…",
+  "admin.recordedAfterFact": "Recorded later",
+  "admin.recordedAfterFactBy": "{date} by {name}",
+  "toast.pastRentalRecorded": "Rental recorded as completed",
   "admin.lateStartTitle": "The pickup date has passed",
   "admin.lateStartHelp":
     "This rental was due to start on {date}. Record the day the car actually left. Until its return is recorded it counts as overdue, so complete it as soon as the car is back.",
@@ -1199,6 +1219,10 @@ const sq: TranslationDictionary = {
   "err.returnInspectionRequired": "Duhet së pari inspektimi i kthimit",
   "err.pickupInspectionExists": "Inspektimi i marrjes është regjistruar tashmë",
   "err.returnInspectionExists": "Inspektimi i kthimit është regjistruar tashmë",
+  "err.pastRentalNotOver":
+    "Vetëm një qira e konfirmuar, data e kthimit e së cilës ka kaluar, mund të regjistrohet më vonë.",
+  "err.backfillOverlapsNext":
+    "Kjo veturë ishte rezervuar sërish nga {from}, prandaj nuk mund të jetë kthyer më {until}.",
   "err.lateStartUnconfirmed":
     "Data e marrjes ka kaluar. Konfirmo dorëzimin me vonesë për ta filluar këtë qira.",
   "err.occurredInFuture": "Kjo datë është në të ardhmen.",
@@ -1567,6 +1591,22 @@ const sq: TranslationDictionary = {
   "admin.saveCompleteRental": "Ruaj dhe përfundo qiranë",
   "admin.availablePickupDate": "E disponueshme në datën e marrjes",
   "admin.pickupMileage": "Në marrje: {km} km",
+  "admin.recordPastRental": "Regjistro qiranë e përfunduar",
+  "admin.recordPastTitle": "Regjistro një qira të përfunduar",
+  "admin.recordPastHelp":
+    "Për një qira që ndodhi, por nuk u fillua këtu. Shënohet e përfunduar me një hap, pa inspektime. Statusi aktual i veturës nuk ndryshon.",
+  "admin.recordPastBooked": "Rezervuar {from} – {until}.",
+  "admin.recordPastStarted": "Dorëzuar më",
+  "admin.recordPastReturned": "Kthyer më",
+  "admin.recordPastNote": "Pse mungojnë inspektimet?",
+  "admin.recordPastNotePlaceholder":
+    "p.sh. U harrua shtypja e Fillo; vetura doli dhe u kthye siç ishte rezervuar. Pa kilometrazh.",
+  "admin.recordPastConfirm":
+    "Konfirmoj që kjo qira ndodhi dhe po regjistrohet më vonë.",
+  "admin.recordPastSaving": "Duke regjistruar…",
+  "admin.recordedAfterFact": "Regjistruar më vonë",
+  "admin.recordedAfterFactBy": "{date} nga {name}",
+  "toast.pastRentalRecorded": "Qiraja u regjistrua si e përfunduar",
   "admin.lateStartTitle": "Data e marrjes ka kaluar",
   "admin.lateStartHelp":
     "Kjo qira duhej të fillonte më {date}. Shëno ditën kur vetura doli në të vërtetë. Derisa të regjistrohet kthimi, llogaritet me vonesë, ndaj përfundoje sapo të kthehet vetura.",

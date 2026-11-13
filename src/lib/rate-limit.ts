@@ -101,3 +101,25 @@ export function clientIp(headers: Headers): string {
 export async function resetRateLimit(key: string): Promise<void> {
   await prisma.rateLimit.deleteMany({ where: { key } });
 }
+
+/** How long an expired window is kept before the daily sweep removes it. */
+const SWEEP_GRACE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Deletes windows that expired more than a day ago (audit finding P3-7).
+ *
+ * Nothing else ever deletes a row: an expired window is only reset when the
+ * same key comes back, so every IP that ever booked or failed a sign-in
+ * stayed in the table — unbounded growth, and IP addresses kept with no
+ * purpose. The day of grace leaves any window still in use untouched
+ * whatever the clock skew between Postgres sessions. Run daily by
+ * /api/cron/sweep-rate-limits; the expiresAt index serves it.
+ */
+export async function sweepExpiredRateLimits(
+  now = new Date()
+): Promise<number> {
+  const { count } = await prisma.rateLimit.deleteMany({
+    where: { expiresAt: { lt: new Date(now.getTime() - SWEEP_GRACE_MS) } },
+  });
+  return count;
+}

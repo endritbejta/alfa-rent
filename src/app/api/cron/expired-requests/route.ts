@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { isAuthorisedCronRequest } from "@/lib/cron-auth";
 import { reportError } from "@/lib/observability";
 import { notifyCustomersOfExpiredRequests } from "@/services/customer-notification.service";
 
@@ -13,19 +13,8 @@ import { notifyCustomersOfExpiredRequests } from "@/services/customer-notificati
  */
 export const dynamic = "force-dynamic";
 
-function digest(value: string): Buffer {
-  return createHash("sha256").update(value).digest();
-}
-
-function authorised(header: string | null): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret || !header) return false;
-  // Hashing first gives equal lengths, so the comparison is constant-time.
-  return timingSafeEqual(digest(header), digest(`Bearer ${secret}`));
-}
-
 export async function GET(request: Request): Promise<Response> {
-  if (!authorised(request.headers.get("authorization"))) {
+  if (!isAuthorisedCronRequest(request)) {
     return Response.json({ success: false }, { status: 401 });
   }
   try {

@@ -141,3 +141,36 @@ describe("adminVehicleFilterSchema", () => {
     });
   });
 });
+
+/**
+ * Audit finding P3-7: create accepted `status: RENTED`, which update refuses
+ * (through the service). A car cannot be out on a rental before it exists;
+ * only the pickup handover makes a car RENTED.
+ */
+describe("status on create and update", () => {
+  it("refuses RENTED on create", () => {
+    expect(
+      createVehicleSchema.safeParse(
+        parseVehicleFields(form({ status: "RENTED" }))
+      ).success
+    ).toBe(false);
+  });
+
+  it.each(["AVAILABLE", "SERVICE", "INACTIVE"])(
+    "accepts %s on create",
+    (status) => {
+      expect(
+        createVehicleSchema.parse(parseVehicleFields(form({ status }))).status
+      ).toBe(status);
+    }
+  );
+
+  it("still lets a rented car's edit form post RENTED back unchanged", () => {
+    // The service refuses a *change* to RENTED; the schema must not refuse
+    // the value the form shows for a car that is out.
+    expect(
+      updateVehicleSchema.parse(parseVehicleFields(form({ status: "RENTED" })))
+        .status
+    ).toBe("RENTED");
+  });
+});

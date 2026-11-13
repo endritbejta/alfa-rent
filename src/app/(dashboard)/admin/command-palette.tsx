@@ -94,6 +94,8 @@ const ROUTE_DEFS: {
     labelKey: "admin.addVehicle",
     href: "/admin/vehicles/new",
     icon: Plus,
+    // The page requires ADMIN; offering it to employees led them to a refusal.
+    adminOnly: true,
   },
   {
     labelKey: "admin.staffNav",

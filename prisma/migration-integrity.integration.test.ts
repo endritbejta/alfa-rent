@@ -18,6 +18,8 @@ import { prisma } from "@/lib/db/prisma";
  *   - the btree_gist extension it depends on
  *   - row-level security on every table
  *   - two CHECK constraints on rental_inspections
+ *   - the data-layer CHECKs on reservations, vehicles, payments and users
+ *     (audit P3-7)
  *
  * The table list is derived from schema.prisma's @@map declarations, following
  * rls-security.test.ts, so a new model is covered without editing this file.
@@ -92,5 +94,131 @@ describe("database objects that schema.prisma does not model", () => {
     const names = rows.map((r) => r.conname);
     expect(names).toContain("rental_inspections_fuel_level_check");
     expect(names).toContain("rental_inspections_mileage_check");
+  });
+
+  /**
+   * Audit P3-7. Each is asserted by name and by a write it must refuse, so
+   * a constraint recreated with a weaker expression fails here too.
+   */
+  it.each([
+    ["reservations", "reservations_return_not_before_pickup"],
+    ["reservations", "reservations_total_price_nonnegative"],
+    ["reservations", "reservations_late_days_nonnegative"],
+    ["reservations", "reservations_late_charge_nonnegative"],
+    ["vehicles", "vehicles_price_per_day_positive"],
+    ["payments", "payments_amount_positive"],
+    ["users", "users_email_lowercase"],
+  ])("keeps the CHECK on %s named %s", async (table, name) => {
+    const rows = await prisma.$queryRaw<{ conname: string }[]>`
+      SELECT conname FROM pg_constraint
+      WHERE conrelid = ${table}::regclass AND contype = 'c' AND conname = ${name}
+    `;
+    expect(rows).toHaveLength(1);
+  });
+
+  describe("the data-layer CHECKs refuse what they exist to refuse", () => {
+    const suffix = Math.random().toString(36).slice(2, 10);
+    const vehicleId = `chk-vehicle-${suffix}`;
+    const customerId = `chk-customer-${suffix}`;
+    const reservationId = `chk-res-${suffix}`;
+    const userId = `chk-user-${suffix}`;
+
+    afterAll(async () => {
+      await prisma.reservation.deleteMany({ where: { vehicleId } });
+      await prisma.vehicle.deleteMany({ where: { id: vehicleId } });
+      await prisma.customer.deleteMany({ where: { id: customerId } });
+      await prisma.user.deleteMany({ where: { id: userId } });
+    });
+
+    const violates = (name: string) =>
+      expect.objectContaining({
+        message: expect.stringContaining(name),
+      });
+
+    it("on vehicles and reservations", async () => {
+      await expect(
+        prisma.$executeRaw`INSERT INTO vehicles (id, slug, brand, model, year, category, transmission, "fuelType", seats, "pricePerDay", description, "updatedAt")
+          VALUES (${vehicleId}, ${vehicleId}, 'T', 'C', 2027, 'SEDAN', 'MANUAL', 'PETROL', 5, 0, 'check test vehicle', now())`
+      ).rejects.toEqual(violates("vehicles_price_per_day_positive"));
+
+      await prisma.vehicle.create({
+        data: {
+          id: vehicleId,
+          slug: vehicleId,
+          brand: "T",
+          model: "C",
+          year: 2027,
+          category: "SEDAN",
+          transmission: "MANUAL",
+          fuelType: "PETROL",
+          seats: 5,
+          pricePerDay: 10,
+          description: "check test vehicle",
+        },
+      });
+      await prisma.customer.create({
+        data: {
+          id: customerId,
+          firstName: "C",
+          lastName: "T",
+          email: `chk-${suffix}@example.test`,
+          phone: "+383 44 000 000",
+        },
+      });
+      const base = {
+        vehicleId,
+        customerId,
+        pickupDate: new Date("2031-03-10T10:00:00Z"),
+        returnDate: new Date("2031-03-10T10:00:00Z"),
+        totalPrice: 10,
+      };
+
+      // A same-day rental is valid since rentals became inclusive.
+      await prisma.reservation.create({ data: { id: reservationId, ...base } });
+
+      await expect(
+        prisma.reservation.create({
+          data: { ...base, returnDate: new Date("2031-03-09T10:00:00Z") },
+        })
+      ).rejects.toEqual(violates("reservations_return_not_before_pickup"));
+      await expect(
+        prisma.reservation.create({ data: { ...base, totalPrice: -1 } })
+      ).rejects.toEqual(violates("reservations_total_price_nonnegative"));
+      await expect(
+        prisma.reservation.update({
+          where: { id: reservationId },
+          data: { lateDays: -1 },
+        })
+      ).rejects.toEqual(violates("reservations_late_days_nonnegative"));
+      await expect(
+        prisma.reservation.update({
+          where: { id: reservationId },
+          data: { lateCharge: -5 },
+        })
+      ).rejects.toEqual(violates("reservations_late_charge_nonnegative"));
+      await expect(
+        prisma.payment.create({
+          data: {
+            reservationId,
+            provider: "test",
+            idempotencyKey: `chk-${suffix}`,
+            amount: 0,
+          },
+        })
+      ).rejects.toEqual(violates("payments_amount_positive"));
+    });
+
+    it("on users", async () => {
+      await expect(
+        prisma.user.create({
+          data: {
+            id: userId,
+            name: "Check",
+            email: `Mixed.Case-${suffix}@Example.test`,
+            password: "x",
+          },
+        })
+      ).rejects.toEqual(violates("users_email_lowercase"));
+    });
   });
 });

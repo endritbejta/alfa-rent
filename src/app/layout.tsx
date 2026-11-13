@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { LocaleProvider } from "@/components/shared/locale-provider";
 import { NavigationScrollReset } from "@/components/shared/navigation-scroll-reset";
+import { ZodJitless } from "@/components/shared/zod-jitless";
 import { getI18n } from "@/lib/i18n/server";
 import { getNonce } from "@/lib/nonce";
 import { openGraphLocale, siteIsIndexable, siteUrl } from "@/lib/site-url";
@@ -96,6 +97,7 @@ export default async function RootLayout({
           <ThemeProvider nonce={nonce}>
             <div className="ambient-background" />
             <NavigationScrollReset />
+            <ZodJitless />
             {children}
           </ThemeProvider>
         </LocaleProvider>

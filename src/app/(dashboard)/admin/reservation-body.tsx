@@ -22,6 +22,7 @@ import { InspectionAction } from "./reservations/inspection-action";
 import { RecordPastRental } from "./reservations/record-past-rental";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
+import { lateReturnSummary } from "@/lib/late-return";
 import { formatNumber } from "@/lib/number-format";
 import { ContactDifferenceNotice } from "./contact-difference";
 import { AuditHistory } from "./audit-history";
@@ -42,6 +43,7 @@ export function ReservationBody({
   const eur = (v: number | string) => formatEur(v, locale);
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
+  const late = lateReturnSummary(detail);
 
   return (
     <div className="space-y-6">
@@ -114,6 +116,28 @@ export function ReservationBody({
               })}
             </Row>
           )}
+          {late && (
+            // Back after the booked return day, and how staff settled it.
+            <Row
+              label={t(
+                late.days === 1
+                  ? "admin.returnedLate"
+                  : "admin.returnedLatePlural",
+                { count: late.days }
+              )}
+            >
+              <span className="text-right">
+                {late.resolution === "CHARGED"
+                  ? t("admin.lateCharged", { amount: eur(late.charge) })
+                  : t("admin.lateWaived")}
+                {late.waiverReason && (
+                  <span className="text-muted-foreground block text-xs break-words">
+                    {late.waiverReason}
+                  </span>
+                )}
+              </span>
+            </Row>
+          )}
           {detail.backfilledAt && (
             // The audit trace: this rental was entered in one step after it
             // was over, without inspections, and why.
@@ -153,6 +177,8 @@ export function ReservationBody({
             <RecordPastRental
               reservationId={detail.id}
               timing={detail.timing}
+              pricePerDay={detail.vehicle.pricePerDay}
+              totalPrice={detail.totalPrice}
               onSuccess={onChanged}
             />
             <InspectionAction
@@ -160,6 +186,8 @@ export function ReservationBody({
               status={detail.status}
               timing={detail.timing}
               signerName={`${detail.customer.firstName} ${detail.customer.lastName}`}
+              pricePerDay={detail.vehicle.pricePerDay}
+              totalPrice={detail.totalPrice}
               onSuccess={onChanged}
             />
             <StatusActions

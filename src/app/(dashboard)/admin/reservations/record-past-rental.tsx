@@ -3,7 +3,13 @@
 import { useState, useTransition } from "react";
 import { History } from "lucide-react";
 import { recordPastRentalAction } from "./actions";
-import { formatDay } from "./inspection-action";
+import { formatDay } from "./format-day";
+import {
+  LateReturnChoice,
+  NO_LATE_CHOICE,
+  lateChoiceProblem,
+  type LateChoice,
+} from "./late-return-choice";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +38,8 @@ import { toasts } from "@/components/dashboard/toaster";
 export function RecordPastRental({
   reservationId,
   timing,
+  pricePerDay,
+  totalPrice,
   onSuccess,
   open: openProp,
   onOpenChange,
@@ -39,6 +47,9 @@ export function RecordPastRental({
 }: {
   reservationId: string;
   timing: ReservationTiming;
+  /** The car's rate today and the booking's total, for a late return. */
+  pricePerDay: number;
+  totalPrice: number;
   onSuccess?: () => void;
   /** Controlled open state; see `InspectionAction`. */
   open?: boolean;
@@ -56,6 +67,7 @@ export function RecordPastRental({
   const [returnedOn, setReturnedOn] = useState(timing.returnDay);
   const [note, setNote] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [lateChoice, setLateChoice] = useState<LateChoice>(NO_LATE_CHOICE);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -66,6 +78,15 @@ export function RecordPastRental({
     setError(null);
     if (!startedOn || !returnedOn || note.trim().length < 5 || !confirmed) {
       setError(t("admin.requiredField"));
+      return;
+    }
+    const problem = lateChoiceProblem(timing.returnDay, returnedOn, lateChoice);
+    if (problem) {
+      setError(
+        problem.key === "admin.lateReasonTooShort"
+          ? t(problem.key, { min: problem.min })
+          : t(problem.key)
+      );
       return;
     }
     const formData = new FormData(event.currentTarget);
@@ -138,6 +159,16 @@ export function RecordPastRental({
                 />
               </div>
             </div>
+
+            <LateReturnChoice
+              idPrefix={`${reservationId}-past`}
+              returnDay={timing.returnDay}
+              returnedOn={returnedOn}
+              pricePerDay={pricePerDay}
+              totalPrice={totalPrice}
+              choice={lateChoice}
+              onChange={setLateChoice}
+            />
 
             <div className="space-y-1.5">
               <Label htmlFor={id("note")}>{t("admin.recordPastNote")}</Label>

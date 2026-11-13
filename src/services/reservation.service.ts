@@ -635,8 +635,15 @@ export async function previewManualReservation(
 }
 
 const reservationListInclude = {
+  // pricePerDay is a Decimal: the page converts it before it reaches a row.
   vehicle: {
-    select: { brand: true, model: true, plate: true, slug: true },
+    select: {
+      brand: true,
+      model: true,
+      plate: true,
+      slug: true,
+      pricePerDay: true,
+    },
   },
   // Phone and notes too: the pending queue compares the request's
   // submitted details with these, and can copy them onto the record.

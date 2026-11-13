@@ -9,6 +9,7 @@ import type { TranslationKey } from "@/lib/i18n/translations";
 import { businessWallClock } from "@/lib/reservation-lifecycle";
 import { useI18n } from "@/components/shared/locale-provider";
 import { SectionTitle } from "./detail-primitives";
+import { formatEur } from "@/lib/money";
 
 /** Field names an edit event may carry, in the words the forms use. */
 const FIELD_LABELS: Record<string, TranslationKey> = {
@@ -54,6 +55,25 @@ export function AuditHistory({ items }: { items: AuditHistoryItem[] }) {
     const key = `audit.${item.action}` as const;
     if (item.action === "reservation.extend") {
       return t(key, { date: calendarDay(item.after?.returnDate) });
+    }
+    if (
+      item.action === "reservation.lateCharge" ||
+      item.action === "reservation.lateWaive"
+    ) {
+      const count =
+        typeof item.after?.lateDays === "number" ? item.after.lateDays : 0;
+      const charge = item.after?.lateCharge;
+      const charged = item.action === "reservation.lateCharge";
+      const pluralKey = charged
+        ? "audit.reservation.lateChargePlural"
+        : "audit.reservation.lateWaivePlural";
+      return t(count === 1 ? key : pluralKey, {
+        count,
+        amount:
+          typeof charge === "string" || typeof charge === "number"
+            ? formatEur(charge, locale)
+            : "—",
+      });
     }
     if (item.action === "customer.merge") {
       const merged = item.after?.mergedIds;

@@ -26,8 +26,15 @@ import {
   type VehicleRemoval,
 } from "@/services/vehicle.service";
 import { syncVehicleImages } from "@/services/image.service";
-import { addRepair, deleteRepair } from "@/services/fleet.service";
+import {
+  addRepair,
+  addVehicleService,
+  deleteRepair,
+  deleteVehicleService,
+  updateVehicleService,
+} from "@/services/fleet.service";
 import { parseRepairFields } from "@/lib/validations/repair";
+import { parseVehicleServiceFields } from "@/lib/validations/vehicle-service";
 import { reportError } from "@/lib/observability";
 
 export type ActionResult = { error: string } | undefined;
@@ -191,5 +198,58 @@ export async function deleteRepairAction(
     return { error: await errorMessage(error) };
   }
   revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
+  return undefined;
+}
+
+/**
+ * Routine services, recorded from the vehicle drawer. ADMIN-only like
+ * repairs: both are costs against the car, and the drawer offers the buttons
+ * only to admins as a hint — these checks are the access control.
+ */
+export async function addVehicleServiceAction(
+  vehicleId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await requireRole("ADMIN");
+  try {
+    const input = parseVehicleServiceFields(formData);
+    await addVehicleService(vehicleId, input, user.id);
+  } catch (error) {
+    return { error: await errorMessage(error) };
+  }
+  revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
+  revalidatePath("/admin/vehicles");
+  return undefined;
+}
+
+export async function updateVehicleServiceAction(
+  vehicleId: string,
+  serviceId: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const user = await requireRole("ADMIN");
+  try {
+    const input = parseVehicleServiceFields(formData);
+    await updateVehicleService(vehicleId, serviceId, input, user.id);
+  } catch (error) {
+    return { error: await errorMessage(error) };
+  }
+  revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
+  revalidatePath("/admin/vehicles");
+  return undefined;
+}
+
+export async function deleteVehicleServiceAction(
+  vehicleId: string,
+  serviceId: string
+): Promise<ActionResult> {
+  const user = await requireRole("ADMIN");
+  try {
+    await deleteVehicleService(vehicleId, serviceId, user.id);
+  } catch (error) {
+    return { error: await errorMessage(error) };
+  }
+  revalidatePath(`/admin/vehicles/${vehicleId}/edit`);
+  revalidatePath("/admin/vehicles");
   return undefined;
 }

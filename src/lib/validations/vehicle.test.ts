@@ -19,7 +19,6 @@ const complete: Record<string, string> = {
   pricePerDay: "60",
   description: "A comfortable executive saloon for longer journeys.",
   status: "AVAILABLE",
-  lastServiceDate: "2026-05-01",
   nextServiceDate: "2027-05-01",
   serviceNotes: "Oil and filter done at 40k.",
 };
@@ -33,12 +32,7 @@ const form = (overrides: Record<string, string> = {}) => {
 };
 
 /** Fields an operator can empty in the edit form. */
-const CLEARABLE = [
-  "plate",
-  "lastServiceDate",
-  "nextServiceDate",
-  "serviceNotes",
-] as const;
+const CLEARABLE = ["plate", "nextServiceDate", "serviceNotes"] as const;
 
 describe("parseVehicleFields", () => {
   it("reads a complete submission", () => {
@@ -106,6 +100,21 @@ describe("parseVehicleFields", () => {
     expect(() =>
       createVehicleSchema.parse(parseVehicleFields(form({ year: "1980" })))
     ).toThrow();
+  });
+
+  /**
+   * The form no longer edits the last service (services are rows, recorded
+   * from the drawer). A stray value must not reach the frozen column, and an
+   * absent one must not clear it — `cleared()` would have turned it into
+   * null and erased the data the backfill was copied from.
+   */
+  it("never reads lastServiceDate, set or absent", () => {
+    expect(parseVehicleFields(form())).not.toHaveProperty("lastServiceDate");
+    expect(
+      createVehicleSchema.parse(
+        parseVehicleFields(form({ lastServiceDate: "2026-05-01" }))
+      )
+    ).not.toHaveProperty("lastServiceDate");
   });
 
   it("accepts a create with the optional fields left blank", () => {

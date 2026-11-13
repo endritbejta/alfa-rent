@@ -20,6 +20,7 @@ import { prisma } from "@/lib/db/prisma";
  *   - two CHECK constraints on rental_inspections
  *   - the data-layer CHECKs on reservations, vehicles, payments and users
  *     (audit P3-7)
+ *   - the non-negative cost and mileage CHECKs on vehicle_services (P2-5c)
  *
  * The table list is derived from schema.prisma's @@map declarations, following
  * rls-security.test.ts, so a new model is covered without editing this file.
@@ -108,6 +109,8 @@ describe("database objects that schema.prisma does not model", () => {
     ["vehicles", "vehicles_price_per_day_positive"],
     ["payments", "payments_amount_positive"],
     ["users", "users_email_lowercase"],
+    ["vehicle_services", "vehicle_services_cost_nonnegative"],
+    ["vehicle_services", "vehicle_services_mileage_nonnegative"],
   ])("keeps the CHECK on %s named %s", async (table, name) => {
     const rows = await prisma.$queryRaw<{ conname: string }[]>`
       SELECT conname FROM pg_constraint

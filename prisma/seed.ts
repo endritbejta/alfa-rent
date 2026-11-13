@@ -561,6 +561,7 @@ async function main() {
   console.log("Seeding database (rich dataset)...");
 
   await prisma.repair.deleteMany();
+  await prisma.vehicleService.deleteMany();
   // The audit trail describes rows this seed is about to delete. It is
   // append-only (a trigger refuses DELETE), so it is cleared the one
   // deliberate way: with the trigger switched off for this transaction.
@@ -662,13 +663,32 @@ async function main() {
           description: spec.blurb,
           status: "AVAILABLE",
           createdAt: at10(now, -int(30, 400)),
-          lastServiceDate: at10(now, -int(20, 220)),
           nextServiceDate: at10(now, int(20, 200)),
-          serviceNotes:
-            rand() < 0.3 ? "Oil and filters replaced at last service." : null,
+          serviceNotes: rand() < 0.3 ? "Takes 5W-30 synthetic oil." : null,
         },
       })
     );
+  }
+
+  // --- services: routine upkeep, one to three per car, the newest within
+  // the last 220 days. Dated as calendar values (00:00 UTC), like the form.
+  for (const vehicle of vehicles) {
+    const count = int(1, 3);
+    let daysAgo = int(20, 220);
+    for (let i = 0; i < count; i++) {
+      const date = at10(now, -daysAgo);
+      date.setUTCHours(0, 0, 0, 0);
+      await prisma.vehicleService.create({
+        data: {
+          vehicleId: vehicle.id,
+          date,
+          cost: new Prisma.Decimal(int(60, 180)),
+          mileage: rand() < 0.6 ? int(20, 140) * 1000 : null,
+          notes: rand() < 0.4 ? "Oil and filters" : null,
+        },
+      });
+      daysAgo += int(150, 240);
+    }
   }
 
   // --- repairs: unplanned costs, a few vehicles are money pits ---
@@ -805,6 +825,7 @@ async function main() {
     customers: await prisma.customer.count(),
     reservations: await prisma.reservation.count(),
     repairs: await prisma.repair.count(),
+    services: await prisma.vehicleService.count(),
     active: await prisma.reservation.count({ where: { status: "ACTIVE" } }),
     completed: await prisma.reservation.count({
       where: { status: "COMPLETED" },

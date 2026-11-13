@@ -77,7 +77,8 @@ export const createVehicleSchema = z.object({
   // pickup handover. Update checks the same rule against the current status
   // in the service, because a rented car's edit form posts RENTED back.
   status: z.enum(OPERATOR_SETTABLE_STATUSES).default("AVAILABLE"),
-  lastServiceDate: z.coerce.date().nullish(),
+  // No lastServiceDate: services are rows now (vehicle_services), recorded
+  // from the drawer, and "last service" is the newest. The column is frozen.
   nextServiceDate: z.coerce.date().nullish(),
   serviceNotes: z.string().trim().max(1000).nullish(),
 });
@@ -117,7 +118,6 @@ export function parseVehicleFields(formData: FormData) {
     pricePerDay: Number(formData.get("pricePerDay")),
     description: formData.get("description"),
     status: formData.get("status") ?? undefined,
-    lastServiceDate: cleared("lastServiceDate"),
     nextServiceDate: cleared("nextServiceDate"),
     serviceNotes: cleared("serviceNotes"),
   };

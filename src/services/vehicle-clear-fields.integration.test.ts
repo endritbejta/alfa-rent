@@ -103,7 +103,9 @@ describe("clearing an optional vehicle field", () => {
 
     const after = await prisma.vehicle.findUniqueOrThrow({ where: { id } });
     expect(after.plate).toBeNull();
-    expect(after.lastServiceDate).toBeNull();
+    // Frozen since services became rows: the form no longer owns it, so
+    // a save leaves it as it was (posting it empty above changes nothing).
+    expect(after.lastServiceDate).toEqual(populated.lastServiceDate);
     expect(after.nextServiceDate).toBeNull();
     expect(after.serviceNotes).toBeNull();
   });

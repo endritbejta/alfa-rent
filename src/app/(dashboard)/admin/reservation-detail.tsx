@@ -259,7 +259,13 @@ export function ReservationDetailProvider({
               onChanged={() => setReloads((n) => n + 1)}
             />
           )}
-          {body?.kind === "vehicle" && <VehicleDetailBody detail={body.data} />}
+          {body?.kind === "vehicle" && (
+            <VehicleDetailBody
+              detail={body.data}
+              // A service changes the cost figures above it: reload in place.
+              onChanged={() => setReloads((n) => n + 1)}
+            />
+          )}
           {body?.kind === "customer" && (
             <CustomerDetailBody
               detail={body.data}

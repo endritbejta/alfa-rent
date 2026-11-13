@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { removeTestActor } from "@/lib/testing/audit";
-import { businessDay } from "@/lib/reservation-lifecycle";
+import { businessDay } from "@/lib/business-time";
 import { cancelReservation } from "@/services/reservation.service";
 import { recordRentalInspection } from "@/services/inspection.service";
 

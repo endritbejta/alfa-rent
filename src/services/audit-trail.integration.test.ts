@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { AppError } from "@/lib/errors";
 import { dictionaries, translate } from "@/lib/i18n/translations";
 import { recordAudit, type AuditAction } from "@/lib/audit";
-import { businessDay } from "@/lib/reservation-lifecycle";
+import { businessDay } from "@/lib/business-time";
 import { rentalInspectionSchema } from "@/lib/validations/inspection";
 import { purgeAuditEvents } from "@/lib/testing/audit";
 import {

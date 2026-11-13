@@ -12,12 +12,12 @@ import {
   ValidationError,
 } from "@/lib/errors";
 import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
+import { getReservationTiming } from "@/lib/reservation-lifecycle";
 import {
   businessDay,
-  getReservationTiming,
   recordedRentalInstant,
   rentalCalendarDay,
-} from "@/lib/reservation-lifecycle";
+} from "@/lib/business-time";
 import type {
   LateReturnInput,
   PastRentalInput,

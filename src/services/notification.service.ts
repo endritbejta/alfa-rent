@@ -17,7 +17,7 @@ import {
 } from "@/lib/i18n/translations";
 import { formatEur } from "@/lib/money";
 import { rentalDays } from "@/lib/rental-dates";
-import { rentalCalendarDay } from "@/lib/reservation-lifecycle";
+import { rentalCalendarDay } from "@/lib/business-time";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import {
   reservationContactDifference,

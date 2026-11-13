@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   actionableRequestWhere,
-  businessDay,
-  businessDayStart,
   expiredRequestWhere,
   getReservationTiming,
   isExpiredRequest,
-  recordedRentalInstant,
 } from "./reservation-lifecycle";
+import {
+  businessDay,
+  businessDayStart,
+  recordedRentalInstant,
+} from "@/lib/business-time";
 
 const reservation = (
   status: "CONFIRMED" | "ACTIVE",

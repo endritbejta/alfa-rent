@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { AppError } from "@/lib/errors";
-import { businessDay } from "@/lib/reservation-lifecycle";
+import { businessDay } from "@/lib/business-time";
 import { adminVehicleFilterSchema } from "@/lib/validations/vehicle";
 import {
   checkAvailability,

@@ -45,6 +45,7 @@ import {
   isBookingRangeAvailable,
   type VehicleBookingCalendar,
 } from "@/lib/booking-calendar";
+import { rentalDateParam } from "@/lib/business-time";
 
 const createFormSchema = (t: (key: TranslationKey) => string) =>
   z
@@ -202,8 +203,8 @@ export function BookingForm({
     setServerError(null);
     const body = JSON.stringify({
       vehicleId: data.vehicleId,
-      pickupDate: `${data.from}T10:00:00Z`,
-      returnDate: `${data.to}T10:00:00Z`,
+      pickupDate: rentalDateParam(data.from),
+      returnDate: rentalDateParam(data.to),
       customer: {
         firstName: data.firstName,
         lastName: data.lastName,

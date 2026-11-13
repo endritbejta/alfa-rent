@@ -1,4 +1,8 @@
-import { businessDay, rentalCalendarDay } from "@/lib/reservation-lifecycle";
+import {
+  businessDay,
+  businessTodayAsRentalDate,
+  rentalCalendarDay,
+} from "@/lib/business-time";
 
 /**
  * The admin calendar's date window, and where each reservation's bar sits in
@@ -70,7 +74,7 @@ export function calendarWindow(now = new Date()): CalendarWindow {
     end,
     days,
     months,
-    todayIndex: dayIndex(start, new Date(`${businessDay(now)}T00:00:00Z`)),
+    todayIndex: dayIndex(start, businessTodayAsRentalDate(now)),
   };
 }
 

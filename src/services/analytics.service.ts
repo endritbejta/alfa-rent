@@ -1,14 +1,16 @@
 import { Prisma } from "@prisma/client";
-import { addDays, format, subMonths, subDays } from "date-fns";
+import { format, subMonths, subDays } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/lib/vehicle-label";
+import { actionableRequestWhere } from "@/lib/reservation-lifecycle";
 import {
   BUSINESS_TIME_ZONE,
-  actionableRequestWhere,
-  businessDay,
   businessDayStart,
+  businessDayStartOf,
   businessMonthStart,
-} from "@/lib/reservation-lifecycle";
+  businessRentalDays,
+  businessTodayAsRentalDate,
+} from "@/lib/business-time";
 import {
   type BucketUnit,
   bucketLabel,
@@ -174,25 +176,22 @@ const scheduleSelect = {
 
 const SCHEDULE_HORIZON_DAYS = 7;
 
-export async function getUpcomingSchedule() {
-  const todayStart = businessDayStart(new Date());
-  const horizon = addDays(todayStart, SCHEDULE_HORIZON_DAYS);
+export async function getUpcomingSchedule(now = new Date()) {
+  // Rental dates, so calendar-day bounds: today through the horizon's last
+  // day. The instant the branch's day began (businessDayStart) is the
+  // previous evening in UTC, and a rental date stored late that evening fell
+  // inside it.
+  const window = businessRentalDays(now, SCHEDULE_HORIZON_DAYS);
 
   const [upcomingPickups, upcomingReturns] = await Promise.all([
     prisma.reservation.findMany({
-      where: {
-        status: "CONFIRMED",
-        pickupDate: { gte: todayStart, lt: horizon },
-      },
+      where: { status: "CONFIRMED", pickupDate: window },
       orderBy: { pickupDate: "asc" },
       take: 5,
       select: scheduleSelect,
     }),
     prisma.reservation.findMany({
-      where: {
-        status: "ACTIVE",
-        returnDate: { gte: todayStart, lt: horizon },
-      },
+      where: { status: "ACTIVE", returnDate: window },
       orderBy: { returnDate: "asc" },
       take: 5,
       select: scheduleSelect,
@@ -204,7 +203,7 @@ export async function getUpcomingSchedule() {
 
 /** `now` is a parameter so tests can read a window no other row touches. */
 export async function getDashboardData(now = new Date()) {
-  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
+  const businessToday = businessTodayAsRentalDate(now);
 
   const [
     [
@@ -265,7 +264,7 @@ export async function getDashboardData(now = new Date()) {
         },
       }),
     ]),
-    getUpcomingSchedule(),
+    getUpcomingSchedule(now),
     // The chart's last month and the "this month" KPI are one query, so they
     // cannot disagree. Both count per rental day; see revenueByBucket.
     revenueSeriesFor("month", 6, now),
@@ -292,11 +291,13 @@ export async function getDashboardData(now = new Date()) {
   };
 }
 
-export async function getReservationInsights() {
-  const now = new Date();
+/** `now` is a parameter so tests can pin the branch's day. */
+export async function getReservationInsights(now = new Date()) {
+  // Two "todays", one per time model (see business-time.ts): an instant for
+  // createdAt, calendar days for pickup and return dates.
   const todayStart = businessDayStart(now);
-  const todayEnd = addDays(todayStart, 1);
-  const businessToday = new Date(`${businessDay(now)}T00:00:00.000Z`);
+  const today = businessRentalDays(now);
+  const businessToday = today.gte;
 
   const [
     byStatus,
@@ -313,16 +314,10 @@ export async function getReservationInsights() {
       select: { createdAt: true },
     }),
     prisma.reservation.count({
-      where: {
-        status: "CONFIRMED",
-        pickupDate: { gte: todayStart, lt: todayEnd },
-      },
+      where: { status: "CONFIRMED", pickupDate: today },
     }),
     prisma.reservation.count({
-      where: {
-        status: "ACTIVE",
-        returnDate: { gte: todayStart, lt: todayEnd },
-      },
+      where: { status: "ACTIVE", returnDate: today },
     }),
     // "Overdue" is two different jobs, counted apart so the status tabs can
     // each flag their own: a car that should have gone out, and one that
@@ -477,8 +472,8 @@ export async function getAnalytics(period: Period = "month", now = new Date()) {
   // current bucket is included in full — confirmed days later this month are
   // this month's revenue.
   const { starts, end } = businessBuckets(period, PERIOD_BUCKETS[period], now);
-  const since = businessDayStart(new Date(`${starts[0]}T12:00:00.000Z`));
-  const until = businessDayStart(new Date(`${end}T12:00:00.000Z`));
+  const since = businessDayStartOf(starts[0]!);
+  const until = businessDayStartOf(end);
   const made = { createdAt: { gte: since, lt: until } };
 
   const [revenue, bookingsSeries, fleet, cancelled, totalReservations] =

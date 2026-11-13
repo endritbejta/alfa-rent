@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
-import { businessDay } from "@/lib/reservation-lifecycle";
+import { businessDay } from "@/lib/business-time";
 import {
   getPendingCount,
   getReservations,

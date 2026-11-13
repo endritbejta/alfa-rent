@@ -34,6 +34,8 @@ export function RowActions({
   customerName,
   pricePerDay,
   totalPrice,
+  dailyRate,
+  vehicleName,
 }: {
   reservationId: string;
   status: ReservationStatus;
@@ -43,6 +45,9 @@ export function RowActions({
   /** Plain numbers: the car's rate today and the total, for a late return. */
   pricePerDay: number;
   totalPrice: number;
+  /** The booking's agreed rate, for an early return. */
+  dailyRate: number | null;
+  vehicleName: string;
 }) {
   const { t } = useI18n();
   const [starting, setStarting] = useState(false);
@@ -65,8 +70,11 @@ export function RowActions({
         <RecordPastRental
           reservationId={reservationId}
           timing={timing}
+          customerName={customerName}
+          vehicleName={vehicleName}
           pricePerDay={pricePerDay}
           totalPrice={totalPrice}
+          dailyRate={dailyRate}
         />
       ) : (
         <InspectionAction
@@ -74,8 +82,10 @@ export function RowActions({
           status={status}
           timing={timing}
           signerName={customerName}
+          vehicleName={vehicleName}
           pricePerDay={pricePerDay}
           totalPrice={totalPrice}
+          dailyRate={dailyRate}
         />
       )}
       {startInMenu && (
@@ -84,8 +94,10 @@ export function RowActions({
           status={status}
           timing={timing}
           signerName={customerName}
+          vehicleName={vehicleName}
           pricePerDay={pricePerDay}
           totalPrice={totalPrice}
+          dailyRate={dailyRate}
           hideTrigger
           open={starting}
           onOpenChange={setStarting}

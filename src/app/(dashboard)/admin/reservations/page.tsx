@@ -25,6 +25,7 @@ import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
 import { RESERVATION_STATUS_KEYS as STATUS_KEYS } from "@/lib/status-labels";
 import { lateReturnSummary } from "@/lib/late-return";
+import { earlyReturnSummary } from "@/lib/early-return";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,9 @@ export default async function ReservationsPage({
     status: r.status,
     timing: getReservationTiming(r, now),
     pricePerDay: Number(r.vehicle.pricePerDay),
+    dailyRate: r.dailyRate === null ? null : Number(r.dailyRate),
     late: lateReturnSummary(r),
+    early: earlyReturnSummary(r),
     vehicle: listVehicle(r.vehicle),
     customer: r.customer,
   }));

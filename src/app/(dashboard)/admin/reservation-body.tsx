@@ -23,7 +23,9 @@ import { RecordPastRental } from "./reservations/record-past-rental";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatEur } from "@/lib/money";
 import { lateReturnSummary } from "@/lib/late-return";
+import { earlyReturnSummary } from "@/lib/early-return";
 import { formatNumber } from "@/lib/number-format";
+import { rentalDays } from "@/lib/rental-dates";
 import { ContactDifferenceNotice } from "./contact-difference";
 import { AuditHistory } from "./audit-history";
 
@@ -44,6 +46,8 @@ export function ReservationBody({
   const cover = detail.vehicle.images[0];
   const history = detail.customer.reservations;
   const late = lateReturnSummary(detail);
+  const early = earlyReturnSummary(detail);
+  const customerName = `${detail.customer.firstName} ${detail.customer.lastName}`;
 
   return (
     <div className="space-y-6">
@@ -138,6 +142,26 @@ export function ReservationBody({
               </span>
             </Row>
           )}
+          {early && (
+            // Back before the booked return day, and how it was billed. The
+            // original is kept beside the total, which is what was charged.
+            <>
+              <Row label={t("admin.returnedEarly")}>
+                {early.billing === "ACTUAL_DAYS"
+                  ? t("admin.earlyBilledActual", {
+                      count: early.usedDays,
+                      booked: rentalDays(detail.pickupDate, detail.returnDate),
+                    })
+                  : t("admin.earlyBilledFull", {
+                      count: early.usedDays,
+                      booked: rentalDays(detail.pickupDate, detail.returnDate),
+                    })}
+              </Row>
+              <Row label={t("admin.originalAmount")}>
+                <span className="tabular-nums">{eur(early.bookedTotal)}</span>
+              </Row>
+            </>
+          )}
           {detail.backfilledAt && (
             // The audit trace: this rental was entered in one step after it
             // was over, without inspections, and why.
@@ -179,15 +203,20 @@ export function ReservationBody({
               timing={detail.timing}
               pricePerDay={detail.vehicle.pricePerDay}
               totalPrice={detail.totalPrice}
+              dailyRate={detail.dailyRate}
+              customerName={customerName}
+              vehicleName={vehicleLabel(detail.vehicle)}
               onSuccess={onChanged}
             />
             <InspectionAction
               reservationId={detail.id}
               status={detail.status}
               timing={detail.timing}
-              signerName={`${detail.customer.firstName} ${detail.customer.lastName}`}
+              signerName={customerName}
               pricePerDay={detail.vehicle.pricePerDay}
               totalPrice={detail.totalPrice}
+              dailyRate={detail.dailyRate}
+              vehicleName={vehicleLabel(detail.vehicle)}
               onSuccess={onChanged}
             />
             <StatusActions

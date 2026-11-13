@@ -11,7 +11,9 @@ import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
 import { RowActions } from "./row-actions";
 import { LateReturnNote } from "@/components/shared/late-return-note";
+import { EarlyReturnNote } from "@/components/shared/early-return-note";
 import type { LateReturnSummary } from "@/lib/late-return";
+import type { EarlyReturnSummary } from "@/lib/early-return";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
@@ -27,8 +29,12 @@ export type Row = {
   timing: ReservationTiming;
   /** The car's rate today, for a late return's charge. */
   pricePerDay: number;
+  /** The rate the booking was agreed at, for an early return's bill. */
+  dailyRate: number | null;
   /** How a return after the booked return day was settled, if it was. */
   late: LateReturnSummary | null;
+  /** How a return before it was billed, if it was. */
+  early: EarlyReturnSummary | null;
   vehicle: { brand: string; model: string; plate: string | null };
   customer: { firstName: string; lastName: string; email: string };
 };
@@ -102,6 +108,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
               <StatusBadge status={r.status} />
               <ReservationAttention attention={r.timing.attention} />
               <LateReturnNote late={r.late} />
+              <EarlyReturnNote early={r.early} />
             </div>
           </TableCell>
           <TableCell
@@ -118,6 +125,8 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
               customerName={`${r.customer.firstName} ${r.customer.lastName}`}
               pricePerDay={r.pricePerDay}
               totalPrice={Number(r.totalPrice)}
+              dailyRate={r.dailyRate}
+              vehicleName={vehicleLabel(r.vehicle)}
             />
           </TableCell>
         </TableRow>
@@ -176,6 +185,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                 <StatusBadge status={r.status} />
                 <ReservationAttention attention={r.timing.attention} />
                 <LateReturnNote late={r.late} />
+                <EarlyReturnNote early={r.early} />
               </div>
             </div>
             <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
@@ -204,6 +214,8 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                 customerName={`${r.customer.firstName} ${r.customer.lastName}`}
                 pricePerDay={r.pricePerDay}
                 totalPrice={Number(r.totalPrice)}
+                dailyRate={r.dailyRate}
+                vehicleName={vehicleLabel(r.vehicle)}
               />
             </div>
           </div>

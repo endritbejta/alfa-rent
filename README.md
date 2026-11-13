@@ -153,6 +153,14 @@ database on your laptop, so production needs a hosted one.
    database, and a redeploy must never destroy real bookings. The seed refuses
    to run without the acknowledgement and both distinct 16+ character passwords.
 
+### Backup and restore
+
+The production database is the system of record. How it is backed up, how to
+restore it into a scratch target and verify the objects Prisma does not model
+(`scripts/verify-restore.sh`), and how to cut over, is in
+[`docs/runbooks/backup-and-restore.md`](docs/runbooks/backup-and-restore.md).
+Take a `pg_dump` before any production deploy that adds a migration.
+
 ### Local vs production
 
 Keep `AUTH_URL=http://localhost:3000` in your local `.env`. Pointing it at

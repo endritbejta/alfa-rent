@@ -100,8 +100,8 @@ export async function createVehicleAction(
    *
    * So the vehicle exists from here on, whatever happens next — and reporting
    * a photo failure as though nothing had been created is what let an operator
-   * hit Save again and get a *second* vehicle. A plateless one has a random
-   * slug suffix, so no unique constraint stopped it.
+   * hit Save again and get a *second* vehicle. Slugs end in a random suffix,
+   * so for a plateless car no unique constraint stopped it.
    *
    * Instead: keep the vehicle, take them to it, and carry the reason the
    * photos did not attach. The vehicle is real; the gallery is the part that

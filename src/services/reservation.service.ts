@@ -342,8 +342,6 @@ export async function createReservation(
     );
   }
 
-  const customer = await findOrCreateCustomerByEmail(input.customer);
-
   const paymentAccess = createPaymentAccessToken();
   let reservation: Reservation;
   try {
@@ -361,6 +359,10 @@ export async function createReservation(
           key: "err.notBookable",
         });
       }
+
+      // In the transaction, as on the staff path: a booking that fails from
+      // here on rolls the new customer back with it (audit finding P3-5).
+      const customer = await findOrCreateCustomerByEmail(tx, input.customer);
 
       return tx.reservation.create({
         data: {

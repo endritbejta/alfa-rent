@@ -78,13 +78,23 @@ const toPublic = (row: PublicVehicleRow): PublicVehicle => ({
 /** The allowlist, exposed so a test can assert nothing sensitive creeps in. */
 export const publicVehicleFields = Object.keys(publicVehicleSelect);
 
-function slugify(
-  brand: string,
-  model: string,
-  year: number,
-  identity: string
+/**
+ * A new vehicle's public URL segment: `brand-model-year-<random>`.
+ *
+ * The suffix lets several same-model cars coexist and stays put when display
+ * fields are edited. It used to be the plate whenever there was one, which
+ * put a registration number — internal by the allowlist above — into public
+ * URLs, the sitemap and the public API (audit finding P3-2). It is always
+ * random now. Existing slugs are left alone, so no shared link breaks; the
+ * slug is never regenerated after creation.
+ *
+ * Takes the plate-free fields only, so a plate cannot drift back in.
+ */
+export function newVehicleSlug(
+  vehicle: Pick<CreateVehicleInput, "brand" | "model" | "year">
 ): string {
-  return `${brand}-${model}-${year}-${identity}`
+  const identity = randomUUID().slice(0, 8);
+  return `${vehicle.brand}-${vehicle.model}-${vehicle.year}-${identity}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
@@ -197,15 +207,11 @@ export async function createVehicle(
   input: CreateVehicleInput,
   actorId: string
 ): Promise<VehicleWithImages> {
-  // The identity suffix allows multiple same-model vehicles and remains
-  // stable when display fields are edited. A plate is ideal; vehicles
-  // without one receive a non-guessable short identity.
-  const identity = input.plate ?? randomUUID().slice(0, 8);
   return prisma.$transaction(async (tx) => {
     const vehicle = await tx.vehicle.create({
       data: {
         ...input,
-        slug: slugify(input.brand, input.model, input.year, identity),
+        slug: newVehicleSlug(input),
       },
       ...vehicleWithImages,
     });

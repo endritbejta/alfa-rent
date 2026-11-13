@@ -322,4 +322,118 @@ describe("POST /api/bookings", () => {
     ).toBe(0);
     expect(await reservationsWritten()).toBe(0);
   });
+
+  /**
+   * Audit finding P3-5. The customer used to be created before the booking's
+   * transaction opened, so anything refusing the booking after that point —
+   * an FK race, the vehicle going off-road, the insert itself — left a
+   * customer with no reservation. A trigger stands in for that late failure:
+   * nothing in the booking's own input can make the insert fail once the
+   * vehicle checks have passed.
+   */
+  it("leaves no customer behind when the booking insert fails", async () => {
+    const orphanEmail = `orphan-${suffix}@example.test`;
+    const marker = `fail-insert-${suffix}`;
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION fail_marked_booking_${suffix}() RETURNS trigger
+      LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NEW.notes = '${marker}' THEN
+          RAISE EXCEPTION 'simulated late booking failure';
+        END IF;
+        RETURN NEW;
+      END $$`);
+    await prisma.$executeRawUnsafe(`
+      CREATE TRIGGER fail_marked_booking_${suffix}
+      BEFORE INSERT ON reservations
+      FOR EACH ROW EXECUTE FUNCTION fail_marked_booking_${suffix}()`);
+    try {
+      const response = await POST(
+        post(
+          {},
+          {
+            ...booking,
+            notes: marker,
+            customer: { ...booking.customer, email: orphanEmail },
+          }
+        )
+      );
+      expect(response.status).toBeGreaterThanOrEqual(500);
+      expect(await reservationsWritten()).toBe(0);
+      expect(
+        await prisma.customer.count({ where: { email: orphanEmail } })
+      ).toBe(0);
+      expect(notifyCustomer).not.toHaveBeenCalled();
+    } finally {
+      await prisma.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS fail_marked_booking_${suffix} ON reservations`
+      );
+      await prisma.$executeRawUnsafe(
+        `DROP FUNCTION IF EXISTS fail_marked_booking_${suffix}()`
+      );
+      await prisma.customer.deleteMany({ where: { email: orphanEmail } });
+    }
+  });
+
+  /**
+   * The find-or-create no longer catches a unique violation and re-reads —
+   * inside a transaction that error would abort the booking — so two first
+   * bookings for one new email are settled by ON CONFLICT DO NOTHING instead.
+   * Both must succeed, against a single customer, each keeping what was
+   * typed in its own contact snapshot.
+   */
+  it("books twice at once for a new email with one customer between them", async () => {
+    const racedEmail = `Raced-${suffix}@Example.test`;
+    try {
+      const [a, b] = await Promise.all([
+        POST(
+          post(
+            {},
+            {
+              ...booking,
+              customer: { ...booking.customer, email: racedEmail },
+            }
+          )
+        ),
+        POST(
+          post(
+            {},
+            {
+              ...booking,
+              pickupDate: "2027-12-01T10:00:00.000Z",
+              returnDate: "2027-12-02T10:00:00.000Z",
+              customer: {
+                ...booking.customer,
+                firstName: "Second",
+                email: racedEmail,
+              },
+            }
+          )
+        ),
+      ]);
+      expect(a.status).toBe(201);
+      expect(b.status).toBe(201);
+
+      const customers = await prisma.customer.findMany({
+        where: { email: racedEmail.toLowerCase() },
+        select: { id: true },
+      });
+      expect(customers).toHaveLength(1);
+      const rows = await prisma.reservation.findMany({
+        where: { vehicleId },
+        select: { customerId: true, contactFirstName: true },
+        orderBy: { pickupDate: "asc" },
+      });
+      expect(rows.map((r) => r.customerId)).toEqual([
+        customers[0]!.id,
+        customers[0]!.id,
+      ]);
+      expect(rows.map((r) => r.contactFirstName)).toEqual(["Route", "Second"]);
+    } finally {
+      await prisma.reservation.deleteMany({ where: { vehicleId } });
+      await prisma.customer.deleteMany({
+        where: { email: racedEmail.toLowerCase() },
+      });
+    }
+  });
 });

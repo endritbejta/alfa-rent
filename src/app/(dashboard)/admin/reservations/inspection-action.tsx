@@ -34,12 +34,22 @@ export function InspectionAction({
   timing,
   signerName,
   onSuccess,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   reservationId: string;
   status: ReservationStatus;
   timing: ReservationTiming;
   signerName: string;
   onSuccess?: () => void;
+  /**
+   * Controlled open state, for a parent that opens the dialog from its own
+   * control (the row's "more actions" menu) and so hides this trigger.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
   const { locale, t } = useI18n();
   const type = status === "CONFIRMED" ? "PICKUP" : "RETURN";
@@ -54,7 +64,12 @@ export function InspectionAction({
   // was booked for; inside the window, most likely today.
   const defaultHandover =
     timing.today > timing.returnDay ? timing.pickupDay : timing.today;
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOwnOpen(next);
+    onOpenChange?.(next);
+  };
   const [fuel, setFuel] = useState(100);
   const [damage, setDamage] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -132,20 +147,24 @@ export function InspectionAction({
 
   return (
     <>
-      <Button
-        size="sm"
-        // Once the whole rental is in the past, recording it as completed is
-        // the usual move; starting it stays for a car that is still out.
-        variant={
-          type === "PICKUP" && timing.canRecordPast ? "outline" : "success"
-        }
-        disabled={disabled}
-        title={disabled ? t("admin.availablePickupDate") : undefined}
-        onClick={() => setOpen(true)}
-      >
-        <ClipboardCheck className="h-3.5 w-3.5" />
-        {type === "PICKUP" ? t("admin.startRental") : t("admin.completeRental")}
-      </Button>
+      {!hideTrigger && (
+        <Button
+          size="sm"
+          // Once the whole rental is in the past, recording it as completed is
+          // the usual move; starting it stays for a car that is still out.
+          variant={
+            type === "PICKUP" && timing.canRecordPast ? "outline" : "success"
+          }
+          disabled={disabled}
+          title={disabled ? t("admin.availablePickupDate") : undefined}
+          onClick={() => setOpen(true)}
+        >
+          <ClipboardCheck className="h-3.5 w-3.5" />
+          {type === "PICKUP"
+            ? t("admin.startRental")
+            : t("admin.completeRental")}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">

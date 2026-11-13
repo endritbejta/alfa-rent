@@ -4,14 +4,12 @@ import { format } from "date-fns";
 import type { ReservationStatus } from "@prisma/client";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { StatusActions } from "./status-actions";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { formatEur } from "@/lib/money";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { ReservationTiming } from "@/lib/reservation-lifecycle";
 import { ReservationAttention } from "@/components/shared/reservation-attention";
-import { InspectionAction } from "./inspection-action";
-import { RecordPastRental } from "./record-past-rental";
+import { RowActions } from "./row-actions";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
@@ -106,20 +104,12 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-wrap justify-end gap-2">
-              <RecordPastRental reservationId={r.id} timing={r.timing} />
-              <InspectionAction
-                reservationId={r.id}
-                status={r.status}
-                timing={r.timing}
-                signerName={`${r.customer.firstName} ${r.customer.lastName}`}
-              />
-              <StatusActions
-                reservationId={r.id}
-                status={r.status}
-                expired={r.timing.attention === "REQUEST_EXPIRED"}
-              />
-            </div>
+            <RowActions
+              reservationId={r.id}
+              status={r.status}
+              timing={r.timing}
+              customerName={`${r.customer.firstName} ${r.customer.lastName}`}
+            />
           </TableCell>
         </TableRow>
       ))}
@@ -197,20 +187,12 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-wrap justify-end gap-2">
-                <RecordPastRental reservationId={r.id} timing={r.timing} />
-                <InspectionAction
-                  reservationId={r.id}
-                  status={r.status}
-                  timing={r.timing}
-                  signerName={`${r.customer.firstName} ${r.customer.lastName}`}
-                />
-                <StatusActions
-                  reservationId={r.id}
-                  status={r.status}
-                  expired={r.timing.attention === "REQUEST_EXPIRED"}
-                />
-              </div>
+              <RowActions
+                reservationId={r.id}
+                status={r.status}
+                timing={r.timing}
+                customerName={`${r.customer.firstName} ${r.customer.lastName}`}
+              />
             </div>
           </div>
         </li>

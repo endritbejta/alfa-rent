@@ -33,13 +33,25 @@ export function RecordPastRental({
   reservationId,
   timing,
   onSuccess,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   reservationId: string;
   timing: ReservationTiming;
   onSuccess?: () => void;
+  /** Controlled open state; see `InspectionAction`. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOwnOpen(next);
+    onOpenChange?.(next);
+  };
   const [startedOn, setStartedOn] = useState(timing.pickupDay);
   const [returnedOn, setReturnedOn] = useState(timing.returnDay);
   const [note, setNote] = useState("");
@@ -73,10 +85,12 @@ export function RecordPastRental({
 
   return (
     <>
-      <Button size="sm" variant="success" onClick={() => setOpen(true)}>
-        <History className="h-3.5 w-3.5" />
-        {t("admin.recordPastRental")}
-      </Button>
+      {!hideTrigger && (
+        <Button size="sm" variant="success" onClick={() => setOpen(true)}>
+          <History className="h-3.5 w-3.5" />
+          {t("admin.recordPastRental")}
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

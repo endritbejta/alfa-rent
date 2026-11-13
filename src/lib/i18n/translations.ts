@@ -934,6 +934,46 @@ const en = {
   "email.contactDiffers":
     "These details differ from the customer on file. Call the number above, the one given in the request.",
   "email.contactOnFile": "On file",
+  // Emails to the customer about their own booking (audit P2-13). The
+  // cancellation never carries the staff reason: that is an internal note.
+  "customerEmail.receivedSubject":
+    "We received your booking request — {vehicle}",
+  "customerEmail.receivedBadge": "Not confirmed yet",
+  "customerEmail.receivedHeading": "Thank you, {name}. We have your request.",
+  "customerEmail.receivedIntro":
+    "Your booking is not confirmed yet. Our team checks that the car is free on your dates and will contact you to confirm it within business hours.",
+  "customerEmail.nextTitle": "What happens next",
+  "customerEmail.nextCheck":
+    "We check the car is available and contact you by phone or email.",
+  "customerEmail.nextConfirm":
+    "You get another email as soon as the booking is confirmed.",
+  "customerEmail.nextPay":
+    "Nothing is paid now. You pay when you pick up the car.",
+  "customerEmail.confirmedSubject": "Your booking is confirmed — {vehicle}",
+  "customerEmail.confirmedBadge": "Confirmed",
+  "customerEmail.confirmedHeading": "Your booking is confirmed, {name}.",
+  "customerEmail.confirmedIntro":
+    "The car is reserved for you on the dates below. See you on your pickup day — you pay when you pick up the car.",
+  "customerEmail.cancelledSubject":
+    "Your booking has been cancelled — {vehicle}",
+  "customerEmail.cancelledBadge": "Cancelled",
+  "customerEmail.cancelledHeading": "Your booking has been cancelled, {name}.",
+  "customerEmail.cancelledIntro":
+    "The booking below has been cancelled and the car is no longer reserved for you. If you did not expect this, or would like other dates, contact us and we will help.",
+  "customerEmail.expiredSubject": "Your booking request has lapsed — {vehicle}",
+  "customerEmail.expiredBadge": "Not confirmed",
+  "customerEmail.expiredHeading":
+    "Sorry, {name}. We could not confirm your request in time.",
+  "customerEmail.expiredIntro":
+    "The pickup day of the request below has passed without a confirmation, so the request is no longer active and nothing is reserved. To rent a car, send a new request or contact us.",
+  "customerEmail.reference": "Reference",
+  "customerEmail.callUs":
+    "Questions? Call us on {phone} and quote your reference.",
+  "customerEmail.quoteReference":
+    "Quote your reference whenever you contact us.",
+  "customerEmail.browseCars": "See available cars",
+  "customerEmail.footer":
+    "You received this email because a booking was requested with this address on the Alfa Rent website.",
   // Privacy notice, rental terms and anonymisation. Needs legal review.
   "legal.draftTitle": "Draft awaiting legal review",
   "legal.draftBody":
@@ -2055,6 +2095,46 @@ const sq: TranslationDictionary = {
   "email.contactDiffers":
     "Këto të dhëna ndryshojnë nga klienti në regjistër. Telefono numrin më sipër, atë të dhënë në kërkesë.",
   "email.contactOnFile": "Në regjistër",
+  // Email-et për klientin për rezervimin e vet (auditimi P2-13).
+  "customerEmail.receivedSubject":
+    "E morëm kërkesën tuaj për rezervim — {vehicle}",
+  "customerEmail.receivedBadge": "Ende e pakonfirmuar",
+  "customerEmail.receivedHeading":
+    "Faleminderit, {name}. E morëm kërkesën tuaj.",
+  "customerEmail.receivedIntro":
+    "Rezervimi juaj ende nuk është konfirmuar. Ekipi ynë kontrollon nëse vetura është e lirë në datat tuaja dhe do t'ju kontaktojë për ta konfirmuar gjatë orarit të punës.",
+  "customerEmail.nextTitle": "Çfarë ndodh më pas",
+  "customerEmail.nextCheck":
+    "Kontrollojmë nëse vetura është e lirë dhe ju kontaktojmë me telefon ose email.",
+  "customerEmail.nextConfirm":
+    "Merrni një email tjetër sapo rezervimi të konfirmohet.",
+  "customerEmail.nextPay":
+    "Tani nuk paguani asgjë. Paguani kur e merrni veturën.",
+  "customerEmail.confirmedSubject": "Rezervimi juaj u konfirmua — {vehicle}",
+  "customerEmail.confirmedBadge": "I konfirmuar",
+  "customerEmail.confirmedHeading": "Rezervimi juaj u konfirmua, {name}.",
+  "customerEmail.confirmedIntro":
+    "Vetura është e rezervuar për ju në datat më poshtë. Shihemi në ditën e marrjes — paguani kur e merrni veturën.",
+  "customerEmail.cancelledSubject": "Rezervimi juaj u anulua — {vehicle}",
+  "customerEmail.cancelledBadge": "I anuluar",
+  "customerEmail.cancelledHeading": "Rezervimi juaj u anulua, {name}.",
+  "customerEmail.cancelledIntro":
+    "Rezervimi më poshtë u anulua dhe vetura nuk është më e rezervuar për ju. Nëse nuk e prisnit këtë, ose dëshironi data të tjera, na kontaktoni dhe do t'ju ndihmojmë.",
+  "customerEmail.expiredSubject":
+    "Kërkesa juaj për rezervim ka skaduar — {vehicle}",
+  "customerEmail.expiredBadge": "E pakonfirmuar",
+  "customerEmail.expiredHeading":
+    "Na vjen keq, {name}. Nuk arritëm ta konfirmojmë kërkesën tuaj me kohë.",
+  "customerEmail.expiredIntro":
+    "Dita e marrjes për kërkesën më poshtë kaloi pa u konfirmuar, prandaj kërkesa nuk është më aktive dhe asgjë nuk është e rezervuar. Për të marrë me qira një veturë, dërgoni një kërkesë të re ose na kontaktoni.",
+  "customerEmail.reference": "Referenca",
+  "customerEmail.callUs":
+    "Keni pyetje? Na telefononi në {phone} dhe tregoni referencën tuaj.",
+  "customerEmail.quoteReference":
+    "Tregoni referencën tuaj sa herë që na kontaktoni.",
+  "customerEmail.browseCars": "Shihni veturat e lira",
+  "customerEmail.footer":
+    "E morët këtë email sepse me këtë adresë u kërkua një rezervim në faqen e Alfa Rent.",
   // Njoftimi për privatësinë, kushtet e qirasë dhe anonimizimi. Kërkon shqyrtim ligjor.
   "legal.draftTitle": "Version pune në pritje të shqyrtimit ligjor",
   "legal.draftBody":

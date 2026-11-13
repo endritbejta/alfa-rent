@@ -21,11 +21,12 @@ import { NextRequest } from "next/server";
  * "Verify through the page"), so these go through POST() with a real
  * request, the real limiter and the real database.
  *
- * Only after() and the staff notification stand in: after() needs a live
+ * Only after() and the two notifications stand in: after() needs a live
  * request scope to schedule work in, and no mail should leave a test run.
  */
-const { notifyStaffOfBookingRequest } = vi.hoisted(() => ({
+const { notifyStaffOfBookingRequest, notifyCustomer } = vi.hoisted(() => ({
   notifyStaffOfBookingRequest: vi.fn(),
+  notifyCustomer: vi.fn(),
 }));
 
 vi.mock("next/server", async (importOriginal) => ({
@@ -34,6 +35,9 @@ vi.mock("next/server", async (importOriginal) => ({
 }));
 vi.mock("@/services/notification.service", () => ({
   notifyStaffOfBookingRequest,
+}));
+vi.mock("@/services/customer-notification.service", () => ({
+  notifyCustomer,
 }));
 
 import { prisma } from "@/lib/db/prisma";
@@ -129,6 +133,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   ip = `203.0.113.${++ipCounter}-${suffix}`;
   notifyStaffOfBookingRequest.mockClear();
+  notifyCustomer.mockClear();
   // Each test counts its own writes from zero.
   await prisma.reservation.deleteMany({ where: { vehicleId } });
 });
@@ -172,6 +177,10 @@ describe("POST /api/bookings", () => {
     });
     expect(Number(stored.totalPrice)).toBe(body.data.totalPrice);
     expect(notifyStaffOfBookingRequest).toHaveBeenCalledWith(body.data.id);
+    expect(notifyCustomer).toHaveBeenCalledExactlyOnceWith(
+      body.data.id,
+      "received"
+    );
   });
 
   it("charges both the pickup and the return day: 25 → 26 at 53/day is 106", async () => {
@@ -255,8 +264,10 @@ describe("POST /api/bookings", () => {
     );
 
     expect(await reservationsWritten()).toBe(1);
-    // Staff were told about the booking once, not once per retry.
+    // Staff and the customer were told about the booking once, not once
+    // per retry.
     expect(notifyStaffOfBookingRequest).toHaveBeenCalledTimes(1);
+    expect(notifyCustomer).toHaveBeenCalledTimes(1);
   });
 
   it.each([

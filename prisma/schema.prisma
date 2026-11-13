@@ -233,6 +233,14 @@ model Reservation {
   lateCharge             Decimal?              @db.Decimal(10, 2)
   lateResolution         LateReturnResolution?
   lateWaiverReason       String?
+  /// The storefront language a public request was made in ("sq" or "en").
+  /// Every email to the customer about it is written in this language. Null
+  /// for staff bookings and older rows, which use the default language.
+  locale                 String?
+  /// When the customer was emailed that their request lapsed unanswered.
+  /// Expiry itself is derived, never stored; this marks the email as sent
+  /// so the daily sweep sends it at most once (audit P2-13).
+  expiryNotifiedAt       DateTime?
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
 

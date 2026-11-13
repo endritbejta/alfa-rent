@@ -5,6 +5,7 @@ import {
 } from "@prisma/client";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
+import type { Locale } from "@/lib/i18n/config";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
 import {
@@ -315,7 +316,14 @@ async function replayBooking(
  */
 export async function createReservation(
   input: CreateBookingInput,
-  { idempotencyKey }: { idempotencyKey?: string } = {}
+  {
+    idempotencyKey,
+    locale,
+  }: {
+    idempotencyKey?: string;
+    /** The storefront language, so later emails to the customer match it. */
+    locale?: Locale;
+  } = {}
 ): Promise<{
   reservation: Reservation;
   paymentAccessToken: string;
@@ -369,6 +377,7 @@ export async function createReservation(
           status: "PENDING",
           paymentAccessTokenHash: paymentAccess.hash,
           idempotencyKey,
+          locale: locale ?? null,
           // What was typed, kept even when the email matched a customer whose
           // record findOrCreateCustomerByEmail leaves untouched.
           ...contactSnapshotData(submittedContact(input.customer)),

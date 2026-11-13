@@ -8,8 +8,10 @@ import {
 } from "@/lib/idempotency";
 import { clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { createBookingSchema } from "@/lib/validations/reservation";
+import { isLocale, LOCALE_COOKIE } from "@/lib/i18n/config";
 import { createReservation } from "@/services/reservation.service";
 import { notifyStaffOfBookingRequest } from "@/services/notification.service";
+import { notifyCustomer } from "@/services/customer-notification.service";
 
 /**
  * Generous enough that a family comparing dates never notices, tight enough
@@ -41,15 +43,24 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const idempotencyKey =
     header === null ? undefined : idempotencyKeySchema.parse(header);
 
+  // The language the storefront was showing, kept for every later email to
+  // this customer. A caller without the cookie (the public API) gets none,
+  // and its emails use the default language.
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(cookieLocale) ? cookieLocale : undefined;
+
   const input = createBookingSchema.parse(await request.json());
   const { reservation, paymentAccessToken, replayed } = await createReservation(
     input,
-    { idempotencyKey }
+    { idempotencyKey, locale }
   );
   // After the response: the customer's confirmation never waits on, or fails
   // because of, the mail provider. sendEmail reports its own failures. A
-  // replay is a booking staff were already told about.
-  if (!replayed) after(() => notifyStaffOfBookingRequest(reservation.id));
+  // replay is a booking staff and the customer were already told about.
+  if (!replayed) {
+    after(() => notifyStaffOfBookingRequest(reservation.id));
+    after(() => notifyCustomer(reservation.id, "received"));
+  }
   return ok(
     {
       id: reservation.id,

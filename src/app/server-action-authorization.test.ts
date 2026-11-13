@@ -54,12 +54,18 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ set: vi.fn(), get: vi.fn() })),
 }));
 vi.mock("server-only", () => ({}));
+// Post-response work (the customer's status email) needs a request scope.
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
+  after: vi.fn(),
+}));
 vi.mock("@/lib/i18n/server", async () =>
   (await import("@/lib/testing/action-mocks")).i18nServerMock()
 );
 
 // Everything an action may reach once its guard lets it through.
 vi.mock("@/services/customer.service");
+vi.mock("@/services/customer-notification.service");
 vi.mock("@/services/fleet.service");
 vi.mock("@/services/image.service");
 vi.mock("@/services/inspection.service");

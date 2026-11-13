@@ -53,7 +53,7 @@ truth for every value must therefore be the **password manager**, not Vercel.
 Variables to keep there (names from `.env.example`): `DATABASE_URL`,
 `DIRECT_URL`, `AUTH_SECRET`, `AUTH_URL`, `CLOUDINARY_CLOUD_NAME`,
 `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`,
-`STAFF_NOTIFICATION_EMAILS`, the `NEXT_PUBLIC_CONTACT_*` values, `SITE_URL` /
+`STAFF_NOTIFICATION_EMAILS`, `CRON_SECRET`, the `NEXT_PUBLIC_CONTACT_*` values, `SITE_URL` /
 `SITE_INDEXING` if set, and any `PAYMENT_*` values.
 
 To recreate the Vercel project: import the repo, enter the variables

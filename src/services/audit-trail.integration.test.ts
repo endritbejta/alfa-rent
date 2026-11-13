@@ -53,6 +53,12 @@ const session = vi.hoisted(() => ({
   current: null as null | { user: { id: string; sessionVersion: number } },
 }));
 vi.mock("server-only", () => ({}));
+// The status action schedules the customer's email with after(), which needs
+// a request scope; the emails have their own suite.
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
+  after: () => {},
+}));
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   updateTag: vi.fn(),

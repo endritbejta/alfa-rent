@@ -12,6 +12,7 @@ import { getPublicVehicles } from "@/services/vehicle.service";
 import { VehicleCard } from "@/components/shared/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { BusinessJsonLd } from "@/components/shared/business-json-ld";
+import { getNonce } from "@/lib/nonce";
 import { getI18n } from "@/lib/i18n/server";
 import { HomeHero } from "./home-hero";
 import type { TranslationKey } from "@/lib/i18n/translations";
@@ -79,10 +80,11 @@ const STEPS = [
 export default async function HomePage() {
   const { t } = await getI18n();
   const { items: featured } = await getPublicVehicles({ page: 1, perPage: 3 });
+  const nonce = await getNonce();
 
   return (
     <>
-      <BusinessJsonLd description={t("home.metaDescription")} />
+      <BusinessJsonLd description={t("home.metaDescription")} nonce={nonce} />
       <HomeHero />
 
       {/* Featured fleet */}

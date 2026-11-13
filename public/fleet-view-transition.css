@@ -1,0 +1,29 @@
+/*
+ * The fleet column switch's view transition. Served from public/ on purpose:
+ * see VIEW_TRANSITION_STYLESHEET in src/components/forms/fleet-view.tsx.
+ *
+ * Cards travel on the app's panel timing and their snapshots fill the new
+ * box rather than letterboxing; the page around them only cross-fades;
+ * clicks pass through to the live page instead of being lost while it
+ * plays; and under reduced motion nothing animates at all (choose() also
+ * skips the transition there).
+ */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(.fleet-card) {
+  animation-duration: var(--motion-panel);
+  animation-timing-function: var(--ease-standard);
+}
+::view-transition-old(.fleet-card),
+::view-transition-new(.fleet-card) {
+  height: 100%;
+  object-fit: cover;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

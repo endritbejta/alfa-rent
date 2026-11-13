@@ -29,30 +29,18 @@ type View = "one" | "two" | "three";
 const STORAGE_KEY = "alfa-fleet-view";
 
 /*
- * Styling for the column switch's view transition. It ships with the
- * component as a hoisted <style> rather than from globals.css because
- * Turbopack's CSS pass drops ::view-transition rules (Tailwind's own output
- * keeps them), so from the stylesheet they never reached the browser.
+ * Styling for the column switch's view transition, served as a static file
+ * (public/fleet-view-transition.css) and hoisted into <head> by React.
  *
- * Cards travel on the app's panel timing and their snapshots fill the new
- * box rather than letterboxing; the page around them only cross-fades;
- * clicks pass through to the live page instead of being lost while it
- * plays; and under reduced motion nothing animates at all (choose() also
- * skips the transition there).
+ * Not from globals.css, because Turbopack's CSS pass drops ::view-transition
+ * rules (Tailwind's own output keeps them); a file in public/ never goes
+ * through that pass. And not an inline <style>, as it used to be: the CSP
+ * only admits <style> elements carrying the nonce, and React does not stamp
+ * Next's nonce on hoisted styles, so the inline one was reported (and would
+ * be blocked once the policy is enforced). A same-origin stylesheet is
+ * allowed by `style-src-elem 'self'` without one.
  */
-const VIEW_TRANSITION_CSS = `
-::view-transition { pointer-events: none; }
-::view-transition-group(.fleet-card) {
-  animation-duration: var(--motion-panel);
-  animation-timing-function: var(--ease-standard);
-}
-::view-transition-old(.fleet-card),
-::view-transition-new(.fleet-card) { height: 100%; object-fit: cover; }
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) { animation: none !important; }
-}`;
+const VIEW_TRANSITION_STYLESHEET = "/fleet-view-transition.css";
 
 /**
  * Results toolbar plus list. The cards are server-rendered and arrive as
@@ -116,9 +104,11 @@ export function FleetView({
 
   return (
     <div data-view={view} className="group/fleet">
-      <style href="fleet-view-transition" precedence="default">
-        {VIEW_TRANSITION_CSS}
-      </style>
+      <link
+        rel="stylesheet"
+        href={VIEW_TRANSITION_STYLESHEET}
+        precedence="default"
+      />
       <div className="mt-4 mb-6 hidden flex-wrap items-center justify-between gap-3 border-b pb-4 md:flex">
         {summary}
         <div className="flex items-center gap-3">

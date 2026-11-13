@@ -6,7 +6,14 @@ import { absoluteUrl } from "@/lib/site-url";
  * show it as a local car-rental company. Only contact details that are
  * actually configured are published; never a placeholder.
  */
-export function BusinessJsonLd({ description }: { description: string }) {
+export function BusinessJsonLd({
+  description,
+  nonce,
+}: {
+  description: string;
+  /** A data block never executes, but the nonce keeps CSP reports quiet. */
+  nonce?: string;
+}) {
   const data = {
     "@context": "https://schema.org",
     "@type": "AutoRental",
@@ -25,6 +32,7 @@ export function BusinessJsonLd({ description }: { description: string }) {
   return (
     <script
       type="application/ld+json"
+      nonce={nonce}
       // Escaping "<" keeps a value from closing the script tag early.
       dangerouslySetInnerHTML={{
         __html: JSON.stringify(data).replace(/</g, "\\u003c"),

@@ -3,7 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { LocaleProvider } from "@/components/shared/locale-provider";
 import { NavigationScrollReset } from "@/components/shared/navigation-scroll-reset";
+import { ZodJitless } from "@/components/shared/zod-jitless";
 import { getI18n } from "@/lib/i18n/server";
+import { getNonce } from "@/lib/nonce";
 import { openGraphLocale, siteIsIndexable, siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -77,6 +79,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { locale, dictionary } = await getI18n();
+  const nonce = await getNonce();
   return (
     <html
       lang={locale}
@@ -91,9 +94,10 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <LocaleProvider locale={locale} dictionary={dictionary}>
-          <ThemeProvider>
+          <ThemeProvider nonce={nonce}>
             <div className="ambient-background" />
             <NavigationScrollReset />
+            <ZodJitless />
             {children}
           </ThemeProvider>
         </LocaleProvider>

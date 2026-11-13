@@ -2,7 +2,17 @@
 
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+/**
+ * `nonce` lets next-themes' inline pre-paint script, and the <style> it adds
+ * while switching theme, run under the CSP (src/lib/csp.ts).
+ */
+export function ThemeProvider({
+  children,
+  nonce,
+}: {
+  children: React.ReactNode;
+  nonce?: string;
+}) {
   return (
     <NextThemesProvider
       attribute="class"
@@ -11,6 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       enableColorScheme
       disableTransitionOnChange
       storageKey="alfa-theme"
+      nonce={nonce}
     >
       {children}
     </NextThemesProvider>

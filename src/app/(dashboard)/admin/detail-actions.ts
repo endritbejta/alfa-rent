@@ -14,10 +14,17 @@ type RawReservation = Awaited<ReturnType<typeof getReservationDetail>>;
  */
 export type ReservationDetail = Omit<
   RawReservation,
-  "totalPrice" | "lateCharge" | "vehicle" | "customer"
+  | "totalPrice"
+  | "lateCharge"
+  | "dailyRate"
+  | "bookedTotal"
+  | "vehicle"
+  | "customer"
 > & {
   totalPrice: number;
   lateCharge: number | null;
+  dailyRate: number | null;
+  bookedTotal: number | null;
   vehicle: Omit<RawReservation["vehicle"], "pricePerDay"> & {
     pricePerDay: number;
   };
@@ -34,6 +41,8 @@ function plainReservation(r: RawReservation): ReservationDetail {
     ...r,
     totalPrice: Number(r.totalPrice),
     lateCharge: r.lateCharge === null ? null : Number(r.lateCharge),
+    dailyRate: r.dailyRate === null ? null : Number(r.dailyRate),
+    bookedTotal: r.bookedTotal === null ? null : Number(r.bookedTotal),
     vehicle: { ...r.vehicle, pricePerDay: Number(r.vehicle.pricePerDay) },
     customer: {
       ...r.customer,

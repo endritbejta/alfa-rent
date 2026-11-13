@@ -50,6 +50,31 @@ export function lateReturnFromForm(
   };
 }
 
+/**
+ * How staff bill a return before the booked return day. ACTUAL_DAYS carries
+ * the number of days the dialog priced: the service counts its own and
+ * refuses a mismatch, so nobody is billed for days other than the ones
+ * shown. FULL_BOOKING keeps the booked amount, which needs no figure.
+ */
+export const earlyReturnSchema = z.discriminatedUnion("billing", [
+  z.object({
+    billing: z.literal("ACTUAL_DAYS"),
+    days: z.coerce.number().int().positive(),
+  }),
+  z.object({ billing: z.literal("FULL_BOOKING") }),
+]);
+
+export type EarlyReturnInput = z.infer<typeof earlyReturnSchema>;
+
+/** The form's fields as the actions read them; absent unless returned early. */
+export function earlyReturnFromForm(
+  formData: FormData
+): Record<string, unknown> | undefined {
+  const billing = formData.get("earlyBilling");
+  if (!billing) return undefined;
+  return { billing, days: formData.get("earlyDays") ?? undefined };
+}
+
 export const rentalInspectionSchema = z
   .object({
     type: inspectionTypeSchema,
@@ -81,6 +106,8 @@ export const rentalInspectionSchema = z
     occurredOn: z.iso.date().optional(),
     /** Required by the service when the return is after the return day. */
     lateReturn: lateReturnSchema.optional(),
+    /** Required by the service when the return is before the return day. */
+    earlyReturn: earlyReturnSchema.optional(),
   })
   .superRefine((input, context) => {
     if (input.damageFound && !input.damageNotes) {
@@ -107,6 +134,8 @@ export const pastRentalSchema = z.object({
   confirmed: z.literal(true),
   /** Required by the service when `returnedOn` is after the return day. */
   lateReturn: lateReturnSchema.optional(),
+  /** Required by the service when `returnedOn` is before the return day. */
+  earlyReturn: earlyReturnSchema.optional(),
 });
 
 export type PastRentalInput = z.infer<typeof pastRentalSchema>;

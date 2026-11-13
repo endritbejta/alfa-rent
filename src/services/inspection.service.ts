@@ -19,6 +19,7 @@ import {
   rentalCalendarDay,
 } from "@/lib/business-time";
 import type {
+  EarlyReturnInput,
   LateReturnInput,
   PastRentalInput,
   RentalInspectionInput,
@@ -26,7 +27,8 @@ import type {
 import { reportError } from "@/lib/observability";
 import { auditFields, recordAudit, type AuditEventInput } from "@/lib/audit";
 import { lateReturnDays } from "@/lib/late-return";
-import { additionalDaysCharge } from "@/lib/pricing";
+import { additionalDaysCharge, usedDaysCharge } from "@/lib/pricing";
+import { actualRentalDays, earlyReturnDays } from "@/lib/early-return";
 
 function expectedInspection(status: string): InspectionType | null {
   if (status === "CONFIRMED") return "PICKUP";
@@ -169,6 +171,120 @@ function settleLateReturn(
         totalPrice,
       }),
     },
+  };
+}
+
+/**
+ * Settles the bill when a rental ends — the one place a completion's money
+ * is decided, for a return recorded at the counter and for a past rental
+ * entered after the fact alike.
+ *
+ * Every completion records the booked amount as it stood (`bookedTotal`)
+ * and the rental days actually used (`actualDays`). Then, by the day the car
+ * came back:
+ *
+ * - after the booked return day: settleLateReturn, unchanged;
+ * - on it: nothing more — the booking is the bill;
+ * - before it (an early return): staff must choose. ACTUAL_DAYS bills the
+ *   used days at the booking's agreed rate, capped at the booking;
+ *   FULL_BOOKING keeps the booked amount, which is what every early return
+ *   was billed before this choice existed.
+ *
+ * totalPrice stays "what was charged", which revenue, customer spend and
+ * vehicle earnings all read; the original is kept in bookedTotal. The booked
+ * dates are never moved: the late days showed why (the exclusion
+ * constraint, the overdue counts), and an early return's unused days are
+ * already free the moment the rental is COMPLETED, since the constraint only
+ * guards CONFIRMED and ACTIVE rows.
+ *
+ * Early and late cannot both apply — they are opposite sides of the return
+ * day — and a CHECK constraint holds the database to that too.
+ */
+function settleReturn(
+  reservation: {
+    id: string;
+    pickupDate: Date;
+    returnDate: Date;
+    totalPrice: Prisma.Decimal;
+    dailyRate: Prisma.Decimal | null;
+    vehicle: { pricePerDay: Prisma.Decimal };
+  },
+  returnedOn: string,
+  choices: { late?: LateReturnInput; early?: EarlyReturnInput },
+  actorId: string
+): {
+  data: Prisma.ReservationUpdateManyMutationInput;
+  events: AuditEventInput[];
+} {
+  const pickupDay = rentalCalendarDay(reservation.pickupDate);
+  const returnDay = rentalCalendarDay(reservation.returnDate);
+  const recorded = {
+    bookedTotal: reservation.totalPrice,
+    actualDays: actualRentalDays(pickupDay, returnedOn),
+  };
+
+  const usedDays = earlyReturnDays(pickupDay, returnDay, returnedOn);
+  if (usedDays === null) {
+    const late = settleLateReturn(
+      reservation,
+      returnedOn,
+      choices.late,
+      actorId
+    );
+    return {
+      data: { ...recorded, ...late.data },
+      events: late.event ? [late.event] : [],
+    };
+  }
+
+  const bookedDays = actualRentalDays(pickupDay, returnDay);
+  const choice = choices.early;
+  if (!choice) {
+    throw new ValidationError(
+      `This car came back after ${usedDays} of ${bookedDays} booked day(s). Choose whether to bill the days used or the full booking.`,
+      {
+        key: "err.earlyReturnUnresolved",
+        values: { days: usedDays, booked: bookedDays },
+      }
+    );
+  }
+  // Rows written outside the booking services may have no agreed rate; the
+  // car's rate today is then the nearest thing, and the cap still holds.
+  const dailyRate = reservation.dailyRate ?? reservation.vehicle.pricePerDay;
+  let totalPrice = reservation.totalPrice;
+  if (choice.billing === "ACTUAL_DAYS") {
+    // The dialog priced a number of days; billing any other would be a
+    // figure staff never saw.
+    if (choice.days !== usedDays) {
+      throw new ValidationError(
+        `The car was out ${usedDays} day(s), not ${choice.days}. Check the return date and confirm again.`,
+        { key: "err.earlyDaysChanged", values: { days: usedDays } }
+      );
+    }
+    totalPrice = usedDaysCharge(dailyRate, usedDays, reservation.totalPrice);
+  }
+  return {
+    data: {
+      ...recorded,
+      earlyReturnBilling: choice.billing,
+      totalPrice,
+    },
+    events: [
+      {
+        actorId,
+        action: "reservation.earlyReturn",
+        entityId: reservation.id,
+        before: auditFields({ totalPrice: reservation.totalPrice }),
+        after: auditFields({
+          earlyReturnBilling: choice.billing,
+          actualDays: usedDays,
+          bookedDays,
+          dailyRate,
+          bookedTotal: reservation.totalPrice,
+          totalPrice,
+        }),
+      },
+    ],
   };
 }
 
@@ -365,21 +481,27 @@ export async function recordRentalInspection(
       });
     } else {
       // The business day it came back: the dated one, or today.
-      const late = settleLateReturn(
+      const settled = settleReturn(
         reservation,
         input.occurredOn ?? businessDay(now),
-        input.lateReturn,
+        { late: input.lateReturn, early: input.earlyReturn },
         createdById
       );
       const advanced = await tx.reservation.updateMany({
-        // The return date too: an extension in the meantime changes both
-        // the late days and the total this was priced from.
+        // The return date too: an extension in the meantime changes the
+        // late or early days and the total this was priced from. The
+        // status is the guard against completing twice: a second request
+        // finds the rental COMPLETED, matches nothing and settles nothing.
         where: {
           id: reservationId,
           status: "ACTIVE",
           returnDate: reservation.returnDate,
         },
-        data: { status: "COMPLETED", completedAt: occurredAt, ...late.data },
+        data: {
+          status: "COMPLETED",
+          completedAt: occurredAt,
+          ...settled.data,
+        },
       });
       if (advanced.count !== 1) {
         throw new ConflictError(
@@ -425,7 +547,7 @@ export async function recordRentalInspection(
           ...(released.count === 1 && { vehicleStatus: "AVAILABLE" }),
         }),
       });
-      if (late.event) await recordAudit(tx, late.event);
+      for (const event of settled.events) await recordAudit(tx, event);
     }
 
     return inspection;
@@ -451,7 +573,8 @@ const OCCUPYING_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
  * - Change the booked dates. The exclusion constraint, revenue (per booked
  *   day) and the overdue counts keep reading the booking as made. A return
  *   after the booked one is settled like any late return (charged or
- *   waived; see settleLateReturn), beside the booking, not by moving it.
+ *   waived), one before it like any early return (days used or the full
+ *   booking) — see settleReturn — beside the booking, not by moving it.
  *
  * What it keeps: never before the pickup day, never in the future, the
  * CONFIRMED-only transition guard, and no actual return that runs into the
@@ -534,12 +657,12 @@ export async function recordPastRental(
       }
     }
 
-    // Back after the booked return day: settled here exactly as at a
-    // normal return, so recording it after the fact is no way around it.
-    const late = settleLateReturn(
+    // Back before or after the booked return day: settled here exactly as
+    // at a normal return, so recording it after the fact is no way around it.
+    const settled = settleReturn(
       reservation,
       returnedOn,
-      input.lateReturn,
+      { late: input.lateReturn, early: input.earlyReturn },
       userId
     );
 
@@ -556,7 +679,7 @@ export async function recordPastRental(
         backfilledAt: now,
         backfilledById: userId,
         backfillNote: input.note,
-        ...late.data,
+        ...settled.data,
       },
     });
     if (recorded.count !== 1) {
@@ -574,6 +697,6 @@ export async function recordPastRental(
       after: auditFields({ status: "COMPLETED", startedAt, completedAt }),
       reason: input.note,
     });
-    if (late.event) await recordAudit(tx, late.event);
+    for (const event of settled.events) await recordAudit(tx, event);
   });
 }

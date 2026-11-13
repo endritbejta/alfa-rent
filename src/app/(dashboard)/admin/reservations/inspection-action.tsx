@@ -1,5 +1,6 @@
 "use client";
 
+import { enUS, sq } from "date-fns/locale";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { ReservationStatus } from "@prisma/client";
 import { ClipboardCheck, TriangleAlert } from "lucide-react";
@@ -16,6 +17,12 @@ import {
   lateChoiceProblem,
   type LateChoice,
 } from "./late-return-choice";
+import {
+  EarlyReturnChoice,
+  NO_EARLY_CHOICE,
+  earlyChoiceProblem,
+  type EarlyChoice,
+} from "./early-return-choice";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,6 +48,8 @@ export function InspectionAction({
   signerName,
   pricePerDay,
   totalPrice,
+  dailyRate,
+  vehicleName,
   onSuccess,
   open: openProp,
   onOpenChange,
@@ -53,6 +62,12 @@ export function InspectionAction({
   /** The car's rate today and the booking's total, for a late return. */
   pricePerDay: number;
   totalPrice: number;
+  /**
+   * The rate the booking was agreed at, for an early return; null for a
+   * row without one, which is billed at the car's rate as the service does.
+   */
+  dailyRate: number | null;
+  vehicleName: string;
   onSuccess?: () => void;
   /**
    * Controlled open state, for a parent that opens the dialog from its own
@@ -63,6 +78,7 @@ export function InspectionAction({
   hideTrigger?: boolean;
 }) {
   const { locale, t } = useI18n();
+  const dateLocale = locale === "sq" ? sq : enUS;
   const type = status === "CONFIRMED" ? "PICKUP" : "RETURN";
   const visible = status === "CONFIRMED" || status === "ACTIVE";
   const disabled = type === "PICKUP" && !timing.canStart;
@@ -70,7 +86,6 @@ export function InspectionAction({
   // dated. A return after the return day can likewise be dated, so a rental
   // started late can be completed on the day the car really came back.
   const lateStart = type === "PICKUP" && timing.lateStart;
-  const lateReturn = type === "RETURN" && timing.today > timing.returnDay;
   // Once the whole window has gone, the car most likely left on the day it
   // was booked for; inside the window, most likely today.
   const defaultHandover =
@@ -92,6 +107,7 @@ export function InspectionAction({
   // booked return day shows its late days and price as the date changes.
   const [returnedOn, setReturnedOn] = useState(timing.today);
   const [lateChoice, setLateChoice] = useState<LateChoice>(NO_LATE_CHOICE);
+  const [earlyChoice, setEarlyChoice] = useState<EarlyChoice>(NO_EARLY_CHOICE);
 
   // The return form shows where the odometer started.
   useEffect(() => {
@@ -128,13 +144,20 @@ export function InspectionAction({
   if (!visible) return null;
 
   /**
-   * The late-return choice is checked before the action runs, not inside it:
-   * React resets an action form once its action returns, so refusing there
-   * would wipe the mileage and signature staff just entered.
+   * The late- and early-return choices are checked before the action runs,
+   * not inside it: React resets an action form once its action returns, so
+   * refusing there would wipe the mileage and signature staff just entered.
    */
-  const checkLateChoice = (event: React.FormEvent<HTMLFormElement>) => {
+  const checkReturnChoice = (event: React.FormEvent<HTMLFormElement>) => {
     if (type !== "RETURN") return;
-    const problem = lateChoiceProblem(timing.returnDay, returnedOn, lateChoice);
+    const problem =
+      lateChoiceProblem(timing.returnDay, returnedOn, lateChoice) ??
+      earlyChoiceProblem(
+        timing.pickupDay,
+        timing.returnDay,
+        returnedOn,
+        earlyChoice
+      );
     if (!problem) return;
     event.preventDefault();
     setError(
@@ -152,7 +175,7 @@ export function InspectionAction({
     }
     if (
       !String(formData.get("mileage") ?? "").trim() ||
-      ((lateStart || lateReturn) &&
+      ((lateStart || type === "RETURN") &&
         !String(formData.get("occurredOn") ?? "").trim()) ||
       !String(formData.get("signerName") ?? "").trim() ||
       formData.get("customerAcknowledged") !== "on" ||
@@ -184,8 +207,11 @@ export function InspectionAction({
           size="sm"
           // Once the whole rental is in the past, recording it as completed is
           // the usual move; starting it stays for a car that is still out.
+          // Before the pickup day it is shown, quietly, but not offered.
           variant={
-            type === "PICKUP" && timing.canRecordPast ? "outline" : "success"
+            disabled || (type === "PICKUP" && timing.canRecordPast)
+              ? "outline"
+              : "success"
           }
           disabled={disabled}
           title={disabled ? t("admin.availablePickupDate") : undefined}
@@ -215,7 +241,7 @@ export function InspectionAction({
 
           <form
             action={submit}
-            onSubmit={checkLateChoice}
+            onSubmit={checkReturnChoice}
             noValidate
             className="space-y-4"
           >
@@ -232,7 +258,7 @@ export function InspectionAction({
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {t("admin.lateStartHelp", {
-                    date: formatDay(timing.pickupDay),
+                    date: formatDay(timing.pickupDay, dateLocale),
                   })}
                 </p>
                 <div className="space-y-1.5">
@@ -262,7 +288,12 @@ export function InspectionAction({
               </div>
             )}
 
-            {lateReturn && (
+            {/*
+              The day it came back, for every return: today by default, an
+              earlier day when the car came back before it was recorded, and
+              a day before the booked return is an early return to bill.
+            */}
+            {type === "RETURN" && (
               <div className="space-y-1.5">
                 <Label htmlFor={`${reservationId}-occurred`}>
                   {t("admin.returnDate")}
@@ -285,7 +316,7 @@ export function InspectionAction({
                   className="text-muted-foreground text-xs"
                 >
                   {t("admin.returnDateHelp", {
-                    date: formatDay(timing.returnDay),
+                    date: formatDay(timing.returnDay, dateLocale),
                   })}
                 </p>
               </div>
@@ -300,6 +331,21 @@ export function InspectionAction({
                 totalPrice={totalPrice}
                 choice={lateChoice}
                 onChange={setLateChoice}
+              />
+            )}
+
+            {type === "RETURN" && (
+              <EarlyReturnChoice
+                idPrefix={reservationId}
+                pickupDay={timing.pickupDay}
+                returnDay={timing.returnDay}
+                returnedOn={returnedOn}
+                dailyRate={dailyRate ?? pricePerDay}
+                bookedTotal={totalPrice}
+                customerName={signerName}
+                vehicleName={vehicleName}
+                choice={earlyChoice}
+                onChange={setEarlyChoice}
               />
             )}
 
@@ -469,12 +515,6 @@ export function InspectionAction({
           </form>
         </DialogContent>
       </Dialog>
-
-      {disabled && timing.startBlockedReason && (
-        <p className="text-muted-foreground order-last basis-full text-right text-xs">
-          {t("admin.availablePickupDate")}
-        </p>
-      )}
     </>
   );
 }

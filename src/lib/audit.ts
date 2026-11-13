@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = [
   "reservation.recordPast",
   "reservation.lateCharge",
   "reservation.lateWaive",
+  "reservation.earlyReturn",
   "customer.update",
   "customer.merge",
   "customer.anonymise",

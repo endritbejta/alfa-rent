@@ -55,6 +55,14 @@ enum LateReturnResolution {
   WAIVED
 }
 
+/// How a rental that came back before its booked return day was billed.
+enum EarlyReturnBilling {
+  /// The days actually used, at the booking's agreed daily rate.
+  ACTUAL_DAYS
+  /// The full amount booked, whatever the return day.
+  FULL_BOOKING
+}
+
 enum InspectionType {
   PICKUP
   RETURN
@@ -261,6 +269,23 @@ model Reservation {
   lateCharge             Decimal?              @db.Decimal(10, 2)
   lateResolution         LateReturnResolution?
   lateWaiverReason       String?
+  /// The daily rate this booking was priced at, fixed when it was made. The
+  /// car's rate may change later and an extension charges its added days at
+  /// the rate of that day, so neither the vehicle's pricePerDay nor
+  /// totalPrice / days is this number. Rows from before the column were
+  /// backfilled by the pricing rule they were booked under. Null only for a
+  /// row written outside the booking services.
+  dailyRate              Decimal?              @db.Decimal(10, 2)
+  /// Set at completion. bookedTotal is the booking's amount for its booked
+  /// days as it stood when the car came back (extensions included, any late
+  /// charge not): the original amount, kept even when totalPrice — always
+  /// the amount charged — ends up different. actualDays are the rental days
+  /// from the booked pickup day to the actual return day, both counted.
+  bookedTotal            Decimal?              @db.Decimal(10, 2)
+  actualDays             Int?
+  /// Set only when the car came back before its booked return day: how
+  /// staff chose to bill it. Never set together with the late-return fields.
+  earlyReturnBilling     EarlyReturnBilling?
   /// The storefront language a public request was made in ("sq" or "en").
   /// Every email to the customer about it is written in this language. Null
   /// for staff bookings and older rows, which use the default language.

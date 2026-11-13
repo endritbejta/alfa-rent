@@ -377,6 +377,9 @@ export async function createReservation(
             input.pickupDate,
             input.returnDate
           ),
+          // The rate it was priced at, kept: the car's may change before
+          // the rental ends, and an early return is billed at this one.
+          dailyRate: vehicle.pricePerDay,
           notes: input.notes,
           status: "PENDING",
           paymentAccessTokenHash: paymentAccess.hash,
@@ -495,6 +498,8 @@ async function insertManualReservation(
           input.pickupDate,
           input.returnDate
         ),
+        // See createReservation: the agreed rate, for an early return.
+        dailyRate: vehicle.pricePerDay,
         notes: input.notes,
         idempotencyKey: input.idempotencyKey,
       },

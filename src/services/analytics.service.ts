@@ -27,9 +27,10 @@ const REVENUE_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
  * A reservation's price is spread evenly over the days it covers, and each
  * day's share counts in the period that day falls in. A rental from 28 Feb to
  * 3 Mar is part February and part March; an extension's money lands on the
- * days it adds, and a late-return charge on the days the car was kept past
- * its return day. Revenue used to be counted in full on the day the booking was
- * *created*, so a March rental booked in November was November revenue.
+ * days it adds, a late-return charge on the days the car was kept past its
+ * return day, and an early return billed for the days used on those days.
+ * Revenue used to be counted in full on the day the booking was *created*,
+ * so a March rental booked in November was November revenue.
  *
  * The days are the ones a rental occupies: pickup day through return day,
  * both included — `rentalDays` in lib/rental-dates, restated here because
@@ -57,13 +58,19 @@ async function revenueByBucket(
            ROUND(SUM(r.share), 2) AS revenue
     FROM (
       -- The booked days share the booked price: the total less any charge
-      -- for days kept past the return day.
+      -- for days kept past the return day. A rental returned early and
+      -- billed for the days used spreads what was charged over those days
+      -- alone — the rest were never the renter's. Billed in full, it keeps
+      -- the booked days, which is what the customer paid for.
       SELECT (x."totalPrice" - x.late) / x.n AS share,
              x."pickupDate"::date AS first_day, x.n
       FROM (
         SELECT "totalPrice", "pickupDate",
                COALESCE("lateCharge", 0) AS late,
-               ("returnDate"::date - "pickupDate"::date + 1) AS n
+               CASE WHEN "earlyReturnBilling" = 'ACTUAL_DAYS'
+                    THEN "actualDays"
+                    ELSE ("returnDate"::date - "pickupDate"::date + 1)
+               END AS n
         FROM reservations
         WHERE status::text = ANY(${[...REVENUE_STATUSES]})
           -- Coarse range filter: no day of a rental outside it can fall in the window.

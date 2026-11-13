@@ -25,10 +25,15 @@ import { Pagination } from "@/components/dashboard/pagination";
 import { getI18n } from "@/lib/i18n/server";
 import { RESERVATION_STATUS_KEYS as STATUS_KEYS } from "@/lib/status-labels";
 import { lateReturnSummary } from "@/lib/late-return";
+import { earlyReturnSummary } from "@/lib/early-return";
 
 export const dynamic = "force-dynamic";
 
 const STATUSES = Object.values(ReservationStatus);
+
+/** Column labels: small, spaced capitals, quieter than the rows they head. */
+const HEAD =
+  "text-muted-foreground h-9 text-[11px] font-medium tracking-[0.12em] uppercase";
 
 /** The list's vehicle without its Decimal rate, which cannot reach a client. */
 function listVehicle(vehicle: {
@@ -77,7 +82,9 @@ export default async function ReservationsPage({
     status: r.status,
     timing: getReservationTiming(r, now),
     pricePerDay: Number(r.vehicle.pricePerDay),
+    dailyRate: r.dailyRate === null ? null : Number(r.dailyRate),
     late: lateReturnSummary(r),
+    early: earlyReturnSummary(r),
     vehicle: listVehicle(r.vehicle),
     customer: r.customer,
   }));
@@ -143,23 +150,31 @@ export default async function ReservationsPage({
               : t("admin.allReservations")
           }
         >
-          <div className="md:hidden">
+          {/*
+            The table needs the width the sidebar leaves at lg; below it the
+            same rows stack, rather than pushing Actions off the edge.
+          */}
+          <div className="lg:hidden">
             <ReservationCards rows={rows} />
           </div>
 
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>{t("admin.customer")}</TableHead>
-                  <TableHead>{t("admin.vehicle")}</TableHead>
-                  <TableHead>{t("admin.dates")}</TableHead>
-                  <TableHead className="text-right">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={`${HEAD} pl-0`}>
+                    {t("admin.customer")}
+                  </TableHead>
+                  <TableHead className={HEAD}>{t("admin.vehicle")}</TableHead>
+                  <TableHead className={HEAD}>
+                    {t("admin.rentalPeriod")}
+                  </TableHead>
+                  <TableHead className={`${HEAD} text-right`}>
                     {t("admin.total")}
                   </TableHead>
-                  <TableHead>{t("admin.status")}</TableHead>
-                  <TableHead className="text-right">
-                    {t("admin.actions")}
+                  <TableHead className={HEAD}>{t("admin.status")}</TableHead>
+                  <TableHead className={`${HEAD} pr-0 text-right`}>
+                    <span className="sr-only">{t("admin.actions")}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>

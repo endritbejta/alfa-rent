@@ -75,6 +75,15 @@ export function AuditHistory({ items }: { items: AuditHistoryItem[] }) {
             : "—",
       });
     }
+    if (item.action === "reservation.earlyReturn") {
+      const amount = item.after?.totalPrice;
+      return t(key, {
+        amount:
+          typeof amount === "string" || typeof amount === "number"
+            ? formatEur(amount, locale)
+            : "—",
+      });
+    }
     if (item.action === "customer.merge") {
       const merged = item.after?.mergedIds;
       return t(key, { count: Array.isArray(merged) ? merged.length : 0 });

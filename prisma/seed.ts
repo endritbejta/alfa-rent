@@ -786,6 +786,9 @@ async function main() {
           returnDate,
           status,
           totalPrice: price.mul(days),
+          dailyRate: price,
+          // A completed rental records the amount it was booked at.
+          ...(status === "COMPLETED" && { bookedTotal: price.mul(days) }),
           notes: rand() < 0.15 ? "Child seat requested." : null,
           createdAt: at10(now, Math.min(createdOffset, 0)),
         },

@@ -10,6 +10,12 @@ import {
   lateChoiceProblem,
   type LateChoice,
 } from "./late-return-choice";
+import {
+  EarlyReturnChoice,
+  NO_EARLY_CHOICE,
+  earlyChoiceProblem,
+  type EarlyChoice,
+} from "./early-return-choice";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -40,6 +46,9 @@ export function RecordPastRental({
   timing,
   pricePerDay,
   totalPrice,
+  dailyRate,
+  customerName,
+  vehicleName,
   onSuccess,
   open: openProp,
   onOpenChange,
@@ -50,6 +59,10 @@ export function RecordPastRental({
   /** The car's rate today and the booking's total, for a late return. */
   pricePerDay: number;
   totalPrice: number;
+  /** The agreed rate and who and what, for an early return's settlement. */
+  dailyRate: number | null;
+  customerName: string;
+  vehicleName: string;
   onSuccess?: () => void;
   /** Controlled open state; see `InspectionAction`. */
   open?: boolean;
@@ -68,6 +81,7 @@ export function RecordPastRental({
   const [note, setNote] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [lateChoice, setLateChoice] = useState<LateChoice>(NO_LATE_CHOICE);
+  const [earlyChoice, setEarlyChoice] = useState<EarlyChoice>(NO_EARLY_CHOICE);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -80,7 +94,14 @@ export function RecordPastRental({
       setError(t("admin.requiredField"));
       return;
     }
-    const problem = lateChoiceProblem(timing.returnDay, returnedOn, lateChoice);
+    const problem =
+      lateChoiceProblem(timing.returnDay, returnedOn, lateChoice) ??
+      earlyChoiceProblem(
+        timing.pickupDay,
+        timing.returnDay,
+        returnedOn,
+        earlyChoice
+      );
     if (problem) {
       setError(
         problem.key === "admin.lateReasonTooShort"
@@ -168,6 +189,19 @@ export function RecordPastRental({
               totalPrice={totalPrice}
               choice={lateChoice}
               onChange={setLateChoice}
+            />
+
+            <EarlyReturnChoice
+              idPrefix={`${reservationId}-past`}
+              pickupDay={timing.pickupDay}
+              returnDay={timing.returnDay}
+              returnedOn={returnedOn}
+              dailyRate={dailyRate ?? pricePerDay}
+              bookedTotal={totalPrice}
+              customerName={customerName}
+              vehicleName={vehicleName}
+              choice={earlyChoice}
+              onChange={setEarlyChoice}
             />
 
             <div className="space-y-1.5">

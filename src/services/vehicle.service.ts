@@ -247,8 +247,15 @@ export async function createVehicle(
  *
  * Only a *change* is checked: saving an unrelated field on a rented car must
  * keep working, and the form posts `status` on every submit.
+ *
+ * Reads through the caller's transaction, never the global client. In
+ * production Prisma holds one connection (connection_limit=1), and the open
+ * transaction is holding it: a query on the global client waits for that
+ * connection until the transaction times out, so every status change failed
+ * after 8 s with "Transaction already closed".
  */
 async function assertStatusChangeAllowed(
+  tx: Prisma.TransactionClient,
   id: string,
   current: VehicleStatus,
   next: VehicleStatus
@@ -264,13 +271,13 @@ async function assertStatusChangeAllowed(
     );
   }
 
-  const openCount = await prisma.reservation.count({
+  const openCount = await tx.reservation.count({
     where: {
       vehicleId: id,
       status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
     },
   });
-  const activeCount = await prisma.reservation.count({
+  const activeCount = await tx.reservation.count({
     where: { vehicleId: id, status: "ACTIVE" },
   });
 
@@ -302,7 +309,7 @@ export async function updateVehicle(
     const existing = await tx.vehicle.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError("Vehicle");
     if (input.status) {
-      await assertStatusChangeAllowed(id, existing.status, input.status);
+      await assertStatusChangeAllowed(tx, id, existing.status, input.status);
     }
 
     const updated = await tx.vehicle.update({

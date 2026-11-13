@@ -49,7 +49,7 @@ export function HeroSearch() {
 
       <button
         type="submit"
-        className="bg-brand hover:bg-brand-hover flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-none px-7 text-sm font-semibold text-white transition-[background-color,transform] duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-colors md:h-auto md:w-auto"
+        className="bg-brand-fill hover:bg-brand-fill/85 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-none px-7 text-sm font-semibold text-white transition-[background-color,transform] duration-[var(--motion-press)] ease-[var(--ease-standard)] active:scale-[0.97] motion-reduce:transition-colors md:h-auto md:w-auto"
       >
         <Search className="h-4 w-4" />
         {t("common.search")}

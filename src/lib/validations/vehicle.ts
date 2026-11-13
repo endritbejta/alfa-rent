@@ -6,6 +6,7 @@ import {
   FuelType,
 } from "@prisma/client";
 import { paginationSchema } from "./common";
+import { OPERATOR_SETTABLE_STATUSES } from "@/lib/vehicle-policy";
 
 export const vehicleFilterSchema = paginationSchema.extend({
   q: z.string().trim().max(80).optional(),
@@ -72,13 +73,18 @@ export const createVehicleSchema = z.object({
   seats: z.number().int().min(1).max(20),
   pricePerDay: z.number().positive().max(10000),
   description: z.string().trim().min(10).max(2000),
-  status: z.enum(VehicleStatus).default("AVAILABLE"),
+  // A new car cannot already be out on a rental: RENTED is set only by the
+  // pickup handover. Update checks the same rule against the current status
+  // in the service, because a rented car's edit form posts RENTED back.
+  status: z.enum(OPERATOR_SETTABLE_STATUSES).default("AVAILABLE"),
   lastServiceDate: z.coerce.date().nullish(),
   nextServiceDate: z.coerce.date().nullish(),
   serviceNotes: z.string().trim().max(1000).nullish(),
 });
 
-export const updateVehicleSchema = createVehicleSchema.partial();
+export const updateVehicleSchema = createVehicleSchema
+  .extend({ status: z.enum(VehicleStatus) })
+  .partial();
 
 export type VehicleFilterInput = z.infer<typeof vehicleFilterSchema>;
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;

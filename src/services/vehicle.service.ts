@@ -15,7 +15,10 @@ import type {
 } from "@/lib/validations/vehicle";
 import type { VehicleStatus } from "@prisma/client";
 import type { Paginated } from "@/types/api";
-import { PUBLIC_BOOKABLE_VEHICLE_STATUSES } from "@/lib/vehicle-policy";
+import {
+  OPERATOR_SETTABLE_STATUSES,
+  PUBLIC_BOOKABLE_VEHICLE_STATUSES,
+} from "@/lib/vehicle-policy";
 
 const vehicleWithImages = Prisma.validator<Prisma.VehicleDefaultArgs>()({
   include: { images: { orderBy: { sortOrder: "asc" as const } } },
@@ -227,19 +230,6 @@ export async function createVehicle(
 }
 
 /**
- * Statuses an operator may choose directly.
- *
- * `RENTED` is absent on purpose: it means "a rental is out", which is a fact
- * about a reservation, not an attribute someone types in. Only the pickup
- * handover sets it, and only the return clears it.
- */
-const OPERATOR_SETTABLE_STATUSES: VehicleStatus[] = [
-  "AVAILABLE",
-  "SERVICE",
-  "INACTIVE",
-];
-
-/**
  * Guards the one column on this model that is a second source of truth.
  *
  * `Vehicle.status` duplicates something the reservations already say, and it
@@ -259,7 +249,9 @@ async function assertStatusChangeAllowed(
 ) {
   if (next === current) return;
 
-  if (!OPERATOR_SETTABLE_STATUSES.includes(next)) {
+  if (
+    !(OPERATOR_SETTABLE_STATUSES as readonly VehicleStatus[]).includes(next)
+  ) {
     throw new ValidationError(
       "A vehicle becomes rented when its pickup inspection is recorded, not by being set here.",
       { key: "err.statusNotSettable" }

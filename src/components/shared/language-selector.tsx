@@ -21,7 +21,10 @@ export function LanguageSelector({
   return (
     <label
       className={cn(
-        "relative inline-flex h-9 items-center gap-1.5 rounded-none border border-current/20 px-2 text-xs",
+        // The select draws no outline of its own (outline-none, so the
+        // chevron area does not get a second box), so the frame shows the
+        // keyboard focus instead.
+        "has-[select:focus-visible]:outline-ring relative inline-flex h-9 items-center gap-1.5 rounded-none border border-current/20 px-2 text-xs has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2",
         className
       )}
     >
@@ -43,7 +46,7 @@ export function LanguageSelector({
             router.refresh();
           });
         }}
-        className="[&>option]:bg-card [&>option]:text-card-foreground cursor-pointer appearance-none bg-transparent pr-3 font-semibold outline-none disabled:cursor-wait"
+        className="[&>option]:bg-card [&>option]:text-card-foreground cursor-pointer appearance-none self-stretch bg-transparent pr-3 font-semibold outline-none disabled:cursor-wait"
       >
         <option value="sq">{compact ? "SQ" : t("language.sq")}</option>
         <option value="en">{compact ? "EN" : t("language.en")}</option>

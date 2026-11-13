@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
-import { CircleCheck, ShieldCheck } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import { LoginForm } from "@/components/forms/login-form";
-import {
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { getI18n } from "@/lib/i18n/server";
 import { safeCallbackUrl } from "@/lib/auth/callback-url";
 import { AuthFrame } from "@/components/shared/auth-frame";
-import { BrandLogo } from "@/components/shared/brand-logo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -28,16 +21,14 @@ export default async function LoginPage({
 
   return (
     <AuthFrame
-      icon={ShieldCheck}
-      asideTitle={t("auth.staffOnly")}
-      asideBody={t("auth.welcome")}
+      eyebrow={t("auth.eyebrow")}
+      headline={t("auth.headline")}
+      headlineAccent={t("auth.headlineAccent")}
+      subline={t("auth.subline")}
+      title={t("auth.staffSignIn")}
+      description={t("auth.useCredentials")}
     >
-      <CardHeader>
-        <BrandLogo className="mb-8 md:hidden" preload />
-        <CardTitle className="text-2xl">{t("auth.staffSignIn")}</CardTitle>
-        <CardDescription>{t("auth.staffOnly")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+      <div className="space-y-4">
         {/* Changing a password signs you out everywhere, this browser
             included, so sign-in is where you land. Without a word it looks
             like the change failed. Only a known value is read: the param
@@ -52,7 +43,7 @@ export default async function LoginPage({
           </p>
         )}
         <LoginForm callbackUrl={target} />
-      </CardContent>
+      </div>
     </AuthFrame>
   );
 }

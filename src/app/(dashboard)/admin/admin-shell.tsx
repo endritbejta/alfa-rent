@@ -1,19 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Role } from "@prisma/client";
 import { Tooltip } from "@base-ui/react/tooltip";
-import {
-  ChevronLeft,
-  ChevronRight,
-  KeyRound,
-  LogOut,
-  Menu,
-  Search,
-  X,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, Search, X } from "lucide-react";
+import { AccountDrawer, AccountTrigger } from "./account-drawer";
 import { AdminNav } from "./admin-nav";
 import { CommandPalette } from "./command-palette";
 import { ReservationDetailProvider } from "./reservation-detail";
@@ -23,31 +15,27 @@ import {
   SIDEBAR_COOKIE,
   SIDEBAR_MAX_AGE,
 } from "./sidebar-state";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { LanguageSelector } from "@/components/shared/language-selector";
 import { useI18n } from "@/components/shared/locale-provider";
-import { Button } from "@/components/ui/button";
 import { ShortcutHint } from "@/components/shared/shortcut-hint";
 import { cn } from "@/lib/utils";
-import { ROLE_KEYS } from "@/lib/status-labels";
 import { Sheet, SheetClose, SheetContent } from "@/components/ui/sheet";
 
 type ShellUser = { name: string; role: Role };
 
 function SidebarChrome({
   user,
-  signOutAction,
   pendingCount,
   collapsed = false,
   onToggleCollapsed,
   onSearch,
+  onOpenAccount,
 }: {
   user: ShellUser;
-  signOutAction: () => Promise<void>;
   pendingCount: number;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
   onSearch: () => void;
+  onOpenAccount: () => void;
 }) {
   const { t } = useI18n();
   const collapseLabel = collapsed
@@ -147,68 +135,18 @@ function SidebarChrome({
         isAdmin={user.role === "ADMIN"}
       />
 
+      {/* Pinned to the bottom of the rail: AdminNav is the flex-1 middle. */}
       <div
         className={cn(
           "border-sidebar-border border-t",
-          collapsed ? "p-2" : "p-4"
+          collapsed ? "p-2" : "p-3"
         )}
       >
-        {!collapsed && (
-          <>
-            <p className="truncate text-sm">{user.name}</p>
-            <p className="text-sidebar-foreground/50 mb-3 text-xs">
-              {t(ROLE_KEYS[user.role])}
-            </p>
-          </>
-        )}
-        <ThemeToggle
-          showLabel={!collapsed}
-          className={cn("mb-2 w-full", collapsed && "px-0")}
+        <AccountTrigger
+          user={user}
+          collapsed={collapsed}
+          onOpen={onOpenAccount}
         />
-        <LanguageSelector
-          compact={collapsed}
-          className={cn(
-            "text-sidebar-foreground mb-2 w-full",
-            collapsed && "justify-center px-1"
-          )}
-        />
-        {/* Outside /admin, so it is a plain link: the page has its own frame,
-            like sign-in, and works for a temporary password too. */}
-        <Link
-          href="/account/password"
-          aria-label={collapsed ? t("admin.changePassword") : undefined}
-          title={collapsed ? t("admin.changePassword") : undefined}
-          className={cn(
-            "border-sidebar-border text-sidebar-foreground/65 hover:text-sidebar-foreground hit-area relative mb-2 flex h-8 w-full items-center gap-2 rounded-none border transition-colors hover:bg-white/8",
-            collapsed
-              ? "justify-center px-0"
-              : "justify-start px-2.5 text-xs font-semibold"
-          )}
-        >
-          <KeyRound className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>{t("admin.changePassword")}</span>}
-        </Link>
-        <form action={signOutAction}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            aria-label={collapsed ? t("admin.signOut") : undefined}
-            title={
-              collapsed ? `${t("admin.signOut")} — ${user.name}` : undefined
-            }
-            className={cn(
-              "border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full bg-transparent",
-              collapsed && "px-0"
-            )}
-          >
-            {collapsed ? (
-              <LogOut className="h-3.5 w-3.5" />
-            ) : (
-              t("admin.signOut")
-            )}
-          </Button>
-        </form>
       </div>
     </>
   );
@@ -237,6 +175,10 @@ export function AdminShell({
   // the closing sheet hands focus back to its trigger, which would pull it
   // straight out of the palette's input and drop the keyboard.
   const searchAfterMenu = useRef(false);
+  // The account drawer, likewise, opens from the phone menu only once the
+  // menu has gone: one sheet at a time.
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountAfterMenu = useRef(false);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const pathname = usePathname();
 
@@ -305,11 +247,11 @@ export function AdminShell({
             <div className="bg-sidebar text-sidebar-foreground relative flex h-full flex-col overflow-hidden rounded-none shadow-lg">
               <SidebarChrome
                 user={user}
-                signOutAction={signOutAction}
                 pendingCount={pendingCount}
                 collapsed={collapsed}
                 onToggleCollapsed={toggleCollapsed}
                 onSearch={() => setPaletteOpen(true)}
+                onOpenAccount={() => setAccountOpen(true)}
               />
             </div>
           </aside>
@@ -320,9 +262,14 @@ export function AdminShell({
             open={open}
             onOpenChange={setOpen}
             onOpenChangeComplete={(isOpen) => {
-              if (isOpen || !searchAfterMenu.current) return;
-              searchAfterMenu.current = false;
-              setPaletteOpen(true);
+              if (isOpen) return;
+              if (searchAfterMenu.current) {
+                searchAfterMenu.current = false;
+                setPaletteOpen(true);
+              } else if (accountAfterMenu.current) {
+                accountAfterMenu.current = false;
+                setAccountOpen(true);
+              }
             }}
           >
             <SheetContent
@@ -337,15 +284,25 @@ export function AdminShell({
               </SheetClose>
               <SidebarChrome
                 user={user}
-                signOutAction={signOutAction}
                 pendingCount={pendingCount}
                 onSearch={() => {
                   searchAfterMenu.current = true;
                   setOpen(false);
                 }}
+                onOpenAccount={() => {
+                  accountAfterMenu.current = true;
+                  setOpen(false);
+                }}
               />
             </SheetContent>
           </Sheet>
+
+          <AccountDrawer
+            user={user}
+            open={accountOpen}
+            onOpenChange={setAccountOpen}
+            signOutAction={signOutAction}
+          />
 
           <div className="flex min-w-0 flex-1 flex-col">
             {/* Mobile topbar — glass, because content genuinely scrolls under

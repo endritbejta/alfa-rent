@@ -111,6 +111,12 @@ in Vercel's env. Vercel vars are marked **Sensitive**, so `vercel env pull`
 returns empty strings — use `vercel logs <url> --json` to diagnose instead
 (that is how the localhost-database bug was found).
 
+**Backups and restores:** see
+[`docs/runbooks/backup-and-restore.md`](docs/runbooks/backup-and-restore.md).
+`prisma migrate status` says "up to date" even when the exclusion constraint,
+RLS or the CHECKs are gone; after any restore, run
+`scripts/verify-restore.sh <url>`.
+
 ## 6. Known issues — the next work, in priority order
 
 ### Security / correctness

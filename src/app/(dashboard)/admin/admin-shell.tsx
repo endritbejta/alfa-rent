@@ -345,7 +345,7 @@ export function AdminShell({
             {/* The ceiling moved into PageBody (per page). The banner keeps it
               here so alerts align with page content; :empty guards the margin
               when nothing is showing. The calendar opts out and runs full-width. */}
-            <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+            <main className="min-w-0 flex-1 p-4 sm:p-6 lg:px-6 lg:py-8">
               <div className="mx-auto w-full max-w-[1440px] [&:not(:empty)]:mb-6">
                 {banner}
               </div>

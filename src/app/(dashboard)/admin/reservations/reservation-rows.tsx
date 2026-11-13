@@ -128,7 +128,7 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
             onClick={() => openReservation(r.id)}
             className="hover:bg-surface-hover cursor-pointer align-top transition-colors"
           >
-            <TableCell className="max-w-56 py-3 pl-0">
+            <TableCell className="max-w-56 py-4 pl-3">
               <button
                 type="button"
                 aria-label={t("admin.openReservation", { name: row.name })}
@@ -146,29 +146,29 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
                 {r.customer.email}
               </p>
             </TableCell>
-            <TableCell className="max-w-52 py-3">
+            <TableCell className="max-w-52 py-4">
               <p className="truncate">{row.model}</p>
               <p className="text-muted-foreground truncate text-xs tracking-wide tabular-nums">
                 {row.plate}
               </p>
             </TableCell>
-            <TableCell className="py-3">
+            <TableCell className="py-4">
               <p className="tabular-nums">{row.period}</p>
               <p className="text-muted-foreground text-xs">{row.days}</p>
             </TableCell>
-            <TableCell className="py-3 text-right">
+            <TableCell className="py-4 text-right">
               <p className="font-medium tabular-nums">{row.total}</p>
               <LateReturnNote late={r.late} />
               <EarlyReturnNote early={r.early} />
             </TableCell>
-            <TableCell className="py-3">
+            <TableCell className="py-4">
               <StatusBadge status={r.status} dot />
               <p>
                 <ReservationAttention attention={r.timing.attention} />
               </p>
             </TableCell>
             <TableCell
-              className="py-2.5 pr-0 text-right align-middle"
+              className="py-3 pr-3 text-right align-middle"
               // Buttons live inside the row's hit area; without this,
               // confirming a rental would also fling the drawer open behind
               // the click.
@@ -218,7 +218,7 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <div
               onClick={() => openReservation(r.id)}
-              className="hover:bg-surface-hover cursor-pointer py-3.5 transition-colors"
+              className="hover:bg-surface-hover cursor-pointer px-2 py-4 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

@@ -6,6 +6,7 @@ import {
   rentalDays,
   rentalDaysBetween,
   returnDayFor,
+  durationChoiceFor,
   withTimeOfDay,
 } from "./rental-dates";
 
@@ -177,5 +178,20 @@ describe("extension billing agrees with the drawer's preview", () => {
     const billed =
       rentalDays(springPickup, target) - rentalDays(springPickup, springReturn);
     expect(billed).toBe(2);
+  });
+});
+
+describe("durationChoiceFor", () => {
+  it("recognises a one-day and a one-week range", () => {
+    expect(durationChoiceFor("2026-11-25", "2026-11-25")).toBe("day");
+    expect(durationChoiceFor("2026-11-25", "2026-12-01")).toBe("week");
+  });
+
+  it("falls back to custom for anything else or missing dates", () => {
+    expect(durationChoiceFor("2026-11-25", "2026-11-26")).toBe("custom");
+    expect(durationChoiceFor("2026-11-25", "2026-12-02")).toBe("custom");
+    expect(durationChoiceFor("2026-11-25", "")).toBe("custom");
+    expect(durationChoiceFor(undefined, undefined)).toBe("custom");
+    expect(durationChoiceFor("2026-11-26", "2026-11-25")).toBe("custom");
   });
 });

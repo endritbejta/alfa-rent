@@ -4,13 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format, parseISO, startOfToday } from "date-fns";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
+import { RentalDurationPresets } from "@/components/forms/rental-duration-presets";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
 import { useI18n } from "@/components/shared/locale-provider";
 import { formatPrice } from "@/lib/money";
 import { PendingStatus } from "@/components/shared/pending-status";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
-import { rentalDaysBetween } from "@/lib/rental-dates";
+import {
+  DURATION_PRESET_DAYS,
+  durationChoiceFor,
+  rentalDaysBetween,
+  returnDayFor,
+  type DurationChoice,
+} from "@/lib/rental-dates";
 
 /** A pickup day and a return day on or after it: one day at the least. */
 const isRange = (from: string, to: string) => !!from && !!to && to >= from;
@@ -45,6 +52,9 @@ export function AvailabilityWidget({
   // customer who already chose dates lands here with a live quote.
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
+  const [choice, setChoice] = useState<DurationChoice>(() =>
+    durationChoiceFor(initialFrom, initialTo)
+  );
   const initialDays =
     initialFrom && initialTo && isRange(initialFrom, initialTo)
       ? rentalDaysBetween(initialFrom, initialTo)
@@ -127,8 +137,22 @@ export function AvailabilityWidget({
 
   const days = isRange(from, to) ? rentalDaysBetween(from, to) : 0;
 
+  /*
+   * A preset fixes the length, so it follows the pickup: choosing one, or
+   * moving the pickup while one is chosen, sets the return from it. Picking a
+   * return by hand is choosing custom dates. Availability is not pre-judged
+   * here — the range is checked like any other and a clash says so.
+   */
+  const chooseDuration = (next: DurationChoice) => {
+    setChoice(next);
+    if (next !== "custom" && from) {
+      setTo(returnDayFor(from, DURATION_PRESET_DAYS[next]));
+    }
+  };
+
   return (
     <div className="mt-5 space-y-3">
+      <RentalDurationPresets value={choice} onChange={chooseDuration} />
       {/* The same range picker the admin uses — one calendar system. */}
       <DateRangePicker
         tone="light"
@@ -142,8 +166,19 @@ export function AvailabilityWidget({
           to: to ? parseISO(to) : undefined,
         }}
         onChange={(range) => {
-          setFrom(range?.from ? format(range.from, "yyyy-MM-dd") : "");
-          setTo(range?.to ? format(range.to, "yyyy-MM-dd") : "");
+          const nextFrom = range?.from ? format(range.from, "yyyy-MM-dd") : "";
+          const nextTo = range?.to ? format(range.to, "yyyy-MM-dd") : "";
+          setFrom(nextFrom);
+          if (choice !== "custom" && nextFrom !== from) {
+            setTo(
+              nextFrom
+                ? returnDayFor(nextFrom, DURATION_PRESET_DAYS[choice])
+                : ""
+            );
+            return;
+          }
+          if (nextTo !== to) setChoice("custom");
+          setTo(nextTo);
         }}
         bookingCalendar={bookingCalendar}
       />

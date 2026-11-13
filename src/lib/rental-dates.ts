@@ -98,3 +98,24 @@ export function latestReturnBefore(returnDate: Date, nextPickup: Date): Date {
   const sameDay = withTimeOfDay(returnDate, nextPickup);
   return new Date(sameDay.getTime() - MS_PER_DAY);
 }
+
+/** The storefront's quick durations, in rental days (both ends counted). */
+export const DURATION_PRESET_DAYS = { day: 1, week: 7 } as const;
+
+export type DurationChoice = keyof typeof DURATION_PRESET_DAYS | "custom";
+
+/**
+ * Which duration choice a pair of calendar days already matches, so dates
+ * carried in from the URL light up the right option. Anything else, or no
+ * dates yet, is "custom": the plain date pickers, as before presets existed.
+ */
+export function durationChoiceFor(
+  pickupDay: string | null | undefined,
+  returnDay: string | null | undefined
+): DurationChoice {
+  if (!pickupDay || !returnDay || returnDay < pickupDay) return "custom";
+  const days = rentalDaysBetween(pickupDay, returnDay);
+  if (days === DURATION_PRESET_DAYS.day) return "day";
+  if (days === DURATION_PRESET_DAYS.week) return "week";
+  return "custom";
+}

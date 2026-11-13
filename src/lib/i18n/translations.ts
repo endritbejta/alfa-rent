@@ -1059,6 +1059,10 @@ const en = {
   "admin.cancelReasonLabel": "Reason for cancelling",
   "admin.cancelReasonHint":
     "Kept in the reservation's history. At least {count} characters.",
+  "admin.history": "Change history",
+  "admin.historyEmpty": "No recorded changes yet.",
+  "admin.historyRemovedStaff": "A removed staff member",
+  "admin.historySystem": "System",
   "audit.reservation.create": "Created the reservation",
   "audit.reservation.confirm": "Confirmed the reservation",
   "audit.reservation.cancel": "Cancelled the reservation",
@@ -2149,6 +2153,10 @@ const sq: TranslationDictionary = {
   "admin.cancelReasonLabel": "Arsyeja e anulimit",
   "admin.cancelReasonHint":
     "Ruhet në historikun e rezervimit. Të paktën {count} karaktere.",
+  "admin.history": "Historiku i ndryshimeve",
+  "admin.historyEmpty": "Ende nuk ka ndryshime të regjistruara.",
+  "admin.historyRemovedStaff": "Një punonjës që nuk është më në sistem",
+  "admin.historySystem": "Sistemi",
   "audit.reservation.create": "Krijoi rezervimin",
   "audit.reservation.confirm": "Konfirmoi rezervimin",
   "audit.reservation.cancel": "Anuloi rezervimin",

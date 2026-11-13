@@ -58,6 +58,35 @@ export function businessDay(date: Date): string {
 }
 
 /**
+ * The branch's wall-clock reading of an instant, as a Date whose *local*
+ * fields hold it, for date-fns to format. Staff in another time zone (or a
+ * laptop left on UTC) still read when something happened at the branch.
+ * Only for display: the returned Date is not the same instant.
+ */
+export function businessWallClock(date: Date): Date {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((item) => item.type === type)?.value ?? 0);
+  return new Date(
+    part("year"),
+    part("month") - 1,
+    part("day"),
+    part("hour"),
+    part("minute"),
+    part("second")
+  );
+}
+
+/**
  * Exact UTC instant at the start of a branch-local calendar day. This is
  * safe across Vercel's UTC runtime and Belgrade daylight-saving changes.
  */

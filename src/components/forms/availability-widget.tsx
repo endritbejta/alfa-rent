@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  differenceInCalendarDays,
-  format,
-  parseISO,
-  startOfToday,
-} from "date-fns";
+import { format, parseISO, startOfToday } from "date-fns";
 import { DateRangePicker } from "@/components/forms/date-range-picker";
 import { Button } from "@/components/ui/button";
 import type { ApiResponse } from "@/types/api";
@@ -15,6 +10,10 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { formatPrice } from "@/lib/money";
 import { PendingStatus } from "@/components/shared/pending-status";
 import type { VehicleBookingCalendar } from "@/lib/booking-calendar";
+import { rentalDaysBetween } from "@/lib/rental-dates";
+
+/** A pickup day and a return day on or after it: one day at the least. */
+const isRange = (from: string, to: string) => !!from && !!to && to >= from;
 
 type Quote = { available: boolean; totalPrice: number | null };
 
@@ -47,8 +46,8 @@ export function AvailabilityWidget({
   const [from, setFrom] = useState(initialFrom ?? "");
   const [to, setTo] = useState(initialTo ?? "");
   const initialDays =
-    initialFrom && initialTo && initialTo > initialFrom
-      ? differenceInCalendarDays(new Date(initialTo), new Date(initialFrom))
+    initialFrom && initialTo && isRange(initialFrom, initialTo)
+      ? rentalDaysBetween(initialFrom, initialTo)
       : 0;
   /*
    * Every quote fetched on this page, by date range. A customer comparing
@@ -76,13 +75,13 @@ export function AvailabilityWidget({
       delete next[key];
       return next;
     });
-  const rangeKey = from && to && to > from ? `${from}|${to}` : null;
+  const rangeKey = isRange(from, to) ? `${from}|${to}` : null;
   const quote = rangeKey ? (quotes[rangeKey] ?? null) : null;
 
   // Debounced availability check; the timeout also keeps state updates
   // out of the synchronous effect body.
   useEffect(() => {
-    if (!from || !to || to <= from) {
+    if (!isRange(from, to)) {
       const timer = setTimeout(() => setError(null), 0);
       return () => clearTimeout(timer);
     }
@@ -126,10 +125,7 @@ export function AvailabilityWidget({
     };
   }, [from, initialFrom, initialRangeAvailable, initialTo, t, to, vehicleId]);
 
-  const days =
-    from && to && to > from
-      ? differenceInCalendarDays(new Date(to), new Date(from))
-      : 0;
+  const days = isRange(from, to) ? rentalDaysBetween(from, to) : 0;
 
   return (
     <div className="mt-5 space-y-3">

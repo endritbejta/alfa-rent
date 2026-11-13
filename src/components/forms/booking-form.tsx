@@ -31,6 +31,7 @@ import { formatPrice } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { IDEMPOTENCY_HEADER, keyForPayload } from "@/lib/idempotency";
 import { PendingStatus } from "@/components/shared/pending-status";
+import { rentalDaysBetween } from "@/lib/rental-dates";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import {
   isBookingDayBlocked,
@@ -49,7 +50,7 @@ const createFormSchema = (t: (key: TranslationKey) => string) =>
       email: z.email(t("booking.validEmail")),
       phone: z.string().trim().min(6, t("booking.validPhone")).max(25),
     })
-    .refine((data) => !data.from || !data.to || data.to > data.from, {
+    .refine((data) => !data.from || !data.to || data.to >= data.from, {
       message: t("booking.rangeError"),
       path: ["to"],
     });
@@ -135,12 +136,8 @@ export function BookingForm({
   const pickedTo = useWatch({ control, name: "to" });
 
   const rentalDays =
-    pickedFrom && pickedTo && pickedTo > pickedFrom
-      ? Math.round(
-          (Date.parse(`${pickedTo}T00:00:00Z`) -
-            Date.parse(`${pickedFrom}T00:00:00Z`)) /
-            86_400_000
-        )
+    pickedFrom && pickedTo && pickedTo >= pickedFrom
+      ? rentalDaysBetween(pickedFrom, pickedTo)
       : null;
   const estimatedTotal = rentalDays ? vehicle.pricePerDay * rentalDays : null;
   const unavailablePickup = (date: Date) =>

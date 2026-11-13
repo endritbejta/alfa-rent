@@ -125,7 +125,7 @@ function buildVehicleWhere(
     }),
     ...(from &&
       to &&
-      to > from && {
+      to >= from && {
         reservations: {
           none: occupyingReservationWhere({ pickupDate: from, returnDate: to }),
         },

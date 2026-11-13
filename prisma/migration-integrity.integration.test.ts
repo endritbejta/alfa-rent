@@ -52,6 +52,17 @@ describe("database objects that schema.prisma does not model", () => {
     expect(rows[0]!.contype).toBe("x");
   });
 
+  it("compares whole calendar days, return day included", async () => {
+    // The return day is a rental day: a half-open tsrange on the stored
+    // instants would let another booking pick the car up that afternoon.
+    const [row] = await prisma.$queryRaw<{ def: string }[]>`
+      SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+      WHERE conname = 'reservations_no_overlap'
+    `;
+    expect(row!.def).toContain("daterange");
+    expect(row!.def).toContain("'[]'");
+  });
+
   it("keeps the btree_gist extension the constraint depends on", async () => {
     const rows = await prisma.$queryRaw<{ extname: string }[]>`
       SELECT extname FROM pg_extension WHERE extname = 'btree_gist'

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { addDays, format, isAfter, parseISO, startOfToday } from "date-fns";
+import { format, isAfter, isBefore, parseISO, startOfToday } from "date-fns";
 import { enUS, sq } from "date-fns/locale";
 import { CalendarDays, X } from "lucide-react";
 import type { DateRange, Matcher } from "react-day-picker";
@@ -314,7 +314,8 @@ export function DateRangePicker({
     to: t("booking.returnDate"),
   };
   const dark = tone === "dark";
-  const earliestReturn = value?.from ? addDays(value.from, 1) : minDate;
+  // Returning on the pickup day is a one-day rental: both days count.
+  const earliestReturn = value?.from ?? minDate;
   const returnMinDate =
     minDate && earliestReturn && isAfter(minDate, earliestReturn)
       ? minDate
@@ -353,7 +354,7 @@ export function DateRangePicker({
               from,
               to:
                 value?.to &&
-                isAfter(value.to, from) &&
+                !isBefore(value.to, from) &&
                 (!bookingCalendar ||
                   isBookingRangeAvailable(
                     toDateValue(from),

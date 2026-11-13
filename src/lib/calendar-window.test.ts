@@ -58,7 +58,7 @@ describe("a calendar bar", () => {
   const w = calendarWindow(now);
   const index = (key: string) => w.days.indexOf(key);
 
-  it("covers pickup day up to, not including, return day", () => {
+  it("covers pickup day pickup day through return day, both included", () => {
     expect(
       calendarBar(
         {
@@ -68,7 +68,7 @@ describe("a calendar bar", () => {
         },
         w
       )
-    ).toEqual({ start: index("2026-11-20"), span: 3 });
+    ).toEqual({ start: index("2026-11-20"), span: 4 });
   });
 
   it("is absent for a request twenty months old", () => {

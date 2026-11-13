@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { latestUnder, withTimeOfDay } from "./rental-dates";
-import { rentalDays } from "./pricing";
+import {
+  latestReturnBefore,
+  rentalDayEnd,
+  rentalDayStart,
+  rentalDays,
+  rentalDaysBetween,
+  returnDayFor,
+  withTimeOfDay,
+} from "./rental-dates";
 
 /** Rentals are stored with a 10:00 UTC time of day. */
 const at = (iso: string) => new Date(iso);
@@ -33,39 +40,111 @@ describe("withTimeOfDay", () => {
   });
 });
 
-describe("latestUnder", () => {
-  it("lands exactly on the next pickup — touching is not overlapping", () => {
-    // The exclusion constraint compares half-open tsranges, so a return at
-    // the next booking's pickup instant is legal.
-    const result = latestUnder(
+describe("rentalDays", () => {
+  it("counts a same-day return as one day", () => {
+    expect(rentalDays(at("2026-11-25T10:00Z"), at("2026-11-25T10:00Z"))).toBe(
+      1
+    );
+  });
+
+  it("counts both the pickup and the return day", () => {
+    expect(rentalDays(at("2026-11-25T10:00Z"), at("2026-11-26T10:00Z"))).toBe(
+      2
+    );
+  });
+
+  it("counts calendar days, not 24-hour periods", () => {
+    // Any time of day on either end: it is the days that are booked.
+    expect(rentalDays(at("2026-11-25T08:00Z"), at("2026-11-26T18:00Z"))).toBe(
+      2
+    );
+    expect(rentalDays(at("2026-11-25T18:00Z"), at("2026-11-26T08:00Z"))).toBe(
+      2
+    );
+  });
+
+  it("crosses a month boundary", () => {
+    expect(rentalDays(at("2026-01-30T10:00Z"), at("2026-02-02T10:00Z"))).toBe(
+      4
+    );
+  });
+
+  it("crosses a leap February", () => {
+    expect(rentalDays(at("2028-02-28T10:00Z"), at("2028-03-01T10:00Z"))).toBe(
+      3
+    );
+  });
+
+  it("crosses a year boundary", () => {
+    expect(rentalDays(at("2026-12-31T10:00Z"), at("2027-01-01T10:00Z"))).toBe(
+      2
+    );
+  });
+
+  it("is not moved by a daylight-saving change", () => {
+    expect(rentalDays(at("2026-03-28T10:00Z"), at("2026-03-30T10:00Z"))).toBe(
+      3
+    );
+  });
+
+  it("refuses a return before the pickup day", () => {
+    expect(() =>
+      rentalDays(at("2026-11-26T10:00Z"), at("2026-11-25T10:00Z"))
+    ).toThrow(RangeError);
+  });
+});
+
+describe("rentalDaysBetween and returnDayFor", () => {
+  it("reads calendar-day strings the same way", () => {
+    expect(rentalDaysBetween("2026-11-25", "2026-11-25")).toBe(1);
+    expect(rentalDaysBetween("2026-11-25", "2026-11-26")).toBe(2);
+    expect(rentalDaysBetween("2026-12-29", "2027-01-04")).toBe(7);
+  });
+
+  it("returns on the pickup day for one day and six days on for a week", () => {
+    expect(returnDayFor("2026-11-25", 1)).toBe("2026-11-25");
+    expect(returnDayFor("2026-11-25", 7)).toBe("2026-12-01");
+    expect(returnDayFor("2026-12-28", 7)).toBe("2027-01-03");
+  });
+
+  it("is the inverse of rentalDaysBetween", () => {
+    for (const days of [1, 2, 7, 31, 365]) {
+      expect(
+        rentalDaysBetween("2026-02-20", returnDayFor("2026-02-20", days))
+      ).toBe(days);
+    }
+  });
+
+  it("refuses a duration under one day", () => {
+    expect(() => returnDayFor("2026-11-25", 0)).toThrow(RangeError);
+  });
+});
+
+describe("rentalDayStart and rentalDayEnd", () => {
+  it("bound the whole calendar day of a rental date", () => {
+    const pickup = at("2026-11-25T10:00:00Z");
+    expect(rentalDayStart(pickup).toISOString()).toBe(
+      "2026-11-25T00:00:00.000Z"
+    );
+    expect(rentalDayEnd(pickup).toISOString()).toBe("2026-11-26T00:00:00.000Z");
+  });
+});
+
+describe("latestReturnBefore", () => {
+  it("is the day before the next pickup — the return day is a rental day", () => {
+    const result = latestReturnBefore(
       at("2026-07-19T10:00:00Z"),
       at("2026-07-27T10:00:00Z")
     );
-    expect(result.toISOString()).toBe("2026-07-27T10:00:00.000Z");
+    expect(result.toISOString()).toBe("2026-07-26T10:00:00.000Z");
   });
 
-  it("steps back a day when the rental's time would overshoot the ceiling", () => {
-    // The ceiling falls at midnight on the 1st; a 10:00 return on the 1st
-    // would run ten hours past it, so the 31st is the last usable day.
-    const result = latestUnder(
+  it("keeps the rental's own time of day whatever the next pickup's is", () => {
+    const result = latestReturnBefore(
       at("2026-07-19T10:00:00Z"),
-      at("2026-08-01T00:00:00Z")
+      at("2026-08-01T08:00:00Z")
     );
     expect(result.toISOString()).toBe("2026-07-31T10:00:00.000Z");
-  });
-
-  it("keeps the ceiling's day when the rental's time fits under it", () => {
-    const result = latestUnder(
-      at("2026-07-19T10:00:00Z"),
-      at("2026-08-01T18:00:00Z")
-    );
-    expect(result.toISOString()).toBe("2026-08-01T10:00:00.000Z");
-  });
-
-  it("never returns a value above the ceiling", () => {
-    const ceiling = at("2026-08-01T00:00:00Z");
-    const result = latestUnder(at("2026-07-19T10:00:00Z"), ceiling);
-    expect(result.getTime()).toBeLessThanOrEqual(ceiling.getTime());
   });
 });
 

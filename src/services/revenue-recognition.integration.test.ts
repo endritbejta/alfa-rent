@@ -52,12 +52,12 @@ beforeAll(async () => {
     // earlier — the old definition put all 400 in June 2030.
     {
       pickupDate: at(2031, 1, 30),
-      returnDate: at(2031, 2, 3),
+      returnDate: at(2031, 2, 2),
       status: "CONFIRMED" as const,
       totalPrice: 400,
       createdAt: new Date("2030-06-01T09:00:00.000Z"),
     },
-    // 29 hours bill as 2 days: 20 and 21 Feb.
+    // Pickup and return day both count, whatever the time: 20 and 21 Feb.
     {
       pickupDate: at(2031, 2, 20),
       returnDate: at(2031, 2, 21, 15),
@@ -67,14 +67,14 @@ beforeAll(async () => {
     // 3 days that do not divide evenly: 31 Mar, then 1 and 2 Apr.
     {
       pickupDate: at(2031, 3, 31),
-      returnDate: at(2031, 4, 3),
+      returnDate: at(2031, 4, 2),
       status: "COMPLETED" as const,
       totalPrice: 100,
     },
     // 2 days across a year boundary.
     {
       pickupDate: at(2031, 12, 31),
-      returnDate: at(2032, 1, 2),
+      returnDate: at(2032, 1, 1),
       status: "COMPLETED" as const,
       totalPrice: 50,
     },

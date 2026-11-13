@@ -1,19 +1,10 @@
 import { Prisma } from "@prisma/client";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+import { rentalDays } from "@/lib/rental-dates";
 
 /**
- * Rental billing counts started days: any partial day rounds up,
- * and the minimum charge is one day.
+ * A booking's price: the daily rate times its inclusive day count (pickup
+ * day and return day both count — see rentalDays).
  */
-export function rentalDays(pickupDate: Date, returnDate: Date): number {
-  const ms = returnDate.getTime() - pickupDate.getTime();
-  if (ms <= 0) {
-    throw new RangeError("returnDate must be after pickupDate");
-  }
-  return Math.max(1, Math.ceil(ms / MS_PER_DAY));
-}
-
 export function calculateTotalPrice(
   pricePerDay: Prisma.Decimal,
   pickupDate: Date,

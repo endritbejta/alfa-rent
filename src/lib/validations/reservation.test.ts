@@ -31,6 +31,32 @@ describe("availabilitySchema", () => {
     ).toThrow();
   });
 
+  it("accepts a same-day return as a one-day rental", () => {
+    const day = future(3).slice(0, 10);
+    expect(
+      availabilitySchema.safeParse({
+        vehicleId: "v1",
+        pickupDate: `${day}T10:00:00.000Z`,
+        returnDate: `${day}T10:00:00.000Z`,
+      }).success
+    ).toBe(true);
+  });
+
+  it("caps the duration on the inclusive day count", () => {
+    const pickup = new Date(`${future(3).slice(0, 10)}T10:00:00.000Z`);
+    const returnAfter = (days: number) =>
+      new Date(pickup.getTime() + days * 24 * 60 * 60 * 1000);
+    const parse = (returnDate: Date) =>
+      availabilitySchema.safeParse({
+        vehicleId: "v1",
+        pickupDate: pickup,
+        returnDate,
+      });
+    // MAX_RENTAL_DAYS days ends MAX_RENTAL_DAYS - 1 days after the pickup.
+    expect(parse(returnAfter(MAX_RENTAL_DAYS - 1)).success).toBe(true);
+    expect(parse(returnAfter(MAX_RENTAL_DAYS)).success).toBe(false);
+  });
+
   it("rejects a pickup in the past", () => {
     expect(() =>
       availabilitySchema.parse({

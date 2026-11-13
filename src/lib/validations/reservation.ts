@@ -2,10 +2,18 @@ import { z } from "zod";
 import { ReservationStatus } from "@prisma/client";
 import { businessDay, rentalCalendarDay } from "@/lib/reservation-lifecycle";
 import { idempotencyKeySchema } from "@/lib/idempotency";
+import { rentalDays } from "@/lib/rental-dates";
 
 export const MAX_RENTAL_DAYS = 365;
 export const MAX_BOOKING_HORIZON_DAYS = 730;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Pickup and return day both count, so returning on the pickup day is a
+ * one-day rental; only a return day before the pickup day is invalid.
+ */
+const returnNotBeforePickup = (d: { pickupDate: Date; returnDate: Date }) =>
+  rentalCalendarDay(d.returnDate) >= rentalCalendarDay(d.pickupDate);
 
 const dateRange = {
   pickupDate: z.coerce.date(),
@@ -16,8 +24,8 @@ const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
   schema: z.ZodType<T>
 ) =>
   schema
-    .refine((d) => d.returnDate > d.pickupDate, {
-      message: "Return date must be after pickup date",
+    .refine(returnNotBeforePickup, {
+      message: "Return date cannot be before pickup date",
       path: ["returnDate"],
     })
     .refine((d) => rentalCalendarDay(d.pickupDate) >= businessDay(new Date()), {
@@ -35,8 +43,8 @@ const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
     )
     .refine(
       (d) =>
-        d.returnDate.getTime() - d.pickupDate.getTime() <=
-        MAX_RENTAL_DAYS * DAY_MS,
+        !returnNotBeforePickup(d) ||
+        rentalDays(d.pickupDate, d.returnDate) <= MAX_RENTAL_DAYS,
       {
         message: `Rental duration cannot exceed ${MAX_RENTAL_DAYS} days`,
         path: ["returnDate"],
@@ -118,7 +126,7 @@ export const manualReservationSchema = withValidRange(
  */
 export const reservationPreviewSchema = z
   .object({ vehicleId: z.string().min(1), ...dateRange })
-  .refine((d) => d.returnDate > d.pickupDate, {
+  .refine(returnNotBeforePickup, {
     path: ["returnDate"],
   });
 

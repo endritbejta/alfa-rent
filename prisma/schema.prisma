@@ -80,6 +80,7 @@ model User {
   updatedAt              DateTime           @updatedAt
   inspections            RentalInspection[]
   backfilledReservations Reservation[]      @relation("ReservationBackfill")
+  auditEvents            AuditEvent[]
 
   @@map("users")
 }
@@ -332,4 +333,34 @@ model RateLimit {
 
   @@index([expiresAt])
   @@map("rate_limits")
+}
+
+/// Who did what, when, and why: one row per staff write, inserted in the same
+/// transaction as the change (src/lib/audit.ts). Append-only — a trigger the
+/// model cannot express refuses UPDATE, DELETE and TRUNCATE, except the
+/// actor's ON DELETE SET NULL and the anonymisation scrub. See the migration
+/// 20261113180000_audit_events for why it is a trigger and not a REVOKE.
+model AuditEvent {
+  id        String   @id @default(cuid())
+  /// Null for a system event, or once the staff account has been removed.
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /// True for an event no person caused. Tells "system" apart from a NULL
+  /// actorId left behind by a removed staff account.
+  system    Boolean  @default(false)
+  /// `<entity>.<verb>`, e.g. `reservation.cancel`. See AuditAction.
+  action    String
+  entity    String
+  /// Not a foreign key: a deleted vehicle's or merged customer's history is
+  /// the history most worth keeping.
+  entityId  String
+  /// Only the fields that changed. Never secrets or unneeded personal data.
+  before    Json?
+  after     Json?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId, createdAt])
+  @@index([actorId])
+  @@map("audit_events")
 }

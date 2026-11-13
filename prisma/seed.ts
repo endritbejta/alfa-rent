@@ -561,6 +561,14 @@ async function main() {
   console.log("Seeding database (rich dataset)...");
 
   await prisma.repair.deleteMany();
+  // The audit trail describes rows this seed is about to delete. It is
+  // append-only (a trigger refuses DELETE), so it is cleared the one
+  // deliberate way: with the trigger switched off for this transaction.
+  await prisma.$transaction([
+    prisma.$executeRaw`ALTER TABLE audit_events DISABLE TRIGGER audit_events_append_only`,
+    prisma.auditEvent.deleteMany(),
+    prisma.$executeRaw`ALTER TABLE audit_events ENABLE TRIGGER audit_events_append_only`,
+  ]);
   // Payments must go before reservations: Payment.reservationId is
   // onDelete: Restrict, so a single payment row makes reservation.deleteMany()
   // fail with P2003 and aborts the whole seed. PaymentEvent cascades from

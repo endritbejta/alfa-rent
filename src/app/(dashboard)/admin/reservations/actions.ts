@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { after } from "next/server";
 import { PUBLIC_VEHICLES_TAG } from "@/services/vehicle.service";
 import type { ReservationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth/guards";
@@ -28,6 +29,7 @@ import {
   extendReservation,
   updateReservationStatus,
 } from "@/services/reservation.service";
+import { notifyCustomer } from "@/services/customer-notification.service";
 import {
   getPickupMileage,
   recordPastRental,
@@ -148,6 +150,7 @@ export async function updateReservationStatusAction(
   reason?: string | null
 ): Promise<ActionResult> {
   const user = await requireRole("EMPLOYEE");
+  let kind: "confirmed" | "cancelled";
   try {
     const parsed = updateReservationStatusSchema.safeParse({ status, reason });
     if (!parsed.success) {
@@ -164,9 +167,15 @@ export async function updateReservationStatusAction(
       user.id,
       input.reason
     );
+    // The service refuses every other target status.
+    kind = input.status === "CONFIRMED" ? "confirmed" : "cancelled";
   } catch (error) {
     return { error: await errorMessage(error) };
   }
+  // Tell the customer after the response, so a slow mail provider never
+  // holds up staff. The cancellation reason stays internal: it is not
+  // passed on, and the email says only that the booking was cancelled.
+  after(() => notifyCustomer(reservationId, kind));
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");

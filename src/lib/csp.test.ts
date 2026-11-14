@@ -5,6 +5,7 @@ import {
   createNonce,
   cspEnforced,
   CSP_ORIGINS,
+  framingFor,
   isFramingDenied,
   nonceCsp,
   proxySecurityHeaders,
@@ -90,6 +91,13 @@ describe("the nonce policy in report-only mode (the default)", () => {
     expect(policy.get("font-src")).toEqual(["'self'"]);
     expect(policy.get("frame-src")).toEqual(["'none'"]);
   });
+
+  it("lets the admin frame only its own pages (the print sheets)", () => {
+    const admin = parse(
+      nonceCsp({ ...base, pathname: "/admin/reservations" }, false).value
+    );
+    expect(admin.get("frame-src")).toEqual(["'self'"]);
+  });
 });
 
 describe("the nonce policy when enforcing", () => {
@@ -162,10 +170,20 @@ describe("proxySecurityHeaders", () => {
 });
 
 describe("framing", () => {
-  it.each(["/admin", "/admin/reservations", "/login", "/account/password"])(
-    "denies framing %s",
-    (pathname) => expect(isFramingDenied(pathname)).toBe(true)
+  it.each([
+    "/admin",
+    "/admin/reservations",
+    "/admin/printer",
+    "/login",
+    "/account/password",
+  ])("denies framing %s", (pathname) =>
+    expect(isFramingDenied(pathname)).toBe(true)
   );
+
+  it("lets this origin alone frame the print sheets", () => {
+    expect(framingFor("/admin/print/handover/abc")).toBe("self");
+    expect(isFramingDenied("/admin/print/handover/abc")).toBe(false);
+  });
 
   it.each(["/", "/car", "/car/x", "/booking", "/administrator", "/loginx"])(
     "lets the portfolio frame %s",
@@ -173,12 +191,13 @@ describe("framing", () => {
   );
 
   it("frames only from the portfolio on the storefront, from nowhere elsewhere", () => {
-    const frame = (framingDenied: boolean) =>
-      baselineDirectives({ framingDenied, https: true }).find(
+    const frame = (framing: "none" | "self" | "portfolio") =>
+      baselineDirectives({ framing, https: true }).find(
         ([name]) => name === "frame-ancestors"
       );
-    expect(frame(true)).toEqual(["frame-ancestors", "'none'"]);
-    expect(frame(false)).toEqual([
+    expect(frame("none")).toEqual(["frame-ancestors", "'none'"]);
+    expect(frame("self")).toEqual(["frame-ancestors", "'self'"]);
+    expect(frame("portfolio")).toEqual([
       "frame-ancestors",
       "'self'",
       CSP_ORIGINS.portfolio,
@@ -191,7 +210,9 @@ describe("framing", () => {
  * these patterns: `:path*` is any suffix, and the regex group is kept as is.
  */
 function sourceMatches(source: string, pathname: string): boolean {
-  const pattern = source.replace("/:path*", "(?:/.*)?");
+  const pattern = source
+    .replace("/:path*", "(?:/.*)?")
+    .replace(/:path\((.*)\)$/, "($1)");
   return new RegExp(`^${pattern}$`).test(pathname);
 }
 
@@ -234,6 +255,31 @@ describe("staticSecurityHeaders (next.config.ts)", () => {
       );
       // ALLOW-FROM is obsolete and SAMEORIGIN would break the embed.
       expect(headers.some((h) => h.key === "X-Frame-Options")).toBe(false);
+    }
+  );
+
+  it.each([
+    "/admin/print/handover/abc",
+    "/admin/print/handover/abc?type=return",
+  ])("lets only this origin frame the print sheet %s", (path) => {
+    const headers = headersFor(path.split("?")[0]!);
+    const csp = headers.filter((h) => h.key === "Content-Security-Policy");
+    expect(csp).toHaveLength(1);
+    expect(csp[0]!.value).toContain("frame-ancestors 'self'");
+    expect(csp[0]!.value).not.toContain(CSP_ORIGINS.portfolio);
+    expect(headers.filter((h) => h.key === "X-Frame-Options")).toEqual([
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+    ]);
+  });
+
+  it.each(["/admin/printer", "/admin/reservations/print"])(
+    "still denies framing the look-alike %s",
+    (pathname) => {
+      const headers = headersFor(pathname);
+      expect(headers).toContainEqual({ key: "X-Frame-Options", value: "DENY" });
+      expect(
+        headers.filter((h) => h.key === "Content-Security-Policy")
+      ).toHaveLength(1);
     }
   );
 

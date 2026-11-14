@@ -4,7 +4,6 @@ import { getAnalyticsReport } from "@/services/analytics-report.service";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PageBody } from "@/app/(dashboard)/admin/page-body";
 import { getI18n } from "@/lib/i18n/server";
-import type { Locale } from "@/lib/i18n/config";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { formatEur } from "@/lib/money";
 import { formatNumber } from "@/lib/number-format";
@@ -16,12 +15,29 @@ import {
   stepPeriod,
   parsePeriod,
 } from "@/lib/analytics-period";
-import { SMALL_SAMPLE, change, ratio } from "@/lib/analytics-metrics";
+import { SMALL_SAMPLE, ratio } from "@/lib/analytics-metrics";
 import { buildInsights, type InsightValue } from "@/lib/analytics-insights";
 import { RESERVATION_STATUS_KEYS } from "@/lib/status-labels";
 import { BarChart, type ChartBucket } from "./bar-chart";
+import { ExportMenu } from "./export-menu";
 import { PeriodControls } from "./period-controls";
 import { VehicleTable } from "./vehicle-table";
+import {
+  Bars,
+  Delta,
+  GrainSwitch,
+  Kpi,
+  KpiGrid,
+  Module,
+  ModuleHeader,
+  SideGroup,
+  StatGroupLabel,
+  StatModule,
+  StatModules,
+  StatRow,
+  Subsection,
+  eyebrowClass,
+} from "./report-layout";
 import {
   type AnalyticsSearchParams,
   analyticsQuery,
@@ -38,12 +54,18 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const GRAIN_LABELS = {
-  day: "analytics.grain.day",
-  week: "analytics.grain.week",
-  month: "analytics.grain.month",
-  year: "analytics.grain.year",
-} as const satisfies Record<string, TranslationKey>;
+/**
+ * The analytics page, in five parts that always appear in this order:
+ *
+ *   A  header and export
+ *   B  reporting toolbar — the period, its comparison, how to change both
+ *   01 overview — the four figures that answer "how did we do"
+ *   02 business performance — every secondary figure, once, in four modules
+ *   03 detailed analysis — each chart beside the breakdown that explains it
+ *
+ * Every figure here appears in exactly one place. The data work above the
+ * JSX is the page's only logic; layout lives in report-layout.tsx.
+ */
 
 const STATUS_ORDER = [
   "COMPLETED",
@@ -304,98 +326,98 @@ export default async function AnalyticsPage({
   const thin = (n: number) =>
     n > 0 && n < SMALL_SAMPLE ? t("analytics.thinSample") : null;
 
+  const exportItems = (
+    [
+      ["summary", "analytics.export.summary"],
+      ["revenue", "analytics.export.revenue"],
+      ["reservations", "analytics.export.reservations"],
+      ["vehicles", "analytics.export.vehicles"],
+    ] as const
+  ).map(([kind, label]) => ({ href: exportHref(kind), label: t(label) }));
+  const comparisonLabel = comparisonTitle
+    ? t("analytics.series.compare", { period: comparisonTitle })
+    : undefined;
+
   return (
-    <PageBody className="space-y-10">
-      <PageHeader
-        title={t("admin.analytics")}
-        description={t("analytics.subtitle")}
-      >
-        <details className="relative print:hidden">
-          <summary className="border-input hover:bg-surface-hover flex h-9 cursor-pointer list-none items-center border px-3 text-xs font-semibold">
-            {t("analytics.export")}
-          </summary>
-          <ul className="bg-popover absolute right-0 z-20 mt-1 w-60 border py-1 text-sm shadow-md">
-            {(
-              [
-                ["summary", "analytics.export.summary"],
-                ["revenue", "analytics.export.revenue"],
-                ["reservations", "analytics.export.reservations"],
-                ["vehicles", "analytics.export.vehicles"],
-              ] as const
-            ).map(([kind, label]) => (
-              <li key={kind}>
-                <a
-                  href={exportHref(kind)}
-                  className="hover:bg-surface-hover block px-3 py-2"
-                  download
-                >
-                  {t(label)}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </details>
-      </PageHeader>
+    <PageBody className="space-y-8">
+      {/* A + B — header and reporting toolbar, one unit: the header's rule
+          is the toolbar's top edge. */}
+      <div>
+        <PageHeader
+          title={t("admin.analytics")}
+          description={t("analytics.subtitle")}
+        >
+          <ExportMenu label={t("analytics.export")} items={exportItems} />
+        </PageHeader>
 
-      <PeriodControls
-        key={`${period.token}-${compare}`}
-        token={period.token}
-        kind={period.kind}
-        preset={period.preset}
-        title={title}
-        dates={rangeLabel(period.from, period.to, locale)}
-        prev={
-          prevToken
-            ? {
-                token: prevToken,
-                label: periodTitle(parsePeriod(prevToken, today, span), locale),
-              }
-            : null
-        }
-        next={
-          nextToken
-            ? {
-                token: nextToken,
-                label: periodTitle(parsePeriod(nextToken, today, span), locale),
-              }
-            : null
-        }
-        months={months}
-        years={years}
-        compare={compare}
-        comparisonText={
-          comparison && comparisonTitle
-            ? // A custom range's title already is its dates; say them once.
-              comparisonTitle ===
-              rangeLabel(comparison.from, comparison.to, locale)
-              ? t("analytics.comparedWithDates", { dates: comparisonTitle })
-              : t("analytics.comparedWith", {
-                  period: comparisonTitle,
-                  dates: rangeLabel(comparison.from, comparison.to, locale),
-                })
-            : null
-        }
-        from={period.from}
-        to={period.to}
-        query={{ g: search.g, inspect: search.inspect }}
-      />
+        <PeriodControls
+          key={`${period.token}-${compare}`}
+          token={period.token}
+          kind={period.kind}
+          preset={period.preset}
+          title={title}
+          dates={rangeLabel(period.from, period.to, locale)}
+          prev={
+            prevToken
+              ? {
+                  token: prevToken,
+                  label: periodTitle(
+                    parsePeriod(prevToken, today, span),
+                    locale
+                  ),
+                }
+              : null
+          }
+          next={
+            nextToken
+              ? {
+                  token: nextToken,
+                  label: periodTitle(
+                    parsePeriod(nextToken, today, span),
+                    locale
+                  ),
+                }
+              : null
+          }
+          months={months}
+          years={years}
+          compare={compare}
+          comparisonText={
+            comparison && comparisonTitle
+              ? // A custom range's title already is its dates; say them once.
+                comparisonTitle ===
+                rangeLabel(comparison.from, comparison.to, locale)
+                ? t("analytics.comparedWithDates", { dates: comparisonTitle })
+                : t("analytics.comparedWith", {
+                    period: comparisonTitle,
+                    dates: rangeLabel(comparison.from, comparison.to, locale),
+                  })
+              : null
+          }
+          from={period.from}
+          to={period.to}
+          query={{ g: search.g, inspect: search.inspect }}
+        />
+      </div>
 
-      {(inProgress || isFuture) && (
-        <p className="text-muted-foreground border-l-2 pl-3 text-sm">
-          {isFuture
-            ? t("analytics.futurePeriod")
-            : t("analytics.inProgress", {
-                today: formatDayKey(today, locale),
-              })}
-        </p>
-      )}
-
-      {/* --- Overview ------------------------------------------------------ */}
-      <section aria-labelledby="overview" className="space-y-8">
-        <SectionTitle id="overview">{t("analytics.overview")}</SectionTitle>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-x-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <Figure
-            hero
+      {/* 01 — overview */}
+      <Module labelledBy="overview" first>
+        <ModuleHeader
+          index="01"
+          id="overview"
+          title={t("analytics.overview")}
+          description={
+            isFuture
+              ? t("analytics.futurePeriod")
+              : inProgress
+                ? t("analytics.inProgress", {
+                    today: formatDayKey(today, locale),
+                  })
+                : t("analytics.overviewNote")
+          }
+        />
+        <KpiGrid>
+          <Kpi
             label={t("analytics.kpi.earned")}
             value={eur(current.revenue.earned)}
             delta={delta(
@@ -408,7 +430,7 @@ export default async function AnalyticsPage({
               accruing: eur(current.revenue.accruing),
             })}
           />
-          <Figure
+          <Kpi
             label={t("analytics.kpi.reservations")}
             value={num(current.reservations.total)}
             delta={delta(
@@ -418,7 +440,7 @@ export default async function AnalyticsPage({
             )}
             note={t("analytics.kpi.reservationsNote")}
           />
-          <Figure
+          <Kpi
             label={t("analytics.kpi.utilization")}
             value={pct(current.fleet.utilization)}
             delta={delta(
@@ -431,7 +453,7 @@ export default async function AnalyticsPage({
               fleet: num(current.fleet.fleetDays),
             })}
           />
-          <Figure
+          <Kpi
             label={t("analytics.kpi.renters")}
             value={num(current.customers.renting)}
             delta={delta(
@@ -444,130 +466,11 @@ export default async function AnalyticsPage({
               returning: num(current.customers.returning),
             })}
           />
-        </dl>
-
-        <div className="grid gap-x-10 gap-y-8 border-t pt-6 md:grid-cols-2 xl:grid-cols-4">
-          <FigureGroup title={t("analytics.group.financial")}>
-            <Row
-              label={t("analytics.kpi.upcoming")}
-              value={eur(current.revenue.upcoming)}
-            />
-            <Row
-              label={t("analytics.kpi.perRental")}
-              value={eur(current.revenue.perRental)}
-              delta={delta(
-                current.revenue.perRental,
-                previous?.revenue.perRental,
-                "eur"
-              )}
-            />
-            <Row
-              label={t("analytics.kpi.dailyRate")}
-              value={eur(current.revenue.dailyRate)}
-              delta={delta(
-                current.revenue.dailyRate,
-                previous?.revenue.dailyRate,
-                "eur"
-              )}
-            />
-            <Row
-              label={t("analytics.kpi.perVehicle")}
-              value={eur(current.revenue.perVehicle)}
-              delta={delta(
-                current.revenue.perVehicle,
-                previous?.revenue.perVehicle,
-                "eur"
-              )}
-            />
-            <Row
-              label={t("analytics.kpi.cancelledValue")}
-              value={eur(current.revenue.cancelled)}
-            />
-          </FigureGroup>
-          <FigureGroup title={t("analytics.group.reservations")}>
-            {STATUS_ORDER.map((s) => (
-              <Row
-                key={s}
-                label={t(RESERVATION_STATUS_KEYS[s])}
-                value={num(status[s] ?? 0)}
-                href={reservationsHref(period, { status: s })}
-              />
-            ))}
-            <Row
-              label={t("analytics.kpi.cancellationRate")}
-              value={pct(current.reservations.cancellationRate)}
-              sub={thin(current.reservations.total)}
-              delta={delta(
-                current.reservations.cancellationRate,
-                previous?.reservations.cancellationRate,
-                "pp"
-              )}
-            />
-          </FigureGroup>
-          <FigureGroup title={t("analytics.group.customers")}>
-            <Row
-              label={t("analytics.kpi.customerRecords")}
-              value={num(report.customerRecords)}
-            />
-            <Row
-              label={t("analytics.kpi.newRecords")}
-              value={num(current.customers.newRecords)}
-              delta={delta(
-                current.customers.newRecords,
-                previous?.customers.newRecords,
-                "count"
-              )}
-            />
-            <Row
-              label={t("analytics.kpi.firstTime")}
-              value={num(current.customers.firstTime)}
-            />
-            <Row
-              label={t("analytics.kpi.repeatRate")}
-              value={pct(current.customers.repeatRate)}
-              sub={
-                current.customers.renting > 0
-                  ? t("analytics.ofCount", {
-                      count: current.customers.returning,
-                      total: current.customers.renting,
-                    })
-                  : null
-              }
-            />
-            <Row
-              label={t("analytics.kpi.rentalsPerCustomer")}
-              value={num(current.customers.rentalsPerCustomer, 1)}
-            />
-          </FigureGroup>
-          <FigureGroup title={t("analytics.group.fleet")}>
-            <Row
-              label={t("analytics.kpi.fleetTotal")}
-              value={num(report.fleetNow.total)}
-            />
-            <Row
-              label={t("analytics.kpi.available")}
-              value={num(report.fleetNow.available)}
-            />
-            <Row
-              label={t("analytics.kpi.onRent")}
-              value={num(report.fleetNow.activeRentals)}
-              // Today's figure, so every active rental, whatever its dates.
-              href="/admin/reservations?status=ACTIVE"
-            />
-            <Row
-              label={t("analytics.kpi.averageFleet")}
-              value={num(current.fleet.averageFleet, 1)}
-            />
-            <Row
-              label={t("analytics.kpi.idleDays")}
-              value={num(current.fleet.idleDays)}
-            />
-          </FigureGroup>
-        </div>
+        </KpiGrid>
 
         {insights.length > 0 && (
-          <div className="border-t pt-6">
-            <h3 className="text-muted-foreground mb-3 text-[11px] font-medium tracking-[0.18em] uppercase">
+          <div className="border-divider border-t pt-6">
+            <h3 className={cn(eyebrowClass, "mb-3")}>
               {t("analytics.insights")}
             </h3>
             <ul className="grid gap-x-10 gap-y-2 text-sm md:grid-cols-2">
@@ -587,16 +490,230 @@ export default async function AnalyticsPage({
             </ul>
           </div>
         )}
-      </section>
+      </Module>
 
-      {/* --- Revenue ------------------------------------------------------- */}
-      <section aria-labelledby="revenue" className="space-y-6">
-        <SectionTitle
-          id="revenue"
+      {/* 02 — business performance */}
+      <Module labelledBy="performance">
+        <ModuleHeader
+          index="02"
+          id="performance"
+          title={t("analytics.performance")}
+          description={t("analytics.performanceNote")}
+        />
+        <StatModules>
+          <StatModule title={t("analytics.group.financial")}>
+            <StatRow
+              label={t("analytics.series.realised")}
+              value={eur(current.revenue.realised)}
+            />
+            <StatRow
+              label={t("analytics.series.accruing")}
+              value={eur(current.revenue.accruing)}
+            />
+            <StatRow
+              label={t("analytics.kpi.upcoming")}
+              value={eur(current.revenue.upcoming)}
+            />
+            <StatRow
+              label={t("analytics.kpi.perRental")}
+              value={eur(current.revenue.perRental)}
+              delta={delta(
+                current.revenue.perRental,
+                previous?.revenue.perRental,
+                "eur"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.dailyRate")}
+              value={eur(current.revenue.dailyRate)}
+              delta={delta(
+                current.revenue.dailyRate,
+                previous?.revenue.dailyRate,
+                "eur"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.perVehicle")}
+              value={eur(current.revenue.perVehicle)}
+              delta={delta(
+                current.revenue.perVehicle,
+                previous?.revenue.perVehicle,
+                "eur"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.cancelledValue")}
+              value={eur(current.revenue.cancelled)}
+            />
+            <StatRow
+              label={t("analytics.kpi.earlyReturnAdjustment")}
+              value={eur(current.revenue.earlyReturnAdjustment)}
+            />
+          </StatModule>
+
+          <StatModule title={t("analytics.group.reservations")}>
+            {STATUS_ORDER.map((s) => (
+              <StatRow
+                key={s}
+                label={t(RESERVATION_STATUS_KEYS[s])}
+                value={num(status[s] ?? 0)}
+                href={reservationsHref(period, { status: s })}
+              />
+            ))}
+            <StatRow
+              label={t("analytics.kpi.cancellationRate")}
+              value={pct(current.reservations.cancellationRate)}
+              sub={thin(current.reservations.total)}
+              delta={delta(
+                current.reservations.cancellationRate,
+                previous?.reservations.cancellationRate,
+                "pp"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.averageDuration")}
+              value={
+                current.reservations.averageDuration === null
+                  ? "—"
+                  : t("analytics.days", {
+                      count: num(current.reservations.averageDuration, 1),
+                    })
+              }
+              delta={delta(
+                current.reservations.averageDuration,
+                previous?.reservations.averageDuration,
+                "days"
+              )}
+            />
+            {perMonth !== null && (
+              <StatRow
+                label={t("analytics.kpi.perMonth")}
+                value={num(perMonth, 1)}
+              />
+            )}
+            <StatRow
+              label={t("analytics.kpi.lapsed")}
+              value={num(current.reservations.lapsed)}
+            />
+          </StatModule>
+
+          <StatModule title={t("analytics.group.customers")}>
+            <StatRow
+              label={t("analytics.kpi.customerRecords")}
+              value={num(report.customerRecords)}
+            />
+            <StatRow
+              label={t("analytics.kpi.newRecords")}
+              value={num(current.customers.newRecords)}
+              delta={delta(
+                current.customers.newRecords,
+                previous?.customers.newRecords,
+                "count"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.firstTime")}
+              value={num(current.customers.firstTime)}
+            />
+            <StatRow
+              label={t("analytics.kpi.returning")}
+              value={num(current.customers.returning)}
+              delta={delta(
+                current.customers.returning,
+                previous?.customers.returning,
+                "count"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.repeatRate")}
+              value={pct(current.customers.repeatRate)}
+              sub={
+                current.customers.renting > 0
+                  ? t("analytics.ofCount", {
+                      count: current.customers.returning,
+                      total: current.customers.renting,
+                    })
+                  : null
+              }
+            />
+            <StatRow
+              label={t("analytics.kpi.rentalsPerCustomer")}
+              value={num(current.customers.rentalsPerCustomer, 1)}
+            />
+            <StatRow
+              label={t("analytics.kpi.multiRental")}
+              value={num(current.customers.multi)}
+            />
+            <StatRow
+              label={t("analytics.kpi.everRepeat")}
+              value={pct(
+                ratio(
+                  current.customers.everRepeat,
+                  current.customers.everRented
+                )
+              )}
+              sub={t("analytics.ofCount", {
+                count: current.customers.everRepeat,
+                total: current.customers.everRented,
+              })}
+            />
+          </StatModule>
+
+          <StatModule title={t("analytics.group.fleet")}>
+            <StatGroupLabel>{t("analytics.fleetToday")}</StatGroupLabel>
+            <StatRow
+              label={t("analytics.kpi.fleetTotal")}
+              value={num(report.fleetNow.total)}
+            />
+            <StatRow
+              label={t("analytics.kpi.available")}
+              value={num(report.fleetNow.available)}
+            />
+            <StatRow
+              label={t("analytics.kpi.onRent")}
+              value={num(report.fleetNow.activeRentals)}
+              // Today's figure, so every active rental, whatever its dates.
+              href="/admin/reservations?status=ACTIVE"
+            />
+            <StatGroupLabel>{t("analytics.fleetInPeriod")}</StatGroupLabel>
+            <StatRow
+              label={t("analytics.kpi.averageFleet")}
+              value={num(current.fleet.averageFleet, 1)}
+            />
+            <StatRow
+              label={t("analytics.kpi.fleetDays")}
+              value={num(current.fleet.fleetDays)}
+              sub={t("analytics.kpi.fleetDaysNote")}
+            />
+            <StatRow
+              label={t("analytics.kpi.rentedDays")}
+              value={num(current.fleet.rentedDays)}
+              delta={delta(
+                current.fleet.rentedDays,
+                previous?.fleet.rentedDays,
+                "count"
+              )}
+            />
+            <StatRow
+              label={t("analytics.kpi.idleDays")}
+              value={num(current.fleet.idleDays)}
+            />
+          </StatModule>
+        </StatModules>
+      </Module>
+
+      {/* 03 — detailed analysis */}
+      <Module labelledBy="details" className="space-y-10">
+        <ModuleHeader
+          index="03"
+          id="details"
+          title={t("analytics.details")}
+          description={t("analytics.detailsNote")}
           aside={
             <GrainSwitch
               current={unit}
               options={allowedGranularities(period)}
+              label={t("analytics.granularity")}
               hrefFor={(g) =>
                 `/admin/analytics${analyticsQuery({
                   p: period.token,
@@ -608,11 +725,13 @@ export default async function AnalyticsPage({
               t={t}
             />
           }
-        >
-          {t("analytics.revenue")}
-        </SectionTitle>
-        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        />
+
+        <Subsection
+          id="revenue"
+          title={t("analytics.revenue")}
+          description={t("analytics.revenueNote")}
+          chart={
             <BarChart
               label={t("analytics.revenueChart", { period: title })}
               tableCaption={t("analytics.revenueChart", { period: title })}
@@ -623,61 +742,45 @@ export default async function AnalyticsPage({
                 { name: t("analytics.series.accruing"), tone: "soft" },
                 { name: t("analytics.series.upcoming"), tone: "hatch" },
               ]}
-              compareName={
-                comparisonTitle
-                  ? t("analytics.series.compare", { period: comparisonTitle })
-                  : undefined
-              }
+              compareName={comparisonLabel}
               height={220}
             />
-          </div>
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-muted-foreground mb-3 text-[11px] font-medium tracking-[0.18em] uppercase">
-                {t("analytics.byCategory")}
-              </h3>
-              <Bars
-                items={report.categories
-                  .filter((c) => c.revenue > 0 || c.fleetDays > 0)
-                  .map((c) => ({
-                    label: t(
-                      `filter.${c.category.toLowerCase()}` as TranslationKey
-                    ),
-                    value: c.revenue,
-                    text: eur(c.revenue),
-                    sub: t("analytics.categorySub", {
-                      utilization: pct(c.utilization),
-                      count: c.vehicles,
-                    }),
-                  }))}
-                empty={t("analytics.noRevenue")}
-              />
-            </div>
-            <dl className="space-y-2 border-t pt-4 text-sm">
-              <Row
-                label={t("analytics.kpi.topFiveShare")}
-                value={pct(topFiveShare)}
-              />
-              <Row
-                label={t("analytics.kpi.earlyReturnAdjustment")}
-                value={eur(current.revenue.earlyReturnAdjustment)}
-              />
-              <Row
-                label={t("analytics.kpi.cancelledValue")}
-                value={eur(current.revenue.cancelled)}
-              />
-            </dl>
-          </div>
-        </div>
-      </section>
+          }
+          side={
+            <>
+              <SideGroup title={t("analytics.byCategory")}>
+                <Bars
+                  items={report.categories
+                    .filter((c) => c.revenue > 0 || c.fleetDays > 0)
+                    .map((c) => ({
+                      label: t(
+                        `filter.${c.category.toLowerCase()}` as TranslationKey
+                      ),
+                      value: c.revenue,
+                      text: eur(c.revenue),
+                      sub: t("analytics.categorySub", {
+                        utilization: pct(c.utilization),
+                        count: c.vehicles,
+                      }),
+                    }))}
+                  empty={t("analytics.noRevenue")}
+                />
+              </SideGroup>
+              <dl className="text-sm">
+                <StatRow
+                  label={t("analytics.kpi.topFiveShare")}
+                  value={pct(topFiveShare)}
+                />
+              </dl>
+            </>
+          }
+        />
 
-      {/* --- Reservations -------------------------------------------------- */}
-      <section aria-labelledby="reservations" className="space-y-6">
-        <SectionTitle id="reservations">
-          {t("analytics.reservations")}
-        </SectionTitle>
-        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <Subsection
+          id="reservations"
+          title={t("analytics.reservations")}
+          description={t("analytics.reservationsNote")}
+          chart={
             <BarChart
               label={t("analytics.reservationsChart", { period: title })}
               tableCaption={t("analytics.reservationsChart", { period: title })}
@@ -687,45 +790,11 @@ export default async function AnalyticsPage({
                 { name: t("analytics.series.held"), tone: "solid" },
                 { name: t("analytics.series.cancelled"), tone: "neutral" },
               ]}
-              compareName={
-                comparisonTitle
-                  ? t("analytics.series.compare", { period: comparisonTitle })
-                  : undefined
-              }
+              compareName={comparisonLabel}
             />
-          </div>
-          <div className="space-y-8">
-            <dl className="space-y-2 text-sm">
-              <Row
-                label={t("analytics.kpi.averageDuration")}
-                value={
-                  current.reservations.averageDuration === null
-                    ? "—"
-                    : t("analytics.days", {
-                        count: num(current.reservations.averageDuration, 1),
-                      })
-                }
-                delta={delta(
-                  current.reservations.averageDuration,
-                  previous?.reservations.averageDuration,
-                  "days"
-                )}
-              />
-              {perMonth !== null && (
-                <Row
-                  label={t("analytics.kpi.perMonth")}
-                  value={num(perMonth, 1)}
-                />
-              )}
-              <Row
-                label={t("analytics.kpi.lapsed")}
-                value={num(current.reservations.lapsed)}
-              />
-            </dl>
-            <div>
-              <h3 className="text-muted-foreground mb-3 text-[11px] font-medium tracking-[0.18em] uppercase">
-                {t("analytics.pickupWeekdays")}
-              </h3>
+          }
+          side={
+            <SideGroup title={t("analytics.pickupWeekdays")}>
               {weekdayTotal === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   {t("analytics.noReservations")}
@@ -751,128 +820,100 @@ export default async function AnalyticsPage({
                   ))}
                 </ul>
               )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* --- Fleet ----------------------------------------------------------- */}
-      <section aria-labelledby="fleet" className="space-y-6">
-        <SectionTitle id="fleet">{t("analytics.fleet")}</SectionTitle>
-        <dl className="grid grid-cols-2 gap-x-10 gap-y-6 md:grid-cols-4">
-          <Figure
-            label={t("analytics.kpi.fleetDays")}
-            value={num(current.fleet.fleetDays)}
-            note={t("analytics.kpi.fleetDaysNote")}
-          />
-          <Figure
-            label={t("analytics.kpi.rentedDays")}
-            value={num(current.fleet.rentedDays)}
-            delta={delta(
-              current.fleet.rentedDays,
-              previous?.fleet.rentedDays,
-              "count"
-            )}
-          />
-          <Figure
-            label={t("analytics.kpi.idleDays")}
-            value={num(current.fleet.idleDays)}
-          />
-          <Figure
-            label={t("analytics.kpi.utilization")}
-            value={pct(current.fleet.utilization)}
-            delta={delta(
-              current.fleet.utilization,
-              previous?.fleet.utilization,
-              "pp"
-            )}
-          />
-        </dl>
-        <BarChart
-          label={t("analytics.utilizationChart", { period: title })}
-          tableCaption={t("analytics.utilizationChart", { period: title })}
-          format="pct"
-          height={140}
-          buckets={utilizationBuckets}
-          series={[{ name: t("analytics.kpi.utilization"), tone: "solid" }]}
-          compareName={
-            comparisonTitle
-              ? t("analytics.series.compare", { period: comparisonTitle })
-              : undefined
+            </SideGroup>
           }
         />
-        <dl className="grid gap-x-8 gap-y-4 border-y py-5 sm:grid-cols-2 lg:grid-cols-5">
-          {rankings.map((r) => (
-            <div key={r.label} className="min-w-0">
-              <dt className="text-muted-foreground text-[11px] font-medium tracking-[0.12em] uppercase">
-                {r.label}
-              </dt>
-              <dd className="mt-1 truncate text-sm font-medium">
-                {r.v ? r.v.label : "—"}
-              </dd>
-              {r.v && (
-                <dd className="text-muted-foreground text-xs tabular-nums">
-                  {r.value(r.v)}
-                </dd>
+
+        <Subsection
+          id="fleet"
+          title={t("analytics.fleet")}
+          description={t("analytics.fleetNote")}
+          chart={
+            <BarChart
+              label={t("analytics.utilizationChart", { period: title })}
+              tableCaption={t("analytics.utilizationChart", { period: title })}
+              format="pct"
+              height={160}
+              buckets={utilizationBuckets}
+              series={[{ name: t("analytics.kpi.utilization"), tone: "solid" }]}
+              compareName={comparisonLabel}
+            />
+          }
+          side={
+            <SideGroup title={t("analytics.rankings")}>
+              <dl className="text-sm">
+                {rankings.map((r) => (
+                  <StatRow
+                    key={r.label}
+                    label={r.label}
+                    value={r.v ? r.value(r.v) : "—"}
+                    sub={r.v ? r.v.label : null}
+                  />
+                ))}
+              </dl>
+            </SideGroup>
+          }
+          wide={
+            <div className="space-y-6">
+              <VehicleTable
+                rows={vehicles}
+                inspected={report.selectedVehicle?.id ?? null}
+              />
+              {report.selectedVehicle && (
+                <div id="inspect" className="space-y-4 border-t pt-6">
+                  <h4 className="font-display text-lg font-semibold">
+                    {report.selectedVehicle.label}
+                  </h4>
+                  <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+                    <BarChart
+                      label={t("analytics.vehicleRevenue")}
+                      tableCaption={t("analytics.vehicleRevenue")}
+                      format="eur"
+                      height={150}
+                      buckets={report.selectedVehicle.series.map((b) => ({
+                        key: b.key,
+                        axis: bucketAxisLabel(unit, b.key, locale),
+                        title: bucketTitle(unit, b, locale),
+                        values: [b.revenue],
+                        href: reservationsHref(b, {
+                          vehicleId: report.selectedVehicle!.id,
+                        }),
+                      }))}
+                      series={[
+                        { name: t("analytics.series.earned"), tone: "solid" },
+                      ]}
+                    />
+                    <BarChart
+                      label={t("analytics.vehicleDays")}
+                      tableCaption={t("analytics.vehicleDays")}
+                      format="count"
+                      height={150}
+                      buckets={report.selectedVehicle.series.map((b) => ({
+                        key: b.key,
+                        axis: bucketAxisLabel(unit, b.key, locale),
+                        title: bucketTitle(unit, b, locale),
+                        values: [
+                          b.rentedDays,
+                          Math.max(b.fleetDays - b.rentedDays, 0),
+                        ],
+                      }))}
+                      series={[
+                        { name: t("analytics.kpi.rentedDays"), tone: "solid" },
+                        { name: t("analytics.kpi.idleDays"), tone: "neutral" },
+                      ]}
+                    />
+                  </div>
+                </div>
               )}
             </div>
-          ))}
-        </dl>
-        <VehicleTable
-          rows={vehicles}
-          inspected={report.selectedVehicle?.id ?? null}
+          }
         />
-        {report.selectedVehicle && (
-          <div id="inspect" className="space-y-4 border-t pt-6">
-            <h3 className="font-display text-lg font-semibold">
-              {report.selectedVehicle.label}
-            </h3>
-            <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
-              <BarChart
-                label={t("analytics.vehicleRevenue")}
-                tableCaption={t("analytics.vehicleRevenue")}
-                format="eur"
-                height={150}
-                buckets={report.selectedVehicle.series.map((b) => ({
-                  key: b.key,
-                  axis: bucketAxisLabel(unit, b.key, locale),
-                  title: bucketTitle(unit, b, locale),
-                  values: [b.revenue],
-                  href: reservationsHref(b, {
-                    vehicleId: report.selectedVehicle!.id,
-                  }),
-                }))}
-                series={[{ name: t("analytics.series.earned"), tone: "solid" }]}
-              />
-              <BarChart
-                label={t("analytics.vehicleDays")}
-                tableCaption={t("analytics.vehicleDays")}
-                format="count"
-                height={150}
-                buckets={report.selectedVehicle.series.map((b) => ({
-                  key: b.key,
-                  axis: bucketAxisLabel(unit, b.key, locale),
-                  title: bucketTitle(unit, b, locale),
-                  values: [
-                    b.rentedDays,
-                    Math.max(b.fleetDays - b.rentedDays, 0),
-                  ],
-                }))}
-                series={[
-                  { name: t("analytics.kpi.rentedDays"), tone: "solid" },
-                  { name: t("analytics.kpi.idleDays"), tone: "neutral" },
-                ]}
-              />
-            </div>
-          </div>
-        )}
-      </section>
 
-      {/* --- Customers --------------------------------------------------------- */}
-      <section aria-labelledby="customers" className="space-y-6">
-        <SectionTitle id="customers">{t("analytics.customers")}</SectionTitle>
-        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <Subsection
+          id="customers"
+          title={t("analytics.customers")}
+          description={t("analytics.customersNote")}
+          chart={
             <BarChart
               label={t("analytics.customersChart", { period: title })}
               tableCaption={t("analytics.customersChart", { period: title })}
@@ -889,52 +930,21 @@ export default async function AnalyticsPage({
                     })
                   : undefined
               }
-              height={160}
+              height={180}
             />
-          </div>
-          <div className="space-y-6">
-            <dl className="space-y-2 text-sm">
-              <Row
-                label={t("analytics.kpi.returning")}
-                value={num(current.customers.returning)}
-                delta={delta(
-                  current.customers.returning,
-                  previous?.customers.returning,
-                  "count"
-                )}
-              />
-              <Row
-                label={t("analytics.kpi.multiRental")}
-                value={num(current.customers.multi)}
-              />
-              <Row
-                label={t("analytics.kpi.everRepeat")}
-                value={pct(
-                  ratio(
-                    current.customers.everRepeat,
-                    current.customers.everRented
-                  )
-                )}
-                sub={t("analytics.ofCount", {
-                  count: current.customers.everRepeat,
-                  total: current.customers.everRented,
-                })}
-              />
-            </dl>
-            <div>
-              <h3 className="text-muted-foreground mb-3 text-[11px] font-medium tracking-[0.18em] uppercase">
-                {t("analytics.topCustomers")}
-              </h3>
+          }
+          side={
+            <SideGroup title={t("analytics.topCustomers")}>
               {report.topCustomers.length === 0 ? (
                 <p className="text-muted-foreground text-sm">
                   {t("analytics.noRenters")}
                 </p>
               ) : (
-                <ol className="space-y-2 text-sm">
+                <ol className="text-sm">
                   {report.topCustomers.map((c) => (
                     <li
                       key={c.id}
-                      className="flex items-baseline justify-between gap-3"
+                      className="border-divider flex items-baseline justify-between gap-3 border-b py-2 last:border-b-0"
                     >
                       <Link
                         href={`?${new URLSearchParams({
@@ -956,117 +966,127 @@ export default async function AnalyticsPage({
                   ))}
                 </ol>
               )}
-            </div>
-          </div>
-        </div>
-      </section>
+            </SideGroup>
+          }
+        />
 
-      {/* --- Seasonality ------------------------------------------------------- */}
-      <section aria-labelledby="seasonality" className="space-y-4">
-        <SectionTitle id="seasonality">
-          {t("analytics.seasonality")}
-        </SectionTitle>
-        <p className="text-muted-foreground text-sm">
-          {t("analytics.seasonalityNote")}
-        </p>
-        {report.seasonality.years.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            {t("analytics.noRevenue")}
-          </p>
-        ) : (
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[820px] text-xs tabular-nums">
-              <caption className="sr-only">
-                {t("analytics.seasonality")}
-              </caption>
-              <thead>
-                <tr className="text-muted-foreground border-b">
-                  <th scope="col" className="py-2 pr-3 text-left font-medium">
-                    {t("analytics.year")}
-                  </th>
-                  {Array.from({ length: 12 }, (_, m) => (
-                    <th
-                      key={m}
-                      scope="col"
-                      className="px-1 py-2 text-right font-medium capitalize"
-                    >
-                      {formatDayKey(
-                        `2026-${String(m + 1).padStart(2, "0")}-01`,
-                        locale,
-                        "LLL"
-                      )}
-                    </th>
-                  ))}
-                  <th scope="col" className="py-2 pl-3 text-right font-medium">
-                    {t("analytics.total")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.seasonality.years.map((year) => {
-                  const cells = Array.from({ length: 12 }, (_, m) =>
-                    seasonCell.get(`${year}-${String(m + 1).padStart(2, "0")}`)
-                  );
-                  const best = Math.max(...cells.map((c) => c?.revenue ?? 0));
-                  const total = yearTotals.find((y) => y.year === year)!.value;
-                  return (
-                    <tr key={year} className="border-divider border-b">
+        <Subsection
+          id="seasonality"
+          title={t("analytics.seasonality")}
+          description={t("analytics.seasonalityNote")}
+          wide={
+            report.seasonality.years.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {t("analytics.noRevenue")}
+              </p>
+            ) : (
+              <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+                <table className="w-full min-w-[820px] text-xs tabular-nums">
+                  <caption className="sr-only">
+                    {t("analytics.seasonality")}
+                  </caption>
+                  <thead>
+                    <tr className="text-muted-foreground border-b">
                       <th
-                        scope="row"
+                        scope="col"
                         className="py-2 pr-3 text-left font-medium"
                       >
-                        <Link
-                          href={`/admin/analytics?p=${year}`}
-                          className="hover:underline"
-                        >
-                          {year}
-                        </Link>
+                        {t("analytics.year")}
                       </th>
-                      {cells.map((c, m) => {
-                        const month = `${year}-${String(m + 1).padStart(2, "0")}`;
-                        const value = c?.revenue ?? 0;
-                        return (
-                          <td key={m} className="p-0.5 text-right">
-                            {value > 0 ? (
-                              <Link
-                                href={`/admin/analytics?p=${month}`}
-                                title={`${monthLabel(month, locale)} · ${eur(value)} · ${t("analytics.rentalsCount", { count: c?.pickups ?? 0 })}`}
-                                className={cn(
-                                  "block px-1.5 py-1.5 hover:underline",
-                                  value === best && "font-semibold"
-                                )}
-                                style={{
-                                  backgroundColor: `color-mix(in oklab, var(--brand) ${Math.round((value / seasonMax) * 28)}%, transparent)`,
-                                }}
-                              >
-                                {formatNumber(value, locale)}
-                              </Link>
-                            ) : (
-                              <span className="text-muted-foreground block px-1.5 py-1.5">
-                                ·
-                              </span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="py-2 pl-3 text-right font-semibold">
-                        {eur(total)}
-                      </td>
+                      {Array.from({ length: 12 }, (_, m) => (
+                        <th
+                          key={m}
+                          scope="col"
+                          className="px-1 py-2 text-right font-medium capitalize"
+                        >
+                          {formatDayKey(
+                            `2026-${String(m + 1).padStart(2, "0")}-01`,
+                            locale,
+                            "LLL"
+                          )}
+                        </th>
+                      ))}
+                      <th
+                        scope="col"
+                        className="py-2 pl-3 text-right font-medium"
+                      >
+                        {t("analytics.total")}
+                      </th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                  </thead>
+                  <tbody>
+                    {report.seasonality.years.map((year) => {
+                      const cells = Array.from({ length: 12 }, (_, m) =>
+                        seasonCell.get(
+                          `${year}-${String(m + 1).padStart(2, "0")}`
+                        )
+                      );
+                      const best = Math.max(
+                        ...cells.map((c) => c?.revenue ?? 0)
+                      );
+                      const total = yearTotals.find(
+                        (y) => y.year === year
+                      )!.value;
+                      return (
+                        <tr key={year} className="border-divider border-b">
+                          <th
+                            scope="row"
+                            className="py-2 pr-3 text-left font-medium"
+                          >
+                            <Link
+                              href={`/admin/analytics?p=${year}`}
+                              className="hover:underline"
+                            >
+                              {year}
+                            </Link>
+                          </th>
+                          {cells.map((c, m) => {
+                            const month = `${year}-${String(m + 1).padStart(2, "0")}`;
+                            const value = c?.revenue ?? 0;
+                            return (
+                              <td key={m} className="p-0.5 text-right">
+                                {value > 0 ? (
+                                  <Link
+                                    href={`/admin/analytics?p=${month}`}
+                                    title={`${monthLabel(month, locale)} · ${eur(value)} · ${t("analytics.rentalsCount", { count: c?.pickups ?? 0 })}`}
+                                    className={cn(
+                                      "block px-1.5 py-1.5 hover:underline",
+                                      value === best && "font-semibold"
+                                    )}
+                                    style={{
+                                      backgroundColor: `color-mix(in oklab, var(--brand) ${Math.round((value / seasonMax) * 28)}%, transparent)`,
+                                    }}
+                                  >
+                                    {formatNumber(value, locale)}
+                                  </Link>
+                                ) : (
+                                  <span className="text-muted-foreground block px-1.5 py-1.5">
+                                    ·
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="py-2 pl-3 text-right font-semibold">
+                            {eur(total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+          }
+        />
+      </Module>
 
-      {/* --- Definitions ------------------------------------------------------- */}
+      {/* Definitions: how every figure above is calculated. */}
       <section aria-labelledby="definitions" className="border-t pt-6">
         <details>
           <summary
             id="definitions"
-            className="text-muted-foreground hover:text-foreground cursor-pointer text-[11px] font-medium tracking-[0.18em] uppercase"
+            className={cn(eyebrowClass, "hover:text-foreground cursor-pointer")}
           >
             {t("analytics.definitions")}
           </summary>
@@ -1121,246 +1141,5 @@ function stripUndefined(search: AnalyticsSearchParams): Record<string, string> {
     Object.entries(search).filter(
       (entry): entry is [string, string] => typeof entry[1] === "string"
     )
-  );
-}
-
-function SectionTitle({
-  id,
-  children,
-  aside,
-}: {
-  id: string;
-  children: React.ReactNode;
-  aside?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3 border-t pt-6">
-      <h2 id={id} className="font-display text-xl font-semibold tracking-tight">
-        {children}
-      </h2>
-      {aside}
-    </div>
-  );
-}
-
-function Figure({
-  label,
-  value,
-  delta,
-  note,
-  hero,
-}: {
-  label: string;
-  value: string;
-  delta?: React.ReactNode;
-  note?: string;
-  hero?: boolean;
-}) {
-  return (
-    // The hero takes a full row on a phone; the rest go two to a row.
-    <div className={cn("min-w-0", hero && "col-span-2 lg:col-span-1")}>
-      <dt className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "font-display mt-2 leading-none font-semibold tracking-tight tabular-nums",
-          hero ? "text-4xl whitespace-nowrap 2xl:text-5xl" : "text-3xl"
-        )}
-      >
-        {value}
-      </dd>
-      {delta && <dd className="mt-2 text-xs">{delta}</dd>}
-      {note && <dd className="text-muted-foreground mt-1 text-xs">{note}</dd>}
-    </div>
-  );
-}
-
-function FigureGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <h3 className="text-muted-foreground mb-3 text-[11px] font-medium tracking-[0.18em] uppercase">
-        {title}
-      </h3>
-      <dl className="space-y-2 text-sm">{children}</dl>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  sub,
-  delta,
-  href,
-}: {
-  label: string;
-  value: string;
-  sub?: string | null;
-  delta?: React.ReactNode;
-  href?: string;
-}) {
-  return (
-    <div className="border-divider flex items-baseline justify-between gap-3 border-b pb-2 last:border-b-0">
-      <dt className="text-muted-foreground min-w-0">
-        {href ? (
-          <Link href={href} className="hover:text-foreground hover:underline">
-            {label}
-          </Link>
-        ) : (
-          label
-        )}
-        {sub && <span className="block text-[11px]">{sub}</span>}
-      </dt>
-      <dd className="shrink-0 text-right tabular-nums">
-        <span className="font-medium">{value}</span>
-        {delta && <span className="block text-[11px]">{delta}</span>}
-      </dd>
-    </div>
-  );
-}
-
-/**
- * How a figure moved against the comparison period: the arrow, the
- * percentage and the absolute difference, in ink rather than green and red —
- * more cancellations is "up" too, and the reader knows which way is good.
- * Rates move in percentage points, never a percentage of a percentage.
- */
-function Delta({
-  value,
-  previous,
-  kind,
-  locale,
-  against,
-  noChange,
-}: {
-  value: number;
-  previous: number;
-  kind: "eur" | "count" | "pp" | "days";
-  locale: Locale;
-  against: string;
-  noChange: string;
-}) {
-  const c = change(value, previous, kind === "pp" ? 0.0005 : 0.005);
-  const arrow = c.direction === "up" ? "▲" : c.direction === "down" ? "▼" : "–";
-  const sign = c.delta > 0 ? "+" : c.delta < 0 ? "−" : "";
-  const abs = Math.abs(c.delta);
-  const amount =
-    kind === "eur"
-      ? formatEur(abs, locale, { precision: 0 })
-      : kind === "pp"
-        ? `${formatNumber(abs * 100, locale, 1)} pp`
-        : kind === "days"
-          ? formatNumber(abs, locale, 1)
-          : formatNumber(abs, locale);
-  const percent =
-    kind !== "pp" && c.pct !== null
-      ? `${formatNumber(Math.abs(c.pct) * 100, locale)}% · `
-      : "";
-  return (
-    <span
-      className="text-muted-foreground tabular-nums"
-      title={`${against}: ${
-        kind === "eur"
-          ? formatEur(previous, locale, { precision: 0 })
-          : kind === "pp"
-            ? `${formatNumber(previous * 100, locale, 1)}%`
-            : formatNumber(previous, locale, kind === "days" ? 1 : 0)
-      }`}
-    >
-      <span aria-hidden className="text-foreground mr-1 text-[9px]">
-        {arrow}
-      </span>
-      {c.direction === "flat" ? (
-        noChange
-      ) : (
-        <>
-          {percent}
-          {sign}
-          {amount}
-        </>
-      )}
-      <span className="sr-only"> ({against})</span>
-    </span>
-  );
-}
-
-function GrainSwitch({
-  current,
-  options,
-  hrefFor,
-  t,
-}: {
-  current: string;
-  options: string[];
-  hrefFor: (g: string) => string;
-  t: (key: TranslationKey) => string;
-}) {
-  if (options.length < 2) return null;
-  return (
-    <nav aria-label={t("analytics.granularity")} className="print:hidden">
-      <ul className="flex border-b text-xs">
-        {options.map((g) => (
-          <li key={g}>
-            <Link
-              href={hrefFor(g)}
-              scroll={false}
-              aria-current={g === current ? "true" : undefined}
-              className={cn(
-                "-mb-px block border-b-2 px-3 py-1.5 font-semibold",
-                g === current
-                  ? "border-foreground text-foreground"
-                  : "text-muted-foreground hover:text-foreground border-transparent"
-              )}
-            >
-              {t(GRAIN_LABELS[g as keyof typeof GRAIN_LABELS])}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
-
-/** Bars for a breakdown, each with its own formatted value and a sub-line. */
-function Bars({
-  items,
-  empty,
-}: {
-  items: { label: string; value: number; text: string; sub?: string }[];
-  empty: string;
-}) {
-  if (items.length === 0) {
-    return <p className="text-muted-foreground text-sm">{empty}</p>;
-  }
-  const max = Math.max(...items.map((i) => i.value), 1);
-  return (
-    <ul className="space-y-3">
-      {items.map((item) => (
-        <li key={item.label}>
-          <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-            <span className="truncate">{item.label}</span>
-            <span className="text-xs font-semibold tabular-nums">
-              {item.text}
-            </span>
-          </div>
-          <div className="bg-secondary h-1.5">
-            <div
-              className="bg-brand h-full"
-              style={{ width: `${(item.value / max) * 100}%` }}
-            />
-          </div>
-          {item.sub && (
-            <p className="text-muted-foreground mt-1 text-[11px]">{item.sub}</p>
-          )}
-        </li>
-      ))}
-    </ul>
   );
 }

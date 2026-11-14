@@ -3,19 +3,25 @@
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { cn } from "@/lib/utils";
 
 /**
- * The reporting-period picker. Every choice is URL state (`p`, `cmp`), so a
- * period is a link the owner can bookmark or send, survives a reload, and
- * the server renders the figures for it — nothing here computes a number.
+ * The reporting toolbar: every control that decides what the page reports,
+ * in one band — the period being read (named large, with its arrows), how it
+ * is compared, the quick periods, and, one step further in, a specific
+ * month, year or date range.
  *
- * Presets and arrows are plain links; the month, year and custom-range
- * inputs push a URL. While the server renders, the strip dims so a click is
- * visibly taken.
+ * Every choice is URL state (`p`, `cmp`), so a period is a link the owner
+ * can bookmark or send, survives a reload, and the server renders the
+ * figures for it — nothing here computes a number. Presets and arrows are
+ * plain links; the pickers push a URL. While the server renders, the band
+ * dims so a click is visibly taken.
+ *
+ * Keyed by period on the page, so its local state (the custom range being
+ * typed, whether the specific-period row is open) starts fresh each time.
  */
 
 const PRESETS: { token: string; label: TranslationKey }[] = [
@@ -36,7 +42,10 @@ const COMPARE: { mode: string; label: TranslationKey }[] = [
 ];
 
 const fieldClass =
-  "border-input bg-control focus-visible:ring-ring h-9 rounded-none border px-2.5 text-sm outline-none focus-visible:ring-2";
+  "border-input bg-control focus-visible:ring-ring h-9 w-full rounded-none border px-2.5 text-sm outline-none focus-visible:ring-2";
+
+const eyebrow =
+  "text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase";
 
 export function PeriodControls({
   token,
@@ -68,13 +77,16 @@ export function PeriodControls({
   comparisonText: string | null;
   from: string;
   to: string;
-  /** Builds the page URL for a period and comparison, keeping the rest. */
+  /** The rest of the page's state, carried across a period change. */
   query: { g?: string; inspect?: string };
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [range, setRange] = useState({ from, to });
+  // A month, year or range picked directly is the one thing a preset cannot
+  // show, so the row holding those pickers starts open for it.
+  const [specificOpen, setSpecificOpen] = useState(preset === null);
   const ids = useId();
 
   const href = (state: { p?: string; cmp?: string; keepGrain?: boolean }) => {
@@ -94,19 +106,19 @@ export function PeriodControls({
   const year = kind === "year" ? token : "";
 
   return (
-    <div
+    <section
+      aria-label={t("analytics.reportingPeriod")}
+      aria-busy={pending}
       className={cn(
-        "space-y-5 transition-opacity print:hidden",
+        "bg-card border-b transition-opacity print:border-0 print:bg-transparent",
         pending && "opacity-60"
       )}
-      aria-busy={pending}
     >
-      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+      {/* What is being read, and against what. */}
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-5 px-5 pt-5 pb-4 sm:px-6">
         <div className="min-w-0">
-          <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
-            {t("analytics.reportingPeriod")}
-          </p>
-          <div className="mt-1 flex items-center gap-1">
+          <p className={eyebrow}>{t("analytics.reportingPeriod")}</p>
+          <div className="mt-1.5 flex items-center gap-1">
             {prev && (
               <Link
                 href={href({ p: prev.token })}
@@ -114,13 +126,13 @@ export function PeriodControls({
                 aria-label={t("analytics.previousPeriod", {
                   period: prev.label,
                 })}
-                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ml-2 p-1.5 outline-none focus-visible:ring-2"
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -ml-1.5 p-1 outline-none focus-visible:ring-2 print:hidden"
               >
                 <ChevronLeft className="size-5" aria-hidden />
               </Link>
             )}
             <h2
-              className="font-display text-2xl font-semibold tracking-tight sm:text-3xl"
+              className="font-display text-2xl leading-tight font-semibold tracking-tight sm:text-3xl"
               aria-live="polite"
             >
               {title}
@@ -130,7 +142,7 @@ export function PeriodControls({
                 href={href({ p: next.token })}
                 scroll={false}
                 aria-label={t("analytics.nextPeriod", { period: next.label })}
-                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring p-1.5 outline-none focus-visible:ring-2"
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring p-1 outline-none focus-visible:ring-2 print:hidden"
               >
                 <ChevronRight className="size-5" aria-hidden />
               </Link>
@@ -140,7 +152,7 @@ export function PeriodControls({
             {dates}
             {comparisonText && (
               <>
-                {" · "}
+                <span aria-hidden> · </span>
                 {comparisonText}
               </>
             )}
@@ -148,22 +160,26 @@ export function PeriodControls({
         </div>
 
         {kind !== "all" && (
-          <nav aria-label={t("analytics.compareWith")} className="text-xs">
-            <p className="text-muted-foreground mb-1.5">
-              {t("analytics.compareWith")}
-            </p>
-            <ul className="flex border-b">
-              {COMPARE.map((c) => (
-                <li key={c.mode}>
+          <nav
+            aria-label={t("analytics.compareWith")}
+            className="w-full sm:w-auto print:hidden"
+          >
+            <p className={cn(eyebrow, "mb-2")}>{t("analytics.compareWith")}</p>
+            <ul className="flex flex-wrap border text-xs">
+              {COMPARE.map((c, i) => (
+                <li
+                  key={c.mode}
+                  className={cn("flex-1 sm:flex-none", i > 0 && "border-l")}
+                >
                   <Link
                     href={href({ cmp: c.mode, keepGrain: true })}
                     scroll={false}
                     aria-current={compare === c.mode ? "true" : undefined}
                     className={cn(
-                      "-mb-px block border-b-2 px-3 py-1.5 font-semibold transition-colors",
+                      "focus-visible:ring-ring block px-3 py-2 text-center font-semibold whitespace-nowrap outline-none focus-visible:ring-2",
                       compare === c.mode
-                        ? "border-foreground text-foreground"
-                        : "text-muted-foreground hover:text-foreground border-transparent"
+                        ? "bg-foreground text-background"
+                        : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
                     )}
                   >
                     {t(c.label)}
@@ -175,9 +191,10 @@ export function PeriodControls({
         )}
       </div>
 
-      <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-y py-3">
+      {/* Choosing another period: presets first, the specific pickers one step in. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t px-5 py-2.5 sm:px-6 print:hidden">
         <nav aria-label={t("analytics.quickPeriods")} className="min-w-0">
-          <ul className="-mx-2 flex flex-wrap gap-y-1 text-xs">
+          <ul className="-mx-2 flex flex-wrap text-xs">
             {PRESETS.map((p) => (
               <li key={p.token}>
                 <Link
@@ -197,9 +214,36 @@ export function PeriodControls({
             ))}
           </ul>
         </nav>
+        <button
+          type="button"
+          aria-expanded={specificOpen}
+          aria-controls={`${ids}-specific`}
+          onClick={() => setSpecificOpen((open) => !open)}
+          className={cn(
+            "focus-visible:ring-ring inline-flex items-center gap-1 px-1 py-1.5 text-xs font-medium outline-none focus-visible:ring-2",
+            preset === null
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {t("analytics.specificPeriod")}
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              "size-3.5 transition-transform",
+              specificOpen && "rotate-180"
+            )}
+          />
+        </button>
+      </div>
 
-        <div className="ml-auto flex flex-wrap items-end gap-3">
-          <label className="text-muted-foreground grid gap-1 text-[11px]">
+      <div
+        id={`${ids}-specific`}
+        hidden={!specificOpen}
+        className="border-t px-5 py-4 sm:px-6 print:hidden"
+      >
+        <div className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
+          <label className="text-muted-foreground grid gap-1 text-[11px] sm:w-44">
             {t("analytics.month")}
             <select
               className={fieldClass}
@@ -216,7 +260,7 @@ export function PeriodControls({
               ))}
             </select>
           </label>
-          <label className="text-muted-foreground grid gap-1 text-[11px]">
+          <label className="text-muted-foreground grid gap-1 text-[11px] sm:w-28">
             {t("analytics.year")}
             <select
               className={fieldClass}
@@ -233,8 +277,13 @@ export function PeriodControls({
               ))}
             </select>
           </label>
+          <span
+            aria-hidden
+            className="bg-border mx-2 hidden h-9 w-px self-end sm:block"
+          />
           <form
-            className="flex flex-wrap items-end gap-2"
+            className="col-span-2 grid grid-cols-2 items-end gap-2 sm:flex"
+            aria-label={t("analytics.customRange")}
             onSubmit={(event) => {
               event.preventDefault();
               if (range.from && range.to) {
@@ -244,7 +293,7 @@ export function PeriodControls({
           >
             <label
               htmlFor={`${ids}-from`}
-              className="text-muted-foreground grid gap-1 text-[11px]"
+              className="text-muted-foreground grid gap-1 text-[11px] sm:w-40"
             >
               {t("analytics.customFrom")}
               <input
@@ -261,7 +310,7 @@ export function PeriodControls({
             </label>
             <label
               htmlFor={`${ids}-to`}
-              className="text-muted-foreground grid gap-1 text-[11px]"
+              className="text-muted-foreground grid gap-1 text-[11px] sm:w-40"
             >
               {t("analytics.customTo")}
               <input
@@ -278,13 +327,13 @@ export function PeriodControls({
             </label>
             <button
               type="submit"
-              className="border-foreground hover:bg-foreground hover:text-background focus-visible:ring-ring h-9 border px-3 text-xs font-semibold transition-colors outline-none focus-visible:ring-2"
+              className="border-foreground hover:bg-foreground hover:text-background focus-visible:ring-ring col-span-2 h-9 border px-3 text-xs font-semibold transition-colors outline-none focus-visible:ring-2"
             >
               {t("analytics.apply")}
             </button>
           </form>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

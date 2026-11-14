@@ -1207,6 +1207,46 @@ const en = {
   "audit.staff.resetPassword": "Reset the password",
   "audit.staff.signOutEverywhere": "Signed the account out everywhere",
   "audit.staff.changeOwnPassword": "Changed their own password",
+  // --- printed handover sheet ----------------------------------------------
+  "handover.printPickup": "Print handover sheet",
+  "handover.printReturn": "Print return sheet",
+  "handover.print": "Print",
+  "handover.screenHint":
+    "Print this sheet and have the customer sign it at the counter.",
+  "handover.titlePickup": "Vehicle handover record",
+  "handover.titleReturn": "Vehicle return record",
+  "handover.reference": "Reservation {ref}",
+  "handover.customer": "Customer",
+  "handover.phone": "Phone",
+  "handover.idDocument": "ID / passport no.",
+  "handover.licence": "Driving licence no.",
+  "handover.vehicle": "Vehicle",
+  "handover.plate": "Plate",
+  "handover.period": "Rental period",
+  "handover.days": "{count} days",
+  "handover.handedOver": "Handed over",
+  "handover.returnedAt": "Returned",
+  "handover.condition": "Condition of the vehicle",
+  "handover.mileage": "Mileage",
+  "handover.fuel": "Fuel level",
+  "handover.exterior": "Exterior",
+  "handover.interior": "Interior",
+  "handover.damage": "Damage",
+  "handover.noDamage": "No damage recorded",
+  "handover.damageYes": "Damage found (see photos)",
+  "handover.photos": "{count} photo(s) taken at the inspection",
+  "handover.recordedBy":
+    "Inspected by {name}; acknowledged by {signer} on {time}.",
+  "handover.statementPickup":
+    "I, {name}, confirm that I have received the vehicle described above in the condition recorded on this sheet, and that I have checked it.",
+  "handover.statementReturn":
+    "I, {name}, confirm that I have returned the vehicle described above, and that its condition on return is the one recorded on this sheet.",
+  "handover.statementNote":
+    "Any damage not recorded here at handover may be charged when the vehicle is returned, under the rental terms.",
+  "handover.customerSignature": "Customer's signature",
+  "handover.staffSignature": "For Alfa Rent",
+  "handover.nameLabel": "Name",
+  "handover.date": "Date",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -2425,6 +2465,46 @@ const sq: TranslationDictionary = {
   "audit.staff.resetPassword": "Rivendosi fjalëkalimin",
   "audit.staff.signOutEverywhere": "E nxori llogarinë nga të gjitha pajisjet",
   "audit.staff.changeOwnPassword": "Ndryshoi fjalëkalimin e vet",
+  // --- printed handover sheet ----------------------------------------------
+  "handover.printPickup": "Printo fletën e dorëzimit",
+  "handover.printReturn": "Printo fletën e kthimit",
+  "handover.print": "Printo",
+  "handover.screenHint":
+    "Printojeni këtë fletë dhe kërkojini klientit ta nënshkruajë në sportel.",
+  "handover.titlePickup": "Procesverbal i dorëzimit të automjetit",
+  "handover.titleReturn": "Procesverbal i kthimit të automjetit",
+  "handover.reference": "Rezervimi {ref}",
+  "handover.customer": "Klienti",
+  "handover.phone": "Telefoni",
+  "handover.idDocument": "Nr. i letërnjoftimit / pasaportës",
+  "handover.licence": "Nr. i patentë shoferit",
+  "handover.vehicle": "Automjeti",
+  "handover.plate": "Targa",
+  "handover.period": "Periudha e qirasë",
+  "handover.days": "{count} ditë",
+  "handover.handedOver": "Dorëzuar më",
+  "handover.returnedAt": "Kthyer më",
+  "handover.condition": "Gjendja e automjetit",
+  "handover.mileage": "Kilometrazha",
+  "handover.fuel": "Niveli i karburantit",
+  "handover.exterior": "Jashtë",
+  "handover.interior": "Brenda",
+  "handover.damage": "Dëmtime",
+  "handover.noDamage": "Nuk u regjistrua asnjë dëmtim",
+  "handover.damageYes": "U gjet dëmtim (shih fotot)",
+  "handover.photos": "{count} foto të bëra gjatë kontrollit",
+  "handover.recordedBy":
+    "Kontrolluar nga {name}; konfirmuar nga {signer} më {time}.",
+  "handover.statementPickup":
+    "Unë, {name}, konfirmoj se e kam marrë automjetin e përshkruar më lart në gjendjen e shënuar në këtë fletë dhe se e kam kontrolluar.",
+  "handover.statementReturn":
+    "Unë, {name}, konfirmoj se e kam kthyer automjetin e përshkruar më lart dhe se gjendja e tij në kthim është ajo e shënuar në këtë fletë.",
+  "handover.statementNote":
+    "Çdo dëmtim që nuk është shënuar këtu në dorëzim mund të faturohet kur kthehet automjeti, sipas kushteve të qirasë.",
+  "handover.customerSignature": "Nënshkrimi i klientit",
+  "handover.staffSignature": "Për Alfa Rent",
+  "handover.nameLabel": "Emri",
+  "handover.date": "Data",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

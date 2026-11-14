@@ -766,3 +766,12 @@
 button:not(:disabled) {
   cursor: pointer;
 }
+
+/*
+ * Printed pages (the vehicle handover sheet): A4 with margins the printer
+ * can reach. Only the print dialog reads this; the screen is unaffected.
+ */
+@page {
+  size: A4;
+  margin: 14mm;
+}

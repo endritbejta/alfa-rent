@@ -8,6 +8,7 @@ import {
   CalendarRange,
   ClipboardCheck,
   Mail,
+  Printer,
   Receipt,
   History as HistoryIcon,
 } from "lucide-react";
@@ -152,6 +153,33 @@ export function ReservationBody({
               expired={timing.attention === "REQUEST_EXPIRED"}
               onSuccess={onDone}
             />
+          </div>
+        )}
+        {/* The sheet the customer signs at the counter: before the
+            handover (blank condition lines to fill in), or after it, filled
+            from the inspection. A new tab, so the drawer stays as it was. */}
+        {detail.status !== "PENDING" && detail.status !== "CANCELLED" && (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <a
+              href={`/admin/print/handover/${detail.id}`}
+              target="_blank"
+              rel="noopener"
+              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
+            >
+              <Printer className="size-3.5" aria-hidden />
+              {t("handover.printPickup")}
+            </a>
+            {detail.status === "COMPLETED" && (
+              <a
+                href={`/admin/print/handover/${detail.id}?type=return`}
+                target="_blank"
+                rel="noopener"
+                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
+              >
+                <Printer className="size-3.5" aria-hidden />
+                {t("handover.printReturn")}
+              </a>
+            )}
           </div>
         )}
         {inFlight && (

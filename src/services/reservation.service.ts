@@ -1187,6 +1187,63 @@ export async function getReservationDetail(id: string) {
 }
 
 /**
+ * What the printed handover sheet needs: who, which car, which days, and the
+ * condition recorded at pickup and return, if they have been.
+ *
+ * Its own reader rather than getReservationDetail, which also loads the
+ * customer's history, spend and the audit trail — none of it belongs on a
+ * sheet the customer signs. `select`, so no Decimal is loaded at all.
+ */
+export async function getHandoverRecord(id: string) {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true,
+      pickupDate: true,
+      returnDate: true,
+      startedAt: true,
+      completedAt: true,
+      vehicle: {
+        select: {
+          brand: true,
+          model: true,
+          year: true,
+          plate: true,
+          transmission: true,
+          fuelType: true,
+        },
+      },
+      customer: {
+        select: { firstName: true, lastName: true, phone: true, email: true },
+      },
+      inspections: {
+        select: {
+          type: true,
+          mileage: true,
+          fuelLevel: true,
+          exteriorNotes: true,
+          interiorNotes: true,
+          damageFound: true,
+          damageNotes: true,
+          signerName: true,
+          acknowledgedAt: true,
+          createdBy: { select: { name: true } },
+          photos: {
+            select: { id: true, url: true },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      },
+    },
+  });
+  if (!reservation) throw new NotFoundError("Reservation");
+  return reservation;
+}
+
+export type HandoverRecord = Awaited<ReturnType<typeof getHandoverRecord>>;
+
+/**
  * Requests awaiting a staff decision — surfaced across the admin. Expired
  * requests are not counted: their pickup day has passed, so there is no
  * decision left to make and they would only inflate the badge.

@@ -365,10 +365,14 @@ export default async function AnalyticsPage({
         compare={compare}
         comparisonText={
           comparison && comparisonTitle
-            ? t("analytics.comparedWith", {
-                period: comparisonTitle,
-                dates: rangeLabel(comparison.from, comparison.to, locale),
-              })
+            ? // A custom range's title already is its dates; say them once.
+              comparisonTitle ===
+              rangeLabel(comparison.from, comparison.to, locale)
+              ? t("analytics.comparedWithDates", { dates: comparisonTitle })
+              : t("analytics.comparedWith", {
+                  period: comparisonTitle,
+                  dates: rangeLabel(comparison.from, comparison.to, locale),
+                })
             : null
         }
         from={period.from}
@@ -389,7 +393,7 @@ export default async function AnalyticsPage({
       {/* --- Overview ------------------------------------------------------ */}
       <section aria-labelledby="overview" className="space-y-8">
         <SectionTitle id="overview">{t("analytics.overview")}</SectionTitle>
-        <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 sm:gap-x-10 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <Figure
             hero
             label={t("analytics.kpi.earned")}
@@ -1153,14 +1157,15 @@ function Figure({
   hero?: boolean;
 }) {
   return (
-    <div className="min-w-0">
+    // The hero takes a full row on a phone; the rest go two to a row.
+    <div className={cn("min-w-0", hero && "col-span-2 lg:col-span-1")}>
       <dt className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
         {label}
       </dt>
       <dd
         className={cn(
           "font-display mt-2 leading-none font-semibold tracking-tight tabular-nums",
-          hero ? "text-4xl sm:text-5xl" : "text-3xl"
+          hero ? "text-4xl whitespace-nowrap 2xl:text-5xl" : "text-3xl"
         )}
       >
         {value}
@@ -1242,7 +1247,7 @@ function Delta({
   against: string;
   noChange: string;
 }) {
-  const c = change(value, previous);
+  const c = change(value, previous, kind === "pp" ? 0.0005 : 0.005);
   const arrow = c.direction === "up" ? "▲" : c.direction === "down" ? "▼" : "–";
   const sign = c.delta > 0 ? "+" : c.delta < 0 ? "−" : "";
   const abs = Math.abs(c.delta);

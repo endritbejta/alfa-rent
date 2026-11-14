@@ -1421,6 +1421,9 @@ const en = {
     "The previous period is the month, year, or same number of months or days just before. The same period last year shifts every day back one year. Rates move in percentage points (pp). A period still running is compared with the comparison period in full.",
   "analytics.filteredPickups": "Pickups {range}",
   "analytics.clearFilter": "Clear",
+  "analytics.comparedWithDates": "compared with {dates}",
+  "analytics.csv.plate": "Plate",
+  "analytics.csv.category": "Category",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -2856,6 +2859,9 @@ const sq: TranslationDictionary = {
     "Periudha e mëparshme është muaji, viti, ose i njëjti numër muajsh ose ditësh menjëherë para. E njëjta periudhë vitin e kaluar zhvendos çdo ditë një vit prapa. Shkallët ndryshojnë në pikë përqindjeje (pp). Një periudhë ende në vijim krahasohet me periudhën krahasuese të plotë.",
   "analytics.filteredPickups": "Marrjet {range}",
   "analytics.clearFilter": "Pastro",
+  "analytics.comparedWithDates": "krahasuar me {dates}",
+  "analytics.csv.plate": "Targa",
+  "analytics.csv.category": "Kategoria",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

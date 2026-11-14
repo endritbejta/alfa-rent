@@ -25,12 +25,18 @@ export type Change = {
 /**
  * How a figure moved against its comparison period. A percentage from zero
  * is undefined, not infinite: "from 0 to 340 EUR" is shown as the amount.
- * Money differences under a cent are "flat", so rounding noise is not news.
+ * Money differences under half a cent are "flat", so rounding noise is not
+ * news; a rate passes its own threshold (a twentieth of a point).
  */
-export function change(current: number, previous: number): Change {
+export function change(
+  current: number,
+  previous: number,
+  /** Below this the move is noise: half a cent for money; pass less for rates. */
+  epsilon = 0.005
+): Change {
   const delta = current - previous;
   const direction =
-    Math.abs(delta) < 0.005 ? "flat" : delta > 0 ? "up" : "down";
+    Math.abs(delta) < epsilon ? "flat" : delta > 0 ? "up" : "down";
   return {
     previous,
     delta,

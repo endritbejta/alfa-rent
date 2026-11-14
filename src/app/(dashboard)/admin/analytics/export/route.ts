@@ -146,8 +146,8 @@ export async function GET(request: Request) {
     rows = [
       [
         t("analytics.vehicles.vehicle"),
-        "plate",
-        "category",
+        t("analytics.csv.plate"),
+        t("analytics.csv.category"),
         t("analytics.vehicles.rentals"),
         t("analytics.kpi.rentedDays"),
         t("analytics.kpi.fleetDays"),
@@ -158,20 +158,22 @@ export async function GET(request: Request) {
         t("analytics.vehicles.averageValue"),
         t("analytics.vehicles.averageDuration"),
       ],
-      ...report.vehicles.map((v) => [
-        v.label,
-        v.plate ?? "",
-        v.category,
-        v.rentals,
-        v.rentedDays,
-        v.fleetDays,
-        rate(v.utilization),
-        money(v.revenue),
-        money(v.upcoming),
-        rate(v.share),
-        money(v.averageValue),
-        v.averageDuration == null ? "" : v.averageDuration.toFixed(1),
-      ]),
+      ...[...report.vehicles]
+        .sort((a, b) => b.revenue - a.revenue)
+        .map((v) => [
+          v.label,
+          v.plate ?? "",
+          v.category,
+          v.rentals,
+          v.rentedDays,
+          v.fleetDays,
+          rate(v.utilization),
+          money(v.revenue),
+          money(v.upcoming),
+          rate(v.share),
+          money(v.averageValue),
+          v.averageDuration == null ? "" : v.averageDuration.toFixed(1),
+        ]),
     ];
   }
 

@@ -35,6 +35,12 @@ describe("change", () => {
   it("treats sub-cent noise as flat", () => {
     expect(change(100.004, 100).direction).toBe("flat");
   });
+
+  it("sees a rate move that is small in money terms", () => {
+    // 8.4% → 8.8%: under the money threshold, well over the rate one.
+    expect(change(0.088, 0.084).direction).toBe("flat");
+    expect(change(0.088, 0.084, 0.0005).direction).toBe("up");
+  });
 });
 
 describe("cents", () => {

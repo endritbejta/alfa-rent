@@ -2,31 +2,32 @@ import { PageBody } from "../page-body";
 import {
   ChartSkeleton,
   PageHeaderSkeleton,
-  PanelSkeleton,
+  PillsSkeleton,
   StatStripSkeleton,
 } from "@/components/dashboard/skeletons";
 
-/** Analytics: figures, two trend charts, then the three breakdowns. */
+/**
+ * Analytics: the period picker, the four headline figures, then the
+ * sections — each a chart beside its breakdown. Shaped like the page so a
+ * period change does not make the layout jump.
+ */
 export default function AnalyticsLoading() {
   return (
-    <PageBody aria-busy="true">
+    <PageBody aria-busy="true" className="space-y-10">
       <PageHeaderSkeleton action />
-      <StatStripSkeleton count={7} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <PanelSkeleton>
-          <ChartSkeleton />
-        </PanelSkeleton>
-        <PanelSkeleton>
-          <ChartSkeleton />
-        </PanelSkeleton>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
-          <PanelSkeleton key={index}>
-            <ChartSkeleton height={140} />
-          </PanelSkeleton>
-        ))}
-      </div>
+      <PillsSkeleton count={8} />
+      <StatStripSkeleton count={4} />
+      {Array.from({ length: 3 }, (_, index) => (
+        <div
+          key={index}
+          className="grid gap-x-10 gap-y-8 border-t pt-6 lg:grid-cols-3"
+        >
+          <div className="lg:col-span-2">
+            <ChartSkeleton height={200} />
+          </div>
+          <ChartSkeleton height={200} />
+        </div>
+      ))}
     </PageBody>
   );
 }

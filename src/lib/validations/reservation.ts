@@ -34,6 +34,11 @@ const dateRange = {
   returnDate: rentalDate,
 };
 
+/*
+ * Each rule names itself in params.reason. The public API's error carries
+ * that name (lib/errors.ts), so the storefront can say which date is wrong in
+ * the customer's language instead of showing this English message.
+ */
 const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
   schema: z.ZodType<T>
 ) =>
@@ -41,10 +46,12 @@ const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
     .refine(returnNotBeforePickup, {
       message: "Return date cannot be before pickup date",
       path: ["returnDate"],
+      params: { reason: "returnBeforePickup" },
     })
     .refine((d) => rentalCalendarDay(d.pickupDate) >= businessDay(new Date()), {
       message: "Pickup date cannot be in the past",
       path: ["pickupDate"],
+      params: { reason: "pickupInPast" },
     })
     .refine(
       (d) =>
@@ -53,6 +60,7 @@ const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
       {
         message: `Pickup date must be within ${MAX_BOOKING_HORIZON_DAYS} days`,
         path: ["pickupDate"],
+        params: { reason: "pickupTooFar", days: MAX_BOOKING_HORIZON_DAYS },
       }
     )
     .refine(
@@ -62,6 +70,7 @@ const withValidRange = <T extends { pickupDate: Date; returnDate: Date }>(
       {
         message: `Rental duration cannot exceed ${MAX_RENTAL_DAYS} days`,
         path: ["returnDate"],
+        params: { reason: "rentalTooLong", days: MAX_RENTAL_DAYS },
       }
     );
 

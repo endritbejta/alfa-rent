@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
+import { refreshStorefront } from "@/lib/storefront-cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/guards";
 import { TooManyRequestsError } from "@/lib/errors";
@@ -21,7 +22,6 @@ import { parseVehicleImagesField } from "@/lib/validations/image";
 import {
   createVehicle,
   deleteVehicle,
-  PUBLIC_VEHICLES_TAG,
   updateVehicle,
   type VehicleRemoval,
 } from "@/services/vehicle.service";
@@ -130,7 +130,7 @@ export async function createVehicleAction(
   }
 
   revalidatePath("/admin/vehicles");
-  updateTag(PUBLIC_VEHICLES_TAG);
+  refreshStorefront();
   redirect(
     `/admin/vehicles/${vehicle.id}/edit${photosAttached ? "?created=1" : "?photos=failed"}`
   );
@@ -150,7 +150,7 @@ export async function updateVehicleAction(
     return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/vehicles");
-  updateTag(PUBLIC_VEHICLES_TAG);
+  refreshStorefront();
   // The list is where the operator lands, so that is where the save is
   // confirmed — a redirect leaves no client behind to say it.
   redirect("/admin/vehicles?saved=1");
@@ -167,7 +167,7 @@ export async function deleteVehicleAction(
     return { error: await errorMessage(error) };
   }
   revalidatePath("/admin/vehicles");
-  updateTag(PUBLIC_VEHICLES_TAG);
+  refreshStorefront();
   return { removal };
 }
 

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { deleteImage } from "@/lib/cloudinary";
 import { occupyingReservationWhere } from "@/lib/reservation-occupancy";
+import { PUBLIC_VEHICLES_TAG } from "@/lib/storefront-cache";
 import { reportError } from "@/lib/observability";
 import { toMoney } from "@/lib/money";
 import { auditFields, diffFields, recordAudit } from "@/lib/audit";
@@ -450,8 +451,9 @@ export async function deleteVehicle(
  * well: if some future write forgets to revalidate, the fleet is a minute
  * stale rather than stale until the next deploy. Nothing in here reads
  * cookies or headers, which a cached scope may not do.
+ *
+ * The tag and the one call that expires it live in lib/storefront-cache.ts.
  */
-export const PUBLIC_VEHICLES_TAG = "public-vehicles";
 const PUBLIC_VEHICLES_MAX_AGE = 60;
 
 export const getPublicVehicles = unstable_cache(

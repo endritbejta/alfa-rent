@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import type { ApiFailure } from "@/types/api";
 import { reportError } from "@/lib/observability";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import type { ApiErrorCode } from "@/lib/api-error-codes";
 
 /**
  * A value to interpolate into an error message. Wrap it in `phrase()` when it
@@ -35,7 +36,7 @@ export type ErrorText = {
 export class AppError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: ApiErrorCode,
     public readonly status: number,
     /** Names the message so it can be read in the operator's language. */
     public readonly text?: ErrorText
@@ -141,6 +142,33 @@ export class ServiceUnavailableError extends AppError {
 }
 
 /**
+ * The machine-readable half of an error's named message, for a client that
+ * says it in its own words: `reason` tells apart what one code covers (a
+ * CONFLICT is an overlap, a full request queue, a car taken off the road…)
+ * and `params` carries the numbers in it. Only numbers: a string value is an
+ * English fragment, and a client translating the sentence cannot use it.
+ */
+function reasonOf(
+  text: ErrorText | undefined
+): Pick<ApiFailure["error"], "reason" | "params"> {
+  if (!text) return {};
+  const params = numbersOf(text.values);
+  return {
+    reason: text.key.replace(/^err\./, ""),
+    ...(params && { params }),
+  };
+}
+
+function numbersOf(
+  values: Record<string, unknown> | undefined
+): Record<string, number> | undefined {
+  const numbers = Object.entries(values ?? {}).filter(
+    (entry): entry is [string, number] => typeof entry[1] === "number"
+  );
+  return numbers.length > 0 ? Object.fromEntries(numbers) : undefined;
+}
+
+/**
  * Map any thrown value to a response-ready shape. The generic fallback
  * deliberately hides internals: raw error messages can leak schema or
  * infrastructure details.
@@ -154,7 +182,11 @@ export function normalizeError(error: unknown): {
       status: error.status,
       body: {
         success: false,
-        error: { message: error.message, code: error.code },
+        error: {
+          message: error.message,
+          code: error.code,
+          ...reasonOf(error.text),
+        },
       },
     };
   }
@@ -162,6 +194,12 @@ export function normalizeError(error: unknown): {
   if (error instanceof ZodError) {
     const first = error.issues[0];
     const path = first?.path.join(".");
+    // A refine names its rule in params.reason (see validations/reservation);
+    // any other issue is known by Zod's own code, e.g. too_small.
+    const custom = first?.code === "custom" ? first.params : undefined;
+    const reason =
+      typeof custom?.reason === "string" ? custom.reason : first?.code;
+    const params = numbersOf(custom);
     return {
       status: 400,
       body: {
@@ -171,6 +209,9 @@ export function normalizeError(error: unknown): {
             ? `${path}: ${first.message}`
             : (first?.message ?? "Invalid input"),
           code: "VALIDATION_ERROR",
+          ...(path && { field: path }),
+          ...(reason && { reason }),
+          ...(params && { params }),
         },
       },
     };

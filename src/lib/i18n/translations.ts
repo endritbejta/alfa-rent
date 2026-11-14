@@ -143,6 +143,41 @@ const en = {
   "availability.booked": "Already booked for these dates — try adjusting them.",
   "availability.occupiedDates": "Occupied on {ranges}",
   "availability.continue": "Continue to booking",
+  /*
+   * What the storefront says when the booking or availability API refuses a
+   * request. The API answers in English; lib/public-error.ts picks one of
+   * these from the error's code and reason instead (audit P3-4).
+   */
+  "publicError.generic":
+    "Something went wrong on our side and your request was not sent. Please try again, or call us.",
+  "publicError.checkDetails":
+    "Some details need another look. Check the highlighted fields and try again.",
+  "publicError.invalid":
+    "We could not read those details. Check the form and try again.",
+  "publicError.vehicleInvalid":
+    "We could not tell which car you chose. Go back to the fleet and choose it again.",
+  "publicError.nameTooLong": "Use at most 50 characters.",
+  "publicError.dateInvalid": "Choose a valid date.",
+  "publicError.pickupInPast":
+    "That pickup date has already passed. Choose today or a later day.",
+  "publicError.pickupTooFar":
+    "Bookings open up to {days} days ahead. Choose an earlier pickup date.",
+  "publicError.rentalTooLong":
+    "A rental can last at most {days} days. Choose an earlier return date, or call us for a longer hire.",
+  "publicError.alreadyBooked":
+    "This car has just been booked for some of those days. Choose other dates or another car.",
+  "publicError.notBookable":
+    "This car cannot be booked at the moment. Choose another one from the fleet.",
+  "publicError.vehicleGone":
+    "This car is no longer in our fleet. Choose another one.",
+  "publicError.rateLimited":
+    "You have sent several booking requests in a short time. Please wait a while and try again, or call us if it is urgent.",
+  "publicError.blocked":
+    "Your browser sent this request in a way we cannot accept. Reload the page and try again.",
+  "publicError.conflict":
+    "That request could not be completed with those details. Check them and try again, or call us.",
+  "publicError.unavailable":
+    "Online booking is not available right now. Please call us.",
   "auth.metaTitle": "Staff Login",
   "toast.region": "Notifications",
   "err.pendingLimitContact":
@@ -1675,6 +1710,36 @@ const sq: TranslationDictionary = {
   "availability.booked": "E rezervuar për këto data — provo t'i ndryshosh.",
   "availability.occupiedDates": "E zënë me datat {ranges}",
   "availability.continue": "Vazhdo te rezervimi",
+  "publicError.generic":
+    "Diçka shkoi keq nga ana jonë dhe kërkesa jote nuk u dërgua. Provo përsëri ose na telefono.",
+  "publicError.checkDetails":
+    "Disa të dhëna duhen kontrolluar. Shiko fushat e shënuara dhe provo përsëri.",
+  "publicError.invalid":
+    "Nuk arritëm t'i lexojmë këto të dhëna. Kontrollo formularin dhe provo përsëri.",
+  "publicError.vehicleInvalid":
+    "Nuk e kuptuam cilën veturë zgjodhe. Kthehu te flota dhe zgjidhe përsëri.",
+  "publicError.nameTooLong": "Përdor jo më shumë se 50 shkronja.",
+  "publicError.dateInvalid": "Zgjidh një datë të vlefshme.",
+  "publicError.pickupInPast":
+    "Kjo datë marrjeje ka kaluar. Zgjidh sot ose një ditë më vonë.",
+  "publicError.pickupTooFar":
+    "Rezervimet pranohen deri në {days} ditë përpara. Zgjidh një datë marrjeje më të afërt.",
+  "publicError.rentalTooLong":
+    "Qiraja mund të zgjasë deri në {days} ditë. Zgjidh një datë kthimi më të hershme ose na telefono për një qira më të gjatë.",
+  "publicError.alreadyBooked":
+    "Kjo veturë sapo u rezervua për disa nga këto ditë. Zgjidh data të tjera ose një veturë tjetër.",
+  "publicError.notBookable":
+    "Kjo veturë nuk mund të rezervohet për momentin. Zgjidh një tjetër nga flota.",
+  "publicError.vehicleGone":
+    "Kjo veturë nuk është më në flotën tonë. Zgjidh një tjetër.",
+  "publicError.rateLimited":
+    "Ke dërguar disa kërkesa për rezervim brenda një kohe të shkurtër. Prit pak dhe provo përsëri, ose na telefono nëse është urgjente.",
+  "publicError.blocked":
+    "Shfletuesi e dërgoi këtë kërkesë në një mënyrë që nuk e pranojmë. Rifresko faqen dhe provo përsëri.",
+  "publicError.conflict":
+    "Kërkesa nuk mund të kryhej me këto të dhëna. Kontrolloji dhe provo përsëri, ose na telefono.",
+  "publicError.unavailable":
+    "Rezervimi online nuk është i disponueshëm tani. Të lutem na telefono.",
   "auth.metaTitle": "Hyrja e Stafit",
   "toast.region": "Njoftimet",
   "err.pendingLimitContact":

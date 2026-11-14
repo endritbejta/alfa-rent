@@ -586,7 +586,7 @@ describe("POST /api/bookings", () => {
       }
     });
 
-    it("answers in the storefront's language when the locale cookie is set", async () => {
+    it("answers in English with a reason the storefront translates, whatever the locale cookie", async () => {
       const person = capCustomer("sq", `+383 46 ${suffix.slice(0, 3)} 001`);
       for (const n of [1, 3, 5]) {
         await POST(post({}, { ...booking, ...days(n), customer: person }));
@@ -598,9 +598,14 @@ describe("POST /api/bookings", () => {
         )
       );
       expect(refused.status).toBe(409);
-      expect((await refused.json()).error.message).toMatch(
-        /^Ke tashmë 3 kërkesa/
-      );
+      // The contract: code plus an English message. lib/public-error.ts
+      // turns the reason and count into the customer's language.
+      expect((await refused.json()).error).toEqual({
+        code: "CONFLICT",
+        message: expect.stringMatching(/^You already have 3 booking requests/),
+        reason: "pendingLimitContact",
+        params: { count: 3 },
+      });
     });
   });
 });

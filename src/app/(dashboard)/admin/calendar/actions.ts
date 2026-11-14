@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshStorefront } from "@/lib/storefront-cache";
 import { requireRole } from "@/lib/auth/guards";
 import { errorMessage } from "@/lib/errors-i18n";
 import {
@@ -29,6 +30,8 @@ export async function createManualReservationAction(
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/customers");
+  // A staff booking may be created CONFIRMED, which takes the car's days.
+  refreshStorefront();
   return { ok: true };
 }
 

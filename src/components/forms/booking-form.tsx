@@ -47,6 +47,7 @@ import {
 } from "@/lib/booking-calendar";
 import { rentalDateParam } from "@/lib/business-time";
 import { FILL_TIME_FIELD, HONEYPOT_FIELD } from "@/lib/bot-signals";
+import { publicErrorText } from "@/lib/public-error";
 
 const createFormSchema = (t: (key: TranslationKey) => string) =>
   z
@@ -54,10 +55,22 @@ const createFormSchema = (t: (key: TranslationKey) => string) =>
       vehicleId: z.string().min(1, t("booking.chooseError")),
       from: z.string().min(1, t("booking.pickupRequired")),
       to: z.string().min(1, t("booking.returnRequired")),
-      firstName: z.string().trim().min(1, t("booking.required")).max(50),
-      lastName: z.string().trim().min(1, t("booking.required")).max(50),
+      firstName: z
+        .string()
+        .trim()
+        .min(1, t("booking.required"))
+        .max(50, t("publicError.nameTooLong")),
+      lastName: z
+        .string()
+        .trim()
+        .min(1, t("booking.required"))
+        .max(50, t("publicError.nameTooLong")),
       email: z.email(t("booking.validEmail")),
-      phone: z.string().trim().min(6, t("booking.validPhone")).max(25),
+      phone: z
+        .string()
+        .trim()
+        .min(6, t("booking.validPhone"))
+        .max(25, t("booking.validPhone")),
     })
     .refine((data) => !data.from || !data.to || data.to >= data.from, {
       message: t("booking.rangeError"),
@@ -126,6 +139,7 @@ export function BookingForm({
     register,
     control,
     handleSubmit,
+    setError,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -242,7 +256,15 @@ export function BookingForm({
       });
       const json: ApiResponse<Confirmation> = await response.json();
       if (!json.success) {
-        setServerError(json.error.message);
+        // Never json.error.message: that is the API's English sentence.
+        const failure = publicErrorText(json.error);
+        const message = t(failure.key, failure.values);
+        if (failure.field) {
+          setError(failure.field, { type: "server", message });
+          setServerError(t("publicError.checkDetails"));
+        } else {
+          setServerError(message);
+        }
         return;
       }
       setConfirmation(json.data);

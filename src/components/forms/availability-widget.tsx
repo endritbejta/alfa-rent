@@ -19,6 +19,7 @@ import {
   type DurationChoice,
 } from "@/lib/rental-dates";
 import { rentalDateParam } from "@/lib/business-time";
+import { publicErrorText } from "@/lib/public-error";
 
 /** A pickup day and a return day on or after it: one day at the least. */
 const isRange = (from: string, to: string) => !!from && !!to && to >= from;
@@ -116,7 +117,9 @@ export function AvailabilityWidget({
         if (cancelled) return;
         if (!json.success) {
           forget(key);
-          setError(json.error.message);
+          // The API's message is English; say it in the reader's language.
+          const failure = publicErrorText(json.error);
+          setError(t(failure.key, failure.values));
           return;
         }
         setQuotes((current) => ({ ...current, [key]: json.data }));

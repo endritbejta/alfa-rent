@@ -1,8 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { after, type NextRequest } from "next/server";
 import { assertSameSiteJson, ok, withErrorHandling } from "@/lib/api";
-import { AppError, TooManyRequestsError } from "@/lib/errors";
-import { errorMessageIn } from "@/lib/error-text";
+import { TooManyRequestsError } from "@/lib/errors";
 import { botVerdict } from "@/lib/bot-signals";
 import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import {
@@ -80,18 +79,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   }
 
   const input = createBookingSchema.parse(body);
-  let created: Awaited<ReturnType<typeof createReservation>>;
-  try {
-    created = await createReservation(input, { idempotencyKey, locale });
-  } catch (error) {
-    // The storefront shows this message as it is, so it has to be in the
-    // language the customer was reading. The public API, with no cookie,
-    // keeps the English sentence.
-    const translated = locale && errorMessageIn(error, locale);
-    if (translated && error instanceof AppError) error.message = translated;
-    throw error;
-  }
-  const { reservation, paymentAccessToken, replayed } = created;
+  // A refusal answers in English whoever asks: `code`, plus `reason` and
+  // `params` where one code covers several rules, are what the storefront
+  // translates (lib/public-error.ts). It used to rewrite the message into the
+  // cookie's language here, which covered the service's named refusals but
+  // left validation, the 415 and 403 and every unnamed error in English.
+  const { reservation, paymentAccessToken, replayed } = await createReservation(
+    input,
+    { idempotencyKey, locale }
+  );
   // After the response: the customer's confirmation never waits on, or fails
   // because of, the mail provider. sendEmail reports its own failures. A
   // replay is a booking staff and the customer were already told about.

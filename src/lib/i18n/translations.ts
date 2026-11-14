@@ -1280,10 +1280,13 @@ const en = {
     "I, {name}, confirm that I have returned the vehicle described above, and that its condition on return is the one recorded on this sheet.",
   "handover.statementNote":
     "Any damage not recorded here at pickup may be charged when the vehicle is returned, under the rental terms.",
+  "handover.sectionCustomer": "Customer",
+  "handover.sectionVehicle": "Vehicle and period",
+  "handover.sectionStatement": "Declaration",
+  "handover.noRemarks": "No remarks",
+  "handover.thanks": "Thank you for choosing Alfa Rent.",
   "handover.customerSignature": "Customer's signature",
   "handover.staffSignature": "For Alfa Rent",
-  "handover.nameLabel": "Name",
-  "handover.date": "Date",
   // --- analytics dashboard -------------------------------------------------
   "analytics.subtitle":
     "Every figure below covers the selected period, read from the reservations themselves.",
@@ -2813,10 +2816,13 @@ const sq: TranslationDictionary = {
     "Unë, {name}, konfirmoj se e kam kthyer automjetin e përshkruar më lart dhe se gjendja e tij në kthim është ajo e shënuar në këtë fletë.",
   "handover.statementNote":
     "Çdo dëmtim që nuk është shënuar këtu në marrje mund të faturohet kur kthehet automjeti, sipas kushteve të qirasë.",
+  "handover.sectionCustomer": "Klienti",
+  "handover.sectionVehicle": "Automjeti dhe periudha",
+  "handover.sectionStatement": "Deklarata",
+  "handover.noRemarks": "Pa vërejtje",
+  "handover.thanks": "Faleminderit që zgjodhët Alfa Rent.",
   "handover.customerSignature": "Nënshkrimi i klientit",
   "handover.staffSignature": "Për Alfa Rent",
-  "handover.nameLabel": "Emri",
-  "handover.date": "Data",
   // --- analytics dashboard -------------------------------------------------
   "analytics.subtitle":
     "Çdo shifër më poshtë mbulon periudhën e zgjedhur, e lexuar nga vetë rezervimet.",

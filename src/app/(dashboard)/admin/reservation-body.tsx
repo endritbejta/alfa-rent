@@ -12,7 +12,6 @@ import {
   ClipboardCheck,
   Mail,
   MoreHorizontal,
-  Printer,
   Receipt,
   History as HistoryIcon,
   XCircle,
@@ -25,6 +24,7 @@ import { SectionTitle } from "./detail-primitives";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { InspectionAction } from "./reservations/inspection-action";
 import { RecordPastRental } from "./reservations/record-past-rental";
+import { PrintDocuments } from "./reservations/print-documents";
 import { formatDay } from "./reservations/format-day";
 import { useI18n } from "@/components/shared/locale-provider";
 import { useDetailDrawer } from "@/components/dashboard/detail-drawer-context";
@@ -57,9 +57,6 @@ const MENU_ITEM =
 
 const TAB =
   "text-muted-foreground hover:text-foreground data-active:text-foreground focus-visible:ring-ring/50 relative -mb-px cursor-pointer pb-2.5 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2";
-
-const PRINT_LINK =
-  "text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 underline-offset-4 hover:underline";
 
 /**
  * The reservation drawer, flat and in the order staff read it.
@@ -258,33 +255,9 @@ export function ReservationBody({
             )}
           </p>
         )}
-        {/* The sheet the customer signs at the counter: before the handover
-            (blank condition lines to fill in), or after it, filled from the
-            inspection. A new tab, so the drawer stays as it was. */}
-        {status !== "PENDING" && status !== "CANCELLED" && (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <a
-              href={`/admin/print/handover/${detail.id}`}
-              target="_blank"
-              rel="noopener"
-              className={PRINT_LINK}
-            >
-              <Printer className="size-3.5" aria-hidden />
-              {t("handover.printPickup")}
-            </a>
-            {status === "COMPLETED" && (
-              <a
-                href={`/admin/print/handover/${detail.id}?type=return`}
-                target="_blank"
-                rel="noopener"
-                className={PRINT_LINK}
-              >
-                <Printer className="size-3.5" aria-hidden />
-                {t("handover.printReturn")}
-              </a>
-            )}
-          </div>
-        )}
+        {/* The sheets the customer signs at the counter, grouped where the
+            dates are, and Cmd/Ctrl+P while this drawer is open. */}
+        <PrintDocuments reservationId={detail.id} status={status} />
         {/* Opened from the action bar; or, when it cannot be extended, the
             reason why. */}
         {inFlight && (

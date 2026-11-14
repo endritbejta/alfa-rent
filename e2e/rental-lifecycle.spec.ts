@@ -22,7 +22,31 @@ test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([
     { name: "alfa-locale", value: "en", url: baseURL! },
   ]);
+  // A print dialog cannot be driven headless. Every frame's print() instead
+  // records, in the top window, which sheet it was called on — so starting
+  // and completing a rental are seen to print the right one, and only once.
+  await context.addInitScript(() => {
+    type Printed = { path: string; sheet: string | null; type: string | null };
+    const top = window.top as Window & { __printed?: Printed[] };
+    if (window === top) top.__printed = [];
+    window.print = () => {
+      const sheet = document.querySelector<HTMLElement>("[data-print-sheet]");
+      top.__printed?.push({
+        path: location.pathname + location.search,
+        sheet: sheet?.dataset.printSheet ?? null,
+        type: sheet?.dataset.printType ?? null,
+      });
+    };
+  });
 });
+
+/** The print() calls recorded on this page since it loaded. */
+function printed(page: Page) {
+  return page.evaluate(
+    () =>
+      (window as Window & { __printed?: unknown[] }).__printed?.slice() ?? []
+  );
+}
 
 /** Picks today in the calendar a date trigger opens. */
 async function pickToday(page: Page, trigger: RegExp) {
@@ -102,6 +126,17 @@ test("a booking request goes from the storefront to a completed rental", async (
   await pickup.getByRole("button", { name: "Save and start rental" }).click();
   await expect(pickup).toBeHidden();
   await expect(page.getByText("Inspection recorded")).toBeVisible();
+  // Starting prints the pickup sheet by itself, once, from a fresh load.
+  await expect
+    .poll(() => printed(page))
+    .toEqual([
+      {
+        path: expect.stringMatching(/^\/admin\/print\/handover\/[^/?]+$/),
+        sheet: expect.any(String),
+        type: "PICKUP",
+      },
+    ]);
+  const [pickupPrint] = (await printed(page)) as { sheet: string }[];
 
   // --- Return ----------------------------------------------------------
   await page.goto("/admin/reservations?status=ACTIVE");
@@ -113,6 +148,16 @@ test("a booking request goes from the storefront to a completed rental", async (
   await ret.getByRole("button", { name: "Save and complete rental" }).click();
   await expect(ret).toBeHidden();
   await expect(page.getByText("Inspection recorded")).toBeVisible();
+  // Completing prints the return sheet of the same reservation.
+  await expect
+    .poll(() => printed(page))
+    .toEqual([
+      {
+        path: `/admin/print/handover/${pickupPrint!.sheet}?type=return`,
+        sheet: pickupPrint!.sheet,
+        type: "RETURN",
+      },
+    ]);
 
   // --- Outcome, on the page and in the database --------------------------
   await page.goto("/admin/reservations?status=COMPLETED");
@@ -125,11 +170,14 @@ test("a booking request goes from the storefront to a completed rental", async (
     const reservation = await prisma.reservation.findFirstOrThrow({
       where: { vehicleId: data.vehicle.id },
       select: {
+        id: true,
         status: true,
         inspections: { select: { type: true, mileage: true } },
       },
     });
     expect(reservation.status).toBe("COMPLETED");
+    // Both sheets printed were this reservation's.
+    expect(pickupPrint!.sheet).toBe(reservation.id);
     expect(
       reservation.inspections.map((i) => [i.type, i.mileage]).sort()
     ).toEqual([

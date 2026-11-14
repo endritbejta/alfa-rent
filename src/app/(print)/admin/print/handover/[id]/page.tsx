@@ -83,7 +83,14 @@ export default async function HandoverSheetPage({
           <PrintButton label={t("handover.print")} />
         </div>
 
-        <article className="bg-card border p-8 text-[13px] leading-relaxed print:border-0 print:bg-transparent print:p-0">
+        {/* The marker the admin's print frame waits for: it proves the
+            response is this reservation's sheet, of this type, and not a
+            sign-in page or an error, before print() is called on it. */}
+        <article
+          data-print-sheet={record.id}
+          data-print-type={type}
+          className="bg-card border p-8 text-[13px] leading-relaxed print:border-0 print:bg-transparent print:p-0"
+        >
           <header className="flex items-start justify-between gap-6 border-b-2 border-current pb-4">
             <div>
               <p className="font-display text-xl font-semibold tracking-tight">

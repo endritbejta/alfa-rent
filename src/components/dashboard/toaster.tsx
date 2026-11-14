@@ -1,7 +1,7 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import { Check, CircleAlert, X } from "lucide-react";
+import { Check, CircleAlert, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/shared/locale-provider";
 
@@ -28,14 +28,35 @@ export const toasts = {
   success(title: string, description?: string) {
     manager.add({ title, description, type: "success" });
   },
-  /** Announced urgently and left on screen until dismissed. */
-  problem(title: string, description?: string) {
-    manager.add({
+  /** A piece of information, not a confirmation and not a failure. */
+  notice(title: string, description?: string) {
+    manager.add({ title, description, type: "notice" });
+  },
+  /**
+   * Announced urgently and left on screen until dismissed. With `retry`, it
+   * also offers to try again — for a failure that did no harm and costs one
+   * click to repeat, such as a print that did not open.
+   */
+  problem(
+    title: string,
+    description?: string,
+    retry?: { label: string; onRetry: () => void }
+  ) {
+    const id = manager.add({
       title,
       description,
       type: "problem",
       priority: "high",
       timeout: 0,
+      ...(retry && {
+        actionProps: {
+          children: retry.label,
+          onClick() {
+            manager.close(id);
+            retry.onRetry();
+          },
+        },
+      }),
     });
   },
   /**
@@ -109,7 +130,8 @@ function ToastList() {
 
   return queue.map((toast) => {
     const problem = toast.type === "problem";
-    const Icon = problem ? CircleAlert : Check;
+    const notice = toast.type === "notice";
+    const Icon = problem ? CircleAlert : notice ? Info : Check;
     return (
       <Toast.Root
         key={toast.id}
@@ -138,7 +160,9 @@ function ToastList() {
               "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-none",
               problem
                 ? "bg-destructive text-white"
-                : "bg-success text-success-foreground"
+                : notice
+                  ? "bg-foreground text-background"
+                  : "bg-success text-success-foreground"
             )}
           >
             <Icon className="h-3 w-3" />
@@ -147,7 +171,8 @@ function ToastList() {
             <Toast.Title className="text-sm font-semibold" />
             <Toast.Description className="text-muted-foreground mt-0.5 text-xs" />
           </div>
-          {/* Renders only for a toast that offers one (toasts.undoable). */}
+          {/* Renders only for a toast that offers one (undoable, or a
+              problem with a retry). */}
           <Toast.Action className="hit-area text-foreground hover:bg-surface-hover relative -my-1 shrink-0 cursor-pointer rounded-none border px-2.5 py-1 text-xs font-semibold transition-colors" />
         </Toast.Content>
         <Toast.Close

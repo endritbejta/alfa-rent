@@ -676,9 +676,29 @@ const reservationListInclude = {
   },
 } satisfies Prisma.ReservationInclude;
 
+/**
+ * Pickup days to list, both included, as `yyyy-MM-dd`: the analytics page
+ * links here with the period a figure covers. Rental dates are naive
+ * calendar values, so a day's bounds are midnight "UTC" of that day and the
+ * next (see business-time.ts).
+ */
+export type PickupDays = { from: string; to: string };
+
+function pickupDaysWhere(
+  days: PickupDays | undefined
+): Prisma.ReservationWhereInput {
+  if (!days) return {};
+  const end = new Date(`${days.to}T00:00:00.000Z`);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return {
+    pickupDate: { gte: new Date(`${days.from}T00:00:00.000Z`), lt: end },
+  };
+}
+
 export async function getReservations(filters: {
   status?: ReservationStatus;
   vehicleId?: string;
+  pickupDays?: PickupDays;
   page: number;
   perPage: number;
 }) {
@@ -688,6 +708,7 @@ export async function getReservations(filters: {
   const where: Prisma.ReservationWhereInput = {
     ...(status && { status }),
     ...(vehicleId && { vehicleId }),
+    ...pickupDaysWhere(filters.pickupDays),
   };
   const [items, total] = await prisma.$transaction([
     prisma.reservation.findMany({
@@ -721,13 +742,24 @@ export async function getReservations(filters: {
  * takes what is left of the actionable tier, then fills from the expired one.
  */
 async function getPendingQueue(
-  filters: { vehicleId?: string; page: number; perPage: number },
+  filters: {
+    vehicleId?: string;
+    pickupDays?: PickupDays;
+    page: number;
+    perPage: number;
+  },
   now = new Date()
 ) {
   const { vehicleId, page, perPage } = filters;
   const scope = vehicleId ? { vehicleId } : {};
-  const actionableWhere = { ...scope, ...actionableRequestWhere(now) };
-  const expiredWhere = { ...scope, ...expiredRequestWhere(now) };
+  // AND, not a spread: both the range and the queue's own tier filter
+  // pickupDate, and a spread would let one silently replace the other.
+  const days = pickupDaysWhere(filters.pickupDays);
+  const actionableWhere = {
+    ...scope,
+    AND: [actionableRequestWhere(now), days],
+  };
+  const expiredWhere = { ...scope, AND: [expiredRequestWhere(now), days] };
 
   const [actionableTotal, expiredTotal] = await Promise.all([
     prisma.reservation.count({ where: actionableWhere }),

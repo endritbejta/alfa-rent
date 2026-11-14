@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
-import { getAnalytics, getDashboardData } from "@/services/analytics.service";
+import { getDashboardData } from "@/services/analytics.service";
+import { getAnalyticsReport } from "@/services/analytics-report.service";
+import type { BucketUnit } from "@/lib/business-buckets";
 
 /**
  * Revenue is recognised per rental day: a reservation's price is spread
@@ -109,46 +111,116 @@ afterAll(async () => {
 const valueOf = (series: { label: string; value: number }[], label: string) =>
   series.find((point) => point.label === label)?.value;
 
+/** The analytics report over a range, read on `today`. */
+async function report(
+  unit: BucketUnit,
+  from: string,
+  to: string,
+  today: string
+) {
+  const data = await getAnalyticsReport({
+    range: { from, to },
+    unit,
+    today,
+    comparison: null,
+    span: null,
+  });
+  const bucket = (key: string) =>
+    data.current.buckets.find((b) => b.key === key)!;
+  /** Every revenue status together, as the dashboard counts it. */
+  const booked = (key: string) => {
+    const { realised, accruing, upcoming } = bucket(key).revenue;
+    return Math.round(realised + accruing + upcoming);
+  };
+  return { data, bucket, booked };
+}
+
 describe("revenue per rental day", () => {
   it("splits a rental across the month boundary it spans", async () => {
-    const data = await getAnalytics("month", at(2031, 2, 20));
+    const { data, booked } = await report(
+      "month",
+      "2030-06-01",
+      "2031-02-28",
+      "2031-02-20"
+    );
 
-    expect(valueOf(data.revenueByMonth, "Jan")).toBe(200);
+    expect(booked("2031-01-01")).toBe(200);
     // 200 from the January rental's last two days, 60 from February's own.
-    expect(valueOf(data.revenueByMonth, "Feb")).toBe(260);
+    expect(booked("2031-02-01")).toBe(260);
     // Booked in June, earned in January/February: June earned nothing.
-    expect(valueOf(data.revenueByMonth, "Jun")).toBe(0);
-    // The booking itself still counts where it was made.
-    expect(valueOf(data.bookingsByMonth, "Jun")).toBe(1);
-    expect(data.totalReservations).toBe(1);
+    expect(booked("2030-06-01")).toBe(0);
     // PENDING and CANCELLED never count; CONFIRMED and ACTIVE do.
-    expect(data.totalRevenue).toBe(460);
+    const { realised, accruing, upcoming } = data.current.revenue;
+    expect(realised + accruing + upcoming).toBe(460);
+  });
+
+  it("keeps earned, in-progress and scheduled money apart", async () => {
+    // On 20 Feb: the ACTIVE rental's 20 Feb is earned so far, its 21 Feb is
+    // still ahead, and the CONFIRMED rental has not started at all.
+    const { data, bucket } = await report(
+      "month",
+      "2031-02-01",
+      "2031-02-28",
+      "2031-02-20"
+    );
+    expect(bucket("2031-02-01").revenue).toEqual({
+      realised: 0,
+      accruing: 30,
+      upcoming: 230,
+    });
+    expect(data.current.revenue.earned).toBe(30);
+    // Counted by pickup day: the PENDING request lapsed on 10 Feb, and the
+    // cancelled booking's value is what was lost.
+    expect(data.current.reservations.status).toMatchObject({
+      ACTIVE: 1,
+      PENDING: 1,
+      CANCELLED: 1,
+    });
+    expect(data.current.reservations.lapsed).toBe(1);
+    expect(data.current.revenue.cancelled).toBe(999);
   });
 
   it("splits uneven shares without losing a cent", async () => {
-    const data = await getAnalytics("month", at(2031, 4, 10));
+    const { data, bucket } = await report(
+      "month",
+      "2031-03-01",
+      "2031-04-30",
+      "2031-04-10"
+    );
 
-    expect(valueOf(data.revenueByMonth, "Mar")).toBe(33);
-    expect(valueOf(data.revenueByMonth, "Apr")).toBe(67);
-    // 400 + 60 + 33.33 + 66.67: the total is the whole prices.
-    expect(data.totalRevenue).toBeCloseTo(560, 2);
+    expect(bucket("2031-03-01").revenue.realised).toBe(33.33);
+    expect(bucket("2031-04-01").revenue.realised).toBe(66.67);
+    expect(data.current.revenue.realised).toBe(100);
   });
 
   it("buckets weeks from Monday, across a month boundary", async () => {
-    // Monday 3 Feb 2031. The week of Monday 27 Jan holds all four days of the
-    // January rental, two in each month.
-    const data = await getAnalytics("week", at(2031, 2, 3));
+    // The week of Monday 27 Jan holds all four days of the January rental,
+    // two in each month.
+    const { data, booked } = await report(
+      "week",
+      "2031-01-27",
+      "2031-02-09",
+      "2031-02-03"
+    );
 
-    expect(data.revenueByMonth).toHaveLength(12);
-    expect(valueOf(data.revenueByMonth, "27 Jan")).toBe(400);
-    expect(data.revenueByMonth.at(-1)).toEqual({ label: "03 Feb", value: 0 });
+    expect(data.current.buckets.map((b) => b.key)).toEqual([
+      "2031-01-27",
+      "2031-02-03",
+    ]);
+    expect(booked("2031-01-27")).toBe(400);
+    expect(booked("2031-02-03")).toBe(0);
   });
 
   it("splits a rental across the year boundary it spans", async () => {
-    const data = await getAnalytics("year", at(2032, 3, 1));
+    const { booked } = await report(
+      "year",
+      "2031-01-01",
+      "2032-12-31",
+      "2032-03-01"
+    );
 
-    expect(valueOf(data.revenueByMonth, "2031")).toBe(585);
-    expect(valueOf(data.revenueByMonth, "2032")).toBe(25);
+    expect(booked("2031-01-01")).toBe(585);
+    expect(booked("2032-01-01")).toBe(25);
   });
 
   it("drives the dashboard's week and month figures the same way", async () => {

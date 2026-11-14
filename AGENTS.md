@@ -21,6 +21,11 @@ these are the ones you can violate before reading it.
   `prisma/migrations/<timestamp>_<name>/migration.sql` by hand and apply it with
   `prisma migrate deploy`. `npm run test:integration` fails if any of the four
   is missing.
+- **CI rejects destructive migration SQL** (`npm run check:migrations`): DROP
+  TABLE/COLUMN/CONSTRAINT/INDEX, a column TYPE change, TRUNCATE and DELETE FROM
+  need `-- migration-safety: allow <reason>` on or above the statement.
+  Removing any of the four objects above fails even with the marker, unless
+  the same migration recreates it.
 - **Restart the dev server after `prisma generate`**, or a stale client throws
   `PrismaClientValidationError`.
 - **`Prisma.Decimal` cannot cross the server/client boundary.** Convert to

@@ -12,7 +12,11 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   test: {
-    include: ["src/**/*.test.ts", "prisma/**/*.test.ts"],
+    include: [
+      "src/**/*.test.ts",
+      "prisma/**/*.test.ts",
+      "scripts/**/*.test.ts",
+    ],
     exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
   },
 });

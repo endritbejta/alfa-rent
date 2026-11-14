@@ -554,6 +554,7 @@ beforeEach(async () => {
   vi.mocked(consumeRateLimit).mockResolvedValue({
     allowed: true,
     remaining: 10,
+    count: 1,
     retryAfter: 0,
   });
   // The one result an action dereferences outside its try: the new vehicle's

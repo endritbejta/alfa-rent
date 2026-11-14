@@ -1,5 +1,5 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { ConflictError } from "@/lib/errors";
 import { submittedContactAsCustomerInput } from "@/lib/booking-contact";
@@ -16,6 +16,15 @@ let actor = "";
 beforeAll(async () => {
   actor = await createTestActor("booking-contact");
 });
+/*
+ * Each test starts with no open requests on the car. The public path refuses
+ * a fourth open request per person (audit P2-1b); these tests are about the
+ * contact snapshot, not that cap.
+ */
+beforeEach(async () => {
+  await prisma.reservation.deleteMany({ where: { vehicleId: ids.vehicle } });
+});
+
 afterAll(async () => {
   await removeTestActor(actor);
 });

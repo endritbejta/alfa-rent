@@ -1,8 +1,8 @@
 import "server-only";
 import { unstable_rethrow } from "next/navigation";
-import { AppError, normalizeError, type ErrorText } from "@/lib/errors";
+import { AppError, normalizeError } from "@/lib/errors";
 import { getI18n } from "@/lib/i18n/server";
-import { translate } from "@/lib/i18n/translations";
+import { translateErrorText } from "@/lib/error-text";
 
 /**
  * The message an operator should read, in their own language.
@@ -29,21 +29,5 @@ export async function errorMessage(error: unknown): Promise<string> {
   if (!text) return normalizeError(error).body.error.message;
 
   const { dictionary } = await getI18n();
-  return translate(dictionary, text.key, resolve(dictionary, text.values));
-}
-
-function resolve(
-  dictionary: Parameters<typeof translate>[0],
-  values: ErrorText["values"]
-): Record<string, string | number> | undefined {
-  if (!values) return undefined;
-  return Object.fromEntries(
-    Object.entries(values).map(([name, value]) => [
-      name,
-      // A wrapped value is a translation key of its own — a status, a
-      // category — and has to be read in the same language as the sentence
-      // it lands in.
-      typeof value === "object" ? translate(dictionary, value.key) : value,
-    ])
-  );
+  return translateErrorText(dictionary, text);
 }

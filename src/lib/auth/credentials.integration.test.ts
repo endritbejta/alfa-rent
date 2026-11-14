@@ -39,11 +39,32 @@ vi.mock("next-auth", () => ({
 vi.mock("next-auth/providers/credentials", () => ({
   default: (options: unknown) => options,
 }));
+// No request scope here: keep what the sign-in schedules for after the
+// response, so a test can wait for it.
+const deferred = vi.hoisted(() => [] as Promise<unknown>[]);
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
+  after: (task: () => Promise<unknown>) => {
+    deferred.push(task());
+  },
+}));
+const settleDeferred = async () => {
+  await Promise.all(deferred.splice(0));
+};
 
 import { prisma } from "@/lib/db/prisma";
 import "@/lib/auth";
 import { createStaff } from "@/services/staff.service";
-import { createTestActor, removeTestActor } from "@/lib/testing/audit";
+import {
+  createTestActor,
+  purgeAuditEvents,
+  removeTestActor,
+} from "@/lib/testing/audit";
+import { normalizeIp } from "@/lib/rate-limit";
+import {
+  ACCOUNT_FAILURE_THRESHOLD,
+  accountFailureKey,
+} from "@/services/sign-in-alert.service";
 
 // Every staff write records who did it; this stands behind them here.
 let actor = "";
@@ -60,10 +81,16 @@ const inactiveEmail = `signin-inactive-${suffix}@example.test`;
 const password = "correct horse battery staple";
 let userId: string;
 
-/** Each test signs in from its own address, so starts with its own bucket. */
+/**
+ * Each test signs in from its own address, so starts with its own bucket: an
+ * IPv6 /64 of this run's own, since the limiter keys IPv6 by /64.
+ */
+const runPrefix = `2001:${suffix.slice(0, 4)}:${suffix.slice(4, 8)}`;
 let ip: string;
 let ipCounter = 0;
-const limiterKey = () => `login:${ip}`;
+const nextIp = () => `${runPrefix}:${(++ipCounter).toString(16)}::1`;
+const limiterKey = () => `login:${normalizeIp(ip)}`;
+const runLoginKeys = `login:${normalizeIp(`${runPrefix}::1`)!.split(":").slice(0, 3).join(":")}:`;
 
 function authorize(credentials: { email: string; password: string }) {
   const request = new Request(
@@ -103,18 +130,37 @@ beforeAll(async () => {
   });
 });
 
-beforeEach(() => {
-  ip = `198.51.100.${++ipCounter}-${suffix}`;
+beforeEach(async () => {
+  ip = nextIp();
   compare.mockClear();
+  // The per-account count spans addresses, so each test starts it afresh.
+  await prisma.rateLimit.deleteMany({
+    where: {
+      key: { in: [accountFailureKey(email), accountFailureKey(inactiveEmail)] },
+    },
+  });
 });
 
 afterAll(async () => {
   compare.mockRestore();
+  await settleDeferred();
+  await purgeAuditEvents({ entityIds: [userId] });
+  await prisma.rateLimit.deleteMany({
+    where: {
+      key: {
+        in: [
+          accountFailureKey(email),
+          accountFailureKey(inactiveEmail),
+          accountFailureKey(`nobody-${suffix}@example.test`),
+        ],
+      },
+    },
+  });
   await prisma.user.deleteMany({
     where: { email: { in: [email, inactiveEmail] } },
   });
   await prisma.rateLimit.deleteMany({
-    where: { key: { startsWith: "login:198.51.100.", endsWith: suffix } },
+    where: { key: { startsWith: runLoginKeys } },
   });
   await prisma.$disconnect();
 });
@@ -222,9 +268,75 @@ describe("the IP-keyed login limiter", () => {
     }
     expect(await authorize({ email, password })).toBeNull();
 
-    ip = `198.51.100.${++ipCounter}-${suffix}`;
+    ip = nextIp();
     await expect(authorize({ email, password })).resolves.toMatchObject({
       id: userId,
     });
+  });
+});
+
+/**
+ * Audit P2-1b. Guesses spread across many addresses each stay under the IP
+ * limit, so the account is counted too, and the owner is told. It alerts; it
+ * never locks, and the answer is the same null as any other failure.
+ */
+describe("the per-account failure alert", () => {
+  const failedSignInEvents = () =>
+    prisma.auditEvent.findMany({
+      where: { action: "staff.failedSignIns", entityId: userId },
+    });
+
+  it("records one event when an account crosses the threshold from many addresses, and never locks it", async () => {
+    await purgeAuditEvents({ entityIds: [userId] });
+    for (let i = 0; i < ACCOUNT_FAILURE_THRESHOLD + 3; i++) {
+      ip = nextIp();
+      expect(await authorize({ email, password: `wrong-${i}` })).toBeNull();
+    }
+    await settleDeferred();
+
+    const events = await failedSignInEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      system: true,
+      actorId: null,
+      entity: "staff",
+      after: {
+        failures: ACCOUNT_FAILURE_THRESHOLD,
+        windowMinutes: 60,
+        // No Resend key in tests: the alert is skipped, the event kept.
+        alertEmail: "skipped",
+      },
+    });
+    // Nothing that was typed, and no address, is kept in the trail.
+    expect(JSON.stringify(events[0])).not.toContain("wrong-");
+    expect(JSON.stringify(events[0])).not.toContain(runPrefix);
+
+    // Still free to sign in, and the success clears the account's count.
+    ip = nextIp();
+    await expect(authorize({ email, password })).resolves.toMatchObject({
+      id: userId,
+    });
+    expect(
+      await prisma.rateLimit.findUnique({
+        where: { key: accountFailureKey(email) },
+      })
+    ).toBeNull();
+  });
+
+  it("counts an address nobody has without recording anything about it", async () => {
+    const nobody = `nobody-${suffix}@example.test`;
+    const before = await prisma.auditEvent.count({
+      where: { action: "staff.failedSignIns" },
+    });
+    for (let i = 0; i < ACCOUNT_FAILURE_THRESHOLD; i++) {
+      ip = nextIp();
+      expect(await authorize({ email: nobody, password })).toBeNull();
+    }
+    await settleDeferred();
+    expect(
+      await prisma.auditEvent.count({
+        where: { action: "staff.failedSignIns" },
+      })
+    ).toBe(before);
   });
 });

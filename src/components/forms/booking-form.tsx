@@ -46,6 +46,7 @@ import {
   type VehicleBookingCalendar,
 } from "@/lib/booking-calendar";
 import { rentalDateParam } from "@/lib/business-time";
+import { FILL_TIME_FIELD, HONEYPOT_FIELD } from "@/lib/bot-signals";
 
 const createFormSchema = (t: (key: TranslationKey) => string) =>
   z
@@ -199,7 +200,15 @@ export function BookingForm({
    * rejection to an error boundary — so the button would quietly return to
    * "Send" and the customer would be told nothing at all.
    */
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (
+    data: FormValues,
+    event?: React.BaseSyntheticEvent
+  ) => {
+    // The bot check (lib/bot-signals.ts), read off the submit event rather
+    // than refs: this handler is built during render. timeStamp counts from
+    // when the page loaded, so it can only ever overstate a person's time.
+    const form = event?.target as HTMLFormElement | undefined;
+    const trap = form?.elements.namedItem(HONEYPOT_FIELD);
     setServerError(null);
     const body = JSON.stringify({
       vehicleId: data.vehicleId,
@@ -211,6 +220,8 @@ export function BookingForm({
         email: data.email,
         phone: data.phone,
       },
+      [HONEYPOT_FIELD]: trap instanceof HTMLInputElement ? trap.value : "",
+      [FILL_TIME_FIELD]: event ? Math.round(event.timeStamp) : undefined,
     });
     // The timeout below can fire after the booking has already been saved.
     // Pressing Send again with the same details then reuses this key, and the
@@ -300,6 +311,20 @@ export function BookingForm({
       className="grid min-w-0 items-start gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8"
       noValidate
     >
+      {/* The honeypot. Hidden from sight (sr-only), from assistive tech
+          (aria-hidden, inert) and from the keyboard (tabIndex -1), with
+          autofill off, so only a script that fills every input fills it. */}
+      <div aria-hidden="true" inert className="sr-only">
+        <label htmlFor={HONEYPOT_FIELD}>Website</label>
+        <input
+          id={HONEYPOT_FIELD}
+          name={HONEYPOT_FIELD}
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          defaultValue=""
+        />
+      </div>
       <div className="min-w-0 space-y-4 sm:space-y-6">
         <section className="min-w-0 pt-2 sm:pt-4">
           <SectionHeading

@@ -1,6 +1,10 @@
+import { randomBytes } from "node:crypto";
 import { after, type NextRequest } from "next/server";
 import { assertSameSiteJson, ok, withErrorHandling } from "@/lib/api";
-import { TooManyRequestsError } from "@/lib/errors";
+import { AppError, TooManyRequestsError } from "@/lib/errors";
+import { errorMessageIn } from "@/lib/error-text";
+import { botVerdict } from "@/lib/bot-signals";
+import { createPaymentAccessToken } from "@/lib/payments/access-token";
 import {
   IDEMPOTENCY_HEADER,
   IDEMPOTENT_REPLAY_HEADER,
@@ -21,6 +25,23 @@ import { notifyCustomer } from "@/services/customer-notification.service";
  */
 const BOOKINGS_PER_HOUR = 8;
 const WINDOW_SECONDS = 60 * 60;
+
+/**
+ * What a request the bot check refused is told: a 201 shaped like a real
+ * booking, so the script learns nothing to adjust to. Nothing is written and
+ * nobody is emailed. The id has a cuid's shape and matches no reservation.
+ */
+function quietlyRefused() {
+  return ok(
+    {
+      id: `c${randomBytes(16).toString("hex").slice(0, 24)}`,
+      status: "PENDING" as const,
+      totalPrice: 0,
+      paymentAccessToken: createPaymentAccessToken().token,
+    },
+    { status: 201 }
+  );
+}
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   assertSameSiteJson(request);
@@ -49,11 +70,28 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
   const locale = isLocale(cookieLocale) ? cookieLocale : undefined;
 
-  const input = createBookingSchema.parse(await request.json());
-  const { reservation, paymentAccessToken, replayed } = await createReservation(
-    input,
-    { idempotencyKey, locale }
-  );
+  const body: unknown = await request.json();
+  // Before validation, so a bot's malformed body gets the same quiet answer
+  // as a well-formed one. Counted against the IP above all the same.
+  const verdict = botVerdict(body);
+  if (verdict !== "human") {
+    console.info(JSON.stringify({ scope: "booking-bot-check", verdict }));
+    return quietlyRefused();
+  }
+
+  const input = createBookingSchema.parse(body);
+  let created: Awaited<ReturnType<typeof createReservation>>;
+  try {
+    created = await createReservation(input, { idempotencyKey, locale });
+  } catch (error) {
+    // The storefront shows this message as it is, so it has to be in the
+    // language the customer was reading. The public API, with no cookie,
+    // keeps the English sentence.
+    const translated = locale && errorMessageIn(error, locale);
+    if (translated && error instanceof AppError) error.message = translated;
+    throw error;
+  }
+  const { reservation, paymentAccessToken, replayed } = created;
   // After the response: the customer's confirmation never waits on, or fails
   // because of, the mail provider. sendEmail reports its own failures. A
   // replay is a booking staff and the customer were already told about.

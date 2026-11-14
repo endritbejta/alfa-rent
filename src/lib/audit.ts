@@ -47,6 +47,7 @@ export const AUDIT_ACTIONS = [
   "staff.resetPassword",
   "staff.signOutEverywhere",
   "staff.changeOwnPassword",
+  "staff.failedSignIns",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

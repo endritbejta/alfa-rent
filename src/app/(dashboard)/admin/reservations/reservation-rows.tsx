@@ -19,6 +19,27 @@ import type { EarlyReturnSummary } from "@/lib/early-return";
 import { useI18n } from "@/components/shared/locale-provider";
 
 /**
+ * Whether a click on a row should open its reservation: anywhere on the row,
+ * blank space included, except a control. Two kinds of click do not:
+ *
+ * - one on a button, link, field or menu item inside the row (Start,
+ *   Confirm, Cancel, "⋯") — that control does its own thing;
+ * - one inside a dialog the row opened. Dialogs render in a portal, outside
+ *   the row in the DOM, but React still bubbles their events through the
+ *   component tree, so the row hears a click on "Save and start rental".
+ *
+ * This replaces a stopPropagation on the whole actions cell, which also
+ * swallowed clicks on that cell's empty space.
+ */
+function opensDrawer(event: React.MouseEvent<HTMLElement>): boolean {
+  const target = event.target as Element;
+  if (!event.currentTarget.contains(target)) return false;
+  return !target.closest(
+    'button, a, input, select, textarea, label, [role="menuitem"], [role="dialog"]'
+  );
+}
+
+/**
  * Plain props: totalPrice is a Decimal on the model and cannot cross into a
  * client component, so the page hands it over already stringified.
  */
@@ -125,7 +146,9 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
            */
           <TableRow
             key={r.id}
-            onClick={() => openReservation(r.id)}
+            onClick={(e) => {
+              if (opensDrawer(e)) openReservation(r.id);
+            }}
             className="hover:bg-surface-hover cursor-pointer align-top transition-colors"
           >
             <TableCell className="max-w-56 py-4 pl-3">
@@ -167,12 +190,11 @@ export function ReservationRows({ rows }: { rows: Row[] }) {
                 <ReservationAttention attention={r.timing.attention} />
               </p>
             </TableCell>
+            {/* Its buttons and their dialogs are kept from opening the
+                drawer by opensDrawer; its empty space opens it like the
+                rest of the row. */}
             <TableCell
               className="py-3 pr-3 text-right align-middle"
-              // Buttons live inside the row's hit area; without this,
-              // confirming a rental would also fling the drawer open behind
-              // the click.
-              onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
               {actionsFor(r, row.name)}
@@ -217,7 +239,9 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
             */}
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <div
-              onClick={() => openReservation(r.id)}
+              onClick={(e) => {
+                if (opensDrawer(e)) openReservation(r.id);
+              }}
               className="hover:bg-surface-hover cursor-pointer px-2 py-4 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">
@@ -255,17 +279,11 @@ export function ReservationCards({ rows }: { rows: Row[] }) {
                   <EarlyReturnNote early={r.early} />
                 </span>
               </div>
-              {/*
-                This one only stops the item's click from reaching the drawer;
-                it adds no interaction of its own.
-              */}
               {r.status !== "COMPLETED" && r.status !== "CANCELLED" && (
+                // Only keeps the actions' keys (Enter on a button) from the
+                // item; clicks are sorted by opensDrawer.
                 // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-                <div
-                  className="mt-3"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                >
+                <div className="mt-3" onKeyDown={(e) => e.stopPropagation()}>
                   {actions}
                 </div>
               )}

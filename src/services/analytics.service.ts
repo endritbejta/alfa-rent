@@ -4,9 +4,8 @@ import { prisma } from "@/lib/db/prisma";
 import { vehicleLabel } from "@/lib/vehicle-label";
 import { actionableRequestWhere } from "@/lib/reservation-lifecycle";
 import {
-  BUSINESS_TIME_ZONE,
+  businessDay,
   businessDayStart,
-  businessDayStartOf,
   businessMonthStart,
   businessRentalDays,
   businessTodayAsRentalDate,
@@ -46,16 +45,41 @@ const REVENUE_STATUSES = ["CONFIRMED", "ACTIVE", "COMPLETED"] as const;
  * Everything is summed as numeric in Postgres, never as float, and the
  * buckets come back keyed by their first day to match business-buckets.
  */
-async function revenueByBucket(
+export const REVENUE_STATUS_LIST = [...REVENUE_STATUSES];
+
+export type RevenueRow = {
+  /** First day of the bucket, as business-buckets names it. */
+  bucket: string;
+  status: (typeof REVENUE_STATUSES)[number];
+  vehicleId: string;
+  /** True for the share of days after `today`: not yet elapsed. */
+  ahead: boolean;
+  /** Unrounded: rounding happens once, on the figure that is shown. */
+  revenue: number;
+  /** Rental days carrying this share. */
+  days: number;
+};
+
+/**
+ * Revenue shares per bucket, status and vehicle, with the days after
+ * `today` kept apart. Every revenue figure in the app is a sum of these
+ * rows; the dashboard adds the three statuses up, the analytics page keeps
+ * them apart. `from` is included and `to` excluded.
+ */
+export async function revenueRows(
   unit: BucketUnit,
   from: string,
-  to: string
-): Promise<Map<string, number>> {
+  to: string,
+  today: string
+): Promise<RevenueRow[]> {
   const rows = await prisma.$queryRaw<
-    { bucket: string; revenue: Prisma.Decimal }[]
+    (Omit<RevenueRow, "revenue"> & { revenue: Prisma.Decimal })[]
   >(Prisma.sql`
     SELECT to_char(date_trunc(${unit}, d.day), 'YYYY-MM-DD') AS bucket,
-           ROUND(SUM(r.share), 2) AS revenue
+           r.status, r."vehicleId",
+           (d.day::date > ${today}::date) AS ahead,
+           SUM(r.share) AS revenue,
+           COUNT(*)::int AS days
     FROM (
       -- The booked days share the booked price: the total less any charge
       -- for days kept past the return day. A rental returned early and
@@ -63,16 +87,16 @@ async function revenueByBucket(
       -- alone — the rest were never the renter's. Billed in full, it keeps
       -- the booked days, which is what the customer paid for.
       SELECT (x."totalPrice" - x.late) / x.n AS share,
-             x."pickupDate"::date AS first_day, x.n
+             x."pickupDate"::date AS first_day, x.n, x.status, x."vehicleId"
       FROM (
-        SELECT "totalPrice", "pickupDate",
+        SELECT "totalPrice", "pickupDate", status::text AS status, "vehicleId",
                COALESCE("lateCharge", 0) AS late,
                CASE WHEN "earlyReturnBilling" = 'ACTUAL_DAYS'
                     THEN "actualDays"
                     ELSE ("returnDate"::date - "pickupDate"::date + 1)
                END AS n
         FROM reservations
-        WHERE status::text = ANY(${[...REVENUE_STATUSES]})
+        WHERE status::text = ANY(${REVENUE_STATUS_LIST})
           -- Coarse range filter: no day of a rental outside it can fall in the window.
           AND "pickupDate" < ${to}::date
           AND "returnDate" >= ${from}::date
@@ -81,9 +105,10 @@ async function revenueByBucket(
       -- A late-return charge belongs to the late days themselves, which
       -- follow the booked return day. The booked dates are never moved to
       -- cover them (see settleLateReturn), so they are spread here.
-      SELECT "lateCharge" / "lateDays", "returnDate"::date + 1, "lateDays"
+      SELECT "lateCharge" / "lateDays", "returnDate"::date + 1, "lateDays",
+             status::text, "vehicleId"
       FROM reservations
-      WHERE status::text = ANY(${[...REVENUE_STATUSES]})
+      WHERE status::text = ANY(${REVENUE_STATUS_LIST})
         AND "lateCharge" > 0
         AND "lateDays" > 0
         AND "returnDate"::date + 1 < ${to}::date
@@ -93,10 +118,24 @@ async function revenueByBucket(
       r.first_day, r.first_day + (r.n - 1), interval '1 day'
     ) AS d(day)
     WHERE d.day >= ${from}::date AND d.day < ${to}::date
-    GROUP BY 1
+    GROUP BY 1, 2, 3, 4
   `);
   // Converted once, here, at the edge. A Decimal never leaves this module.
-  return new Map(rows.map((row) => [row.bucket, Number(row.revenue)]));
+  return rows.map((row) => ({ ...row, revenue: Number(row.revenue) }));
+}
+
+/** Revenue per bucket, every revenue status together (the dashboard's figure). */
+async function revenueByBucket(
+  unit: BucketUnit,
+  from: string,
+  to: string,
+  now: Date
+): Promise<Map<string, number>> {
+  const sums = new Map<string, number>();
+  for (const row of await revenueRows(unit, from, to, businessDay(now))) {
+    sums.set(row.bucket, (sums.get(row.bucket) ?? 0) + row.revenue);
+  }
+  return sums;
 }
 
 /** Revenue per bucket for the last `count` buckets, oldest first. */
@@ -106,7 +145,7 @@ async function revenueSeriesFor(
   now: Date
 ): Promise<{ series: SeriesPoint[]; total: number; current: number }> {
   const { starts, end } = businessBuckets(unit, count, now);
-  const sums = await revenueByBucket(unit, starts[0], end);
+  const sums = await revenueByBucket(unit, starts[0], end, now);
   const values = starts.map((start) => sums.get(start) ?? 0);
   return {
     series: starts.map((start, i) => ({
@@ -117,35 +156,6 @@ async function revenueSeriesFor(
     total: values.reduce((a, b) => a + b, 0),
     current: values[values.length - 1],
   };
-}
-
-/**
- * Bookings made per bucket, by the branch-local day they were made on.
- * `createdAt` is a real instant stored as UTC, unlike rental dates, so it is
- * converted to branch time before truncating.
- */
-async function bookingsByBucket(
-  unit: BucketUnit,
-  starts: string[],
-  end: string
-): Promise<SeriesPoint[]> {
-  const rows = await prisma.$queryRaw<{ bucket: string; count: number }[]>(
-    Prisma.sql`
-      SELECT to_char(date_trunc(${unit}, local), 'YYYY-MM-DD') AS bucket,
-             COUNT(*)::int AS count
-      FROM (
-        SELECT ("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${BUSINESS_TIME_ZONE} AS local
-        FROM reservations
-      ) b
-      WHERE local >= ${starts[0]}::date AND local < ${end}::date
-      GROUP BY 1
-    `
-  );
-  const counts = new Map(rows.map((row) => [row.bucket, row.count]));
-  return starts.map((start) => ({
-    label: bucketLabel(unit, start),
-    value: counts.get(start) ?? 0,
-  }));
 }
 
 function dailySeries(rows: { createdAt: Date }[], days: number): SeriesPoint[] {
@@ -460,54 +470,4 @@ function monthlySeriesFromDates(
         .length,
     };
   });
-}
-
-export type Period = BucketUnit;
-
-/** How many buckets each reporting period shows. */
-const PERIOD_BUCKETS: Record<Period, number> = {
-  week: 12,
-  month: 12,
-  year: 5,
-};
-
-/** `now` is a parameter so tests can read a window no other row touches. */
-export async function getAnalytics(period: Period = "month", now = new Date()) {
-  // Window the whole page to the selected period, KPIs included: the same
-  // calendar buckets drive the revenue chart, the bookings chart and the
-  // counts, so the figures and the charts cover exactly the same span. The
-  // current bucket is included in full — confirmed days later this month are
-  // this month's revenue.
-  const { starts, end } = businessBuckets(period, PERIOD_BUCKETS[period], now);
-  const since = businessDayStartOf(starts[0]!);
-  const until = businessDayStartOf(end);
-  const made = { createdAt: { gte: since, lt: until } };
-
-  const [revenue, bookingsSeries, fleet, cancelled, totalReservations] =
-    await Promise.all([
-      revenueSeriesFor(period, PERIOD_BUCKETS[period], now),
-      bookingsByBucket(period, starts, end),
-      prisma.vehicle.count({ where: { status: { not: "INACTIVE" } } }),
-      prisma.reservation.count({ where: { status: "CANCELLED", ...made } }),
-      prisma.reservation.count({ where: made }),
-    ]);
-
-  const [fleetInsights, customerInsights] = await Promise.all([
-    getFleetInsights(),
-    getCustomerInsights(),
-  ]);
-
-  return {
-    revenueByMonth: revenue.series,
-    bookingsByMonth: bookingsSeries,
-    cancellationRate: totalReservations
-      ? Math.round((cancelled / totalReservations) * 100)
-      : 0,
-    totalRevenue: revenue.total,
-    totalReservations,
-    fleet,
-    topVehicles: fleetInsights.topVehicles,
-    categoryDistribution: fleetInsights.categoryDistribution,
-    customerGrowth: customerInsights.growthSeries,
-  };
 }

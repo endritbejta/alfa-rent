@@ -10,10 +10,8 @@ import {
   type PastRentalInput,
   type RentalInspectionInput,
 } from "@/lib/validations/inspection";
-import {
-  getAnalytics,
-  getReservationInsights,
-} from "@/services/analytics.service";
+import { getReservationInsights } from "@/services/analytics.service";
+import { getAnalyticsReport } from "@/services/analytics-report.service";
 import { getCustomerSpend } from "@/services/customer.service";
 import { getVehicleDetail } from "@/services/fleet.service";
 import {
@@ -411,12 +409,20 @@ describe("the figures the owner reads", () => {
     await record2034();
 
     // The booked days keep the booked price; the late days carry the charge.
-    const data = await getAnalytics("month", quietAt(2034, 2, 15));
+    const data = await getAnalyticsReport({
+      range: { from: "2034-01-01", to: "2034-02-28" },
+      unit: "month",
+      today: "2034-02-15",
+      comparison: null,
+      span: null,
+    });
     const value = (label: string) =>
-      data.revenueByMonth.find((point) => point.label === label)?.value;
+      data.current.buckets.find(
+        (b) => b.key === `2034-${label === "Jan" ? "01" : "02"}-01`
+      )?.revenue.realised;
     expect(value("Jan")).toBe(400);
     expect(value("Feb")).toBe(200);
-    expect(data.totalRevenue).toBe(600);
+    expect(data.current.revenue.realised).toBe(600);
 
     expect(await getCustomerSpend(ids.customer)).toBe(before.spend + 600);
     expect((await getVehicleDetail(ids.cars[5]!)).costs.earned).toBe(

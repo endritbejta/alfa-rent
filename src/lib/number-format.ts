@@ -22,7 +22,7 @@ import type { Locale } from "@/lib/i18n/config";
 export function formatNumber(
   value: number,
   locale: Locale,
-  fractionDigits: 0 | 2 = 0
+  fractionDigits: 0 | 1 | 2 = 0
 ): string {
   return formatter(locale, fractionDigits)(value);
 }
@@ -36,7 +36,7 @@ const formatters = new Map<string, (value: number) => string>();
 
 function formatter(
   locale: Locale,
-  fractionDigits: 0 | 2
+  fractionDigits: 0 | 1 | 2
 ): (value: number) => string {
   const key = `${locale}:${fractionDigits}`;
   const existing = formatters.get(key);
@@ -47,7 +47,7 @@ function formatter(
   return created;
 }
 
-function intl(locale: Locale, fractionDigits: 0 | 2) {
+function intl(locale: Locale, fractionDigits: 0 | 1 | 2) {
   const format = new Intl.NumberFormat(locale, {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
@@ -55,7 +55,7 @@ function intl(locale: Locale, fractionDigits: 0 | 2) {
   return (value: number) => format.format(value);
 }
 
-function albanian(fractionDigits: 0 | 2) {
+function albanian(fractionDigits: 0 | 1 | 2) {
   const plain = new Intl.NumberFormat("en", {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,

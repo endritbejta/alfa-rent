@@ -11,7 +11,7 @@ import { businessDay } from "@/lib/business-time";
  *
  * Weeks start on Monday, as `date_trunc('week', …)` and businessWeekStart do.
  */
-export type BucketUnit = "week" | "month" | "year";
+export type BucketUnit = "day" | "week" | "month" | "year";
 
 // Calendar arithmetic is done on UTC dates, which have no daylight saving, so
 // adding a day or a month never lands on the wrong date.
@@ -27,6 +27,7 @@ function toKey(date: Date): string {
 /** The first day of the bucket that contains the calendar day `key`. */
 export function bucketStart(unit: BucketUnit, key: string): string {
   const date = parseKey(key);
+  if (unit === "day") return key;
   if (unit === "year") return `${key.slice(0, 4)}-01-01`;
   if (unit === "month") return `${key.slice(0, 7)}-01`;
   const daysSinceMonday = (date.getUTCDay() + 6) % 7;
@@ -49,7 +50,7 @@ export function shiftBucket(
       new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + n, 1))
     );
   }
-  date.setUTCDate(date.getUTCDate() + n * 7);
+  date.setUTCDate(date.getUTCDate() + n * (unit === "day" ? 1 : 7));
   return toKey(date);
 }
 
@@ -72,6 +73,7 @@ export function businessBuckets(
 }
 
 const LABEL_FORMAT: Record<BucketUnit, string> = {
+  day: "dd MMM",
   week: "dd MMM",
   month: "MMM",
   year: "yyyy",

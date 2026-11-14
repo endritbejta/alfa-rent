@@ -43,3 +43,9 @@ next-env.d.ts
 
 # per-developer Claude Code dev-server config (ports, local env)
 .claude/launch.json
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

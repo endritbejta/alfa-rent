@@ -40,6 +40,7 @@ import { useI18n } from "@/components/shared/locale-provider";
 import { PendingStatus } from "@/components/shared/pending-status";
 import { formatNumber } from "@/lib/number-format";
 import { toasts } from "@/components/dashboard/toaster";
+import { usePrintReservation } from "@/components/dashboard/use-print-reservation";
 
 export function InspectionAction({
   reservationId,
@@ -108,6 +109,7 @@ export function InspectionAction({
   const [returnedOn, setReturnedOn] = useState(timing.today);
   const [lateChoice, setLateChoice] = useState<LateChoice>(NO_LATE_CHOICE);
   const [earlyChoice, setEarlyChoice] = useState<EarlyChoice>(NO_EARLY_CHOICE);
+  const { print } = usePrintReservation();
 
   // The return form shows where the odometer started.
   useEffect(() => {
@@ -197,6 +199,12 @@ export function InspectionAction({
       setOpen(false);
       toasts.success(t("toast.inspectionRecorded"));
       onSuccess?.();
+      // The sheet the customer signs, now that the inspection it is filled
+      // from is committed: the pickup sheet on a start, the return sheet on
+      // a completion. Loaded fresh from the server, after the save, so it
+      // carries what was just recorded. A failure here is a toast with a
+      // retry; the rental itself is already saved.
+      void print(reservationId, type, { afterSave: true });
     });
   };
 

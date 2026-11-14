@@ -47,14 +47,37 @@ export const CSP_REPORT_GROUP = "csp-endpoint";
  * where clickjacking would matter; `/account` is the staff password page.
  */
 export function isFramingDenied(pathname: string): boolean {
-  return (
+  return framingFor(pathname) === "none";
+}
+
+/**
+ * The printable sheets. The admin prints them by loading one into a hidden
+ * same-origin <iframe> and calling print() on it (src/lib/print-reservation.ts),
+ * which needs no popup window and so no popup-blocker exception. They may be
+ * framed by this origin only: a read-only page whose one control is Print
+ * gives a clickjacker nothing, and no other origin can frame it.
+ */
+export const PRINT_PATH_PREFIX = "/admin/print/";
+
+/**
+ * Who may frame a route: nobody, this origin only (the print sheets), or this
+ * origin and the portfolio (the storefront).
+ */
+export function framingFor(pathname: string): "none" | "self" | "portfolio" {
+  if (pathname.startsWith(PRINT_PATH_PREFIX)) return "self";
+  const denied =
     pathname === "/login" ||
     pathname.startsWith("/login/") ||
     pathname === "/admin" ||
     pathname.startsWith("/admin/") ||
     pathname === "/account" ||
-    pathname.startsWith("/account/")
-  );
+    pathname.startsWith("/account/");
+  return denied ? "none" : "portfolio";
+}
+
+/** Only the admin frames anything, and only its own print sheets. */
+function framesOwnPages(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
 /**
@@ -122,10 +145,10 @@ function serialize(directives: Directives): string {
  * without one. Headers from next.config.ts reach only the response.
  */
 export function baselineDirectives({
-  framingDenied,
+  framing,
   https,
 }: {
-  framingDenied: boolean;
+  framing: "none" | "self" | "portfolio";
   /**
    * Served over HTTPS in production. Mirrors the HSTS condition in
    * next.config.ts: `next start` on http://localhost must not upgrade its
@@ -139,14 +162,23 @@ export function baselineDirectives({
     ["object-src", "'none'"],
     [
       "frame-ancestors",
-      ...(framingDenied ? ["'none'"] : ["'self'", CSP_ORIGINS.portfolio]),
+      ...(framing === "none"
+        ? ["'none'"]
+        : framing === "self"
+          ? ["'self'"]
+          : ["'self'", CSP_ORIGINS.portfolio]),
     ],
     ...(https ? ([["upgrade-insecure-requests"]] as Directives) : []),
   ];
 }
 
 /** Everything that restricts what the page itself may load and run. */
-function fetchDirectives({ nonce, dev, origin }: CspOptions): Directives {
+function fetchDirectives({
+  nonce,
+  dev,
+  origin,
+  pathname,
+}: CspOptions): Directives {
   return [
     ["default-src", "'self'"],
     [
@@ -188,7 +220,8 @@ function fetchDirectives({ nonce, dev, origin }: CspOptions): Directives {
     // next/font self-hosts Geist, so no font CDN.
     ["font-src", "'self'"],
     ["connect-src", "'self'", CSP_ORIGINS.cloudinaryUpload],
-    ["frame-src", "'none'"],
+    // The admin loads its print sheets into a hidden same-origin frame.
+    ["frame-src", framesOwnPages(pathname) ? "'self'" : "'none'"],
     /*
      * Both, because browsers split: Firefox and Safari only know report-uri;
      * Chromium prefers report-to and then ignores report-uri entirely. But
@@ -231,7 +264,7 @@ export function nonceCsp(
     value: serialize([
       ...fetchDirectives(options),
       ...baselineDirectives({
-        framingDenied: isFramingDenied(options.pathname),
+        framing: framingFor(options.pathname),
         https: options.https,
       }),
     ]),
@@ -253,29 +286,39 @@ export function proxySecurityHeaders(
 }
 
 /*
- * Path patterns for next.config.ts, matching isFramingDenied exactly. The
- * storefront pattern is its complement, so no route gets both baselines.
+ * Path patterns for next.config.ts, matching framingFor exactly and
+ * exclusively: Next applies every rule whose source matches, so the admin
+ * pattern leaves out the print sheets, and the storefront pattern is the
+ * complement of both — no route gets two baselines.
  */
-// `:path*` matches zero or more segments, so these cover `/admin` itself.
-const DENIED_SOURCES = ["/admin/:path*", "/login/:path*", "/account/:path*"];
+const DENIED_SOURCES = [
+  "/admin",
+  // Everything under /admin except the print sheets.
+  "/admin/:path((?!print(?:/|$)).*)",
+  // `:path*` matches zero or more segments, so these cover the root too.
+  "/login/:path*",
+  "/account/:path*",
+];
+const PRINT_SOURCE = "/admin/print/:path*";
 const STOREFRONT_SOURCE = "/((?!(?:admin|login|account)(?:/|$)).*)";
 
 /**
  * The route-scoped static headers, in next.config.ts `headers()` form.
  *
- * X-Frame-Options only where framing is denied. `DENY` is redundant with
- * `frame-ancestors 'none'` but still covers browsers that predate CSP2. The
- * storefront sends none: the old `ALLOW-FROM` value is ignored by every
- * current browser, and `SAMEORIGIN` would break the portfolio embed in the
- * browsers that honour it.
+ * X-Frame-Options where framing is restricted: `DENY` is redundant with
+ * `frame-ancestors 'none'`, and `SAMEORIGIN` with `'self'`, but both still
+ * cover browsers that predate CSP2. The storefront sends none: the old
+ * `ALLOW-FROM` value is ignored by every current browser, and `SAMEORIGIN`
+ * would break the portfolio embed in the browsers that honour it.
  */
 export function staticSecurityHeaders(https: boolean): {
   source: string;
   headers: { key: string; value: string }[];
 }[] {
-  const denied = serialize(baselineDirectives({ framingDenied: true, https }));
+  const denied = serialize(baselineDirectives({ framing: "none", https }));
+  const print = serialize(baselineDirectives({ framing: "self", https }));
   const storefront = serialize(
-    baselineDirectives({ framingDenied: false, https })
+    baselineDirectives({ framing: "portfolio", https })
   );
   return [
     ...DENIED_SOURCES.map((source) => ({
@@ -285,6 +328,13 @@ export function staticSecurityHeaders(https: boolean): {
         { key: "X-Frame-Options", value: "DENY" },
       ],
     })),
+    {
+      source: PRINT_SOURCE,
+      headers: [
+        { key: "Content-Security-Policy", value: print },
+        { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      ],
+    },
     {
       source: STOREFRONT_SOURCE,
       headers: [{ key: "Content-Security-Policy", value: storefront }],

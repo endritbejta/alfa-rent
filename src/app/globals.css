@@ -133,10 +133,15 @@
    * canvas to N-75 lets a plain white sheet register as lifted on its own,
    * and most borders can then come off. This one value is the reason the
    * rest of the pass works.
+   *
+   * Later brightened from ivory (#f5f2ec), which read as dim and yellowed
+   * across a whole page, to a near-white with a trace of the same warmth.
+   * Cards went to pure white with it, so a sheet is still a step brighter
+   * than the canvas; the elevation shadows now do more of the lifting.
    */
-  --background: #f5f2ec; /* warm ivory */
+  --background: #fcfbf9; /* near-white, warm */
   --foreground: #161414; /* N-900 */
-  --card: #fbf9f5;
+  --card: #ffffff;
   --card-foreground: #161414;
   --popover: #ffffff;
   --popover-foreground: #161414;

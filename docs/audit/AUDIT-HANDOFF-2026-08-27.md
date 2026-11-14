@@ -1,5 +1,11 @@
 # Alfa Rent — Audit Handoff
 
+> **Historical record (moved from the repository root on 14 Nov 2026).** This is the
+> state on 27 August 2026. Most of §4–§14 has since been fixed by PRs #24–#54. The
+> operating rules in §0 now live in [`AGENTS.md`](../../AGENTS.md), and current open work
+> is in [`HANDOFF.md`](../../HANDOFF.md). §17 (must not change), §18 (decisions) and §19
+> (open questions) remain worth reading before changing the areas they name.
+
 **Written:** 27 August 2026 · **Audited commit:** `7244622` on `main` (tree clean)
 **Audience:** the next engineer or agent continuing this work.
 **Self-contained:** you do not need to re-run the audit. Full evidence per topic is in
@@ -12,8 +18,7 @@
 
 ## 0. Operating rules for this repository
 
-These have caused real incidents. Some are documented only in `HANDOFF.md`; they belong here
-too.
+These have caused real incidents. They now live in `AGENTS.md`.
 
 | Rule                                                                                                                                               | Why                                                                                                                                                                                                                        |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

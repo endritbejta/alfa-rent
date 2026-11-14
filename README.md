@@ -1,24 +1,31 @@
 # Alfa Rent a Car
 
-Car rental management platform: a public customer-facing
-website plus an internal admin dashboard for managing vehicles, reservations,
-and customers.
+Car rental management platform: a public customer-facing website (Albanian
+and English) plus an internal admin dashboard for managing vehicles,
+reservations, customers and staff.
+
+New here? Read [`HANDOFF.md`](HANDOFF.md) for the state of the project and
+what is open, and [`AGENTS.md`](AGENTS.md) for the rules that have already
+caused incidents. Longer-lived docs (audits, runbooks) are indexed in
+[`docs/`](docs/README.md).
 
 ## Tech Stack
 
-| Layer      | Technology                                                  |
-| ---------- | ----------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router), TypeScript                         |
-| UI         | Tailwind CSS, shadcn/ui (**Base UI** flavour), lucide-react |
-| Forms      | React Hook Form + Zod                                       |
-| Data       | Prisma ORM + PostgreSQL (Supabase in production)            |
-| Auth       | Auth.js (credentials, role-based)                           |
-| Images     | Cloudinary                                                  |
-| Deployment | Vercel                                                      |
+| Layer      | Technology                                                    |
+| ---------- | ------------------------------------------------------------- |
+| Framework  | Next.js 16 (App Router), React 19, TypeScript                 |
+| UI         | Tailwind CSS 4, shadcn/ui (**Base UI** flavour), lucide-react |
+| Forms      | React Hook Form + Zod                                         |
+| Data       | Prisma 6 + PostgreSQL (Supabase in production)                |
+| Auth       | Auth.js v5 (credentials, role-based, revocable sessions)      |
+| Images     | Cloudinary (browser uploads directly on a signed request)     |
+| Email      | Resend (booking notifications to staff and customers)         |
+| Tests      | Vitest (unit, and integration against a local Postgres)       |
+| Deployment | Vercel, with Vercel Cron for scheduled jobs                   |
 
 ## Getting Started
 
-Requires Node (see `.nvmrc`) and Docker.
+Requires Node 24 (see `.nvmrc`) and Docker.
 
 ```bash
 npm install
@@ -30,8 +37,10 @@ npm run db:setup -- --seed
 npm run dev
 ```
 
-Cloudinary keys are left blank by `db:setup`; image upload stays broken until
-you fill them into `.env`. Everything else works without them.
+Cloudinary and Resend keys are left blank by `db:setup`: image upload stays
+broken until you fill in the Cloudinary keys, and no email is sent without the
+Resend ones. Everything else works without them. `.env.example` documents
+every variable.
 
 |                              |                                                 |
 | ---------------------------- | ----------------------------------------------- |
@@ -43,7 +52,7 @@ you fill them into `.env`. Everything else works without them.
 > **Never run `prisma migrate dev`, `migrate reset` or `db push`.** Four objects
 > are not modelled in `schema.prisma` — the `reservations_no_overlap` exclusion
 > constraint, the `btree_gist` extension, row-level security on every table, and
-> two CHECK constraints — and those commands drop all four. Write migrations by
+> the CHECK constraints — and those commands drop all four. Write migrations by
 > hand and apply them with `prisma migrate deploy`, which is what `db:setup`
 > does. `npm run test:integration` fails if any of the four is missing.
 
@@ -52,23 +61,30 @@ you fill them into `.env`. Everything else works without them.
 ```
 src/
   app/
-    (website)/      # Public routes: home, /car, /car/[slug], booking, contact
+    (website)/      # Public routes: home, /car, /car/[slug], booking, contact, privacy, terms
     (dashboard)/    # Authenticated admin routes: /admin/*
-    api/            # Route handlers (public APIs, webhooks)
+    account/        # Staff password change
+    api/            # Route handlers (public APIs, cron jobs, CSP reports, payment webhooks)
   components/
     ui/             # shadcn/ui primitives
+    dashboard/      # Admin widgets (drawer, tables, charts)
     shared/         # Cross-cutting composites (header, footer, cards)
     forms/          # Form components (RHF + Zod)
-  lib/
+  lib/              # Everything shared: one module per concern (pricing, rental-dates, …)
     auth/           # Auth.js config, session helpers, RBAC guards
     db/             # Prisma client singleton
-    cloudinary/     # Upload/delete helpers, signed upload params
+    cloudinary/     # Signed upload params, upload verification
+    email/          # Resend client and templates
+    i18n/           # Albanian/English translations and locale
+    payments/       # Staged online-payment adapters (disabled)
     validations/    # Zod schemas shared by client and server
-  services/         # ALL business logic (vehicle, reservation, customer)
+  services/         # ALL business logic (vehicle, reservation, customer, …)
   types/            # Shared TypeScript types
-  utils/            # Pure utility functions
+  proxy.ts          # Next 16 proxy: CSP nonce and auth gate
 prisma/
   schema.prisma     # Database schema
+  migrations/       # Hand-written SQL migrations
+scripts/            # db-setup, vercel-build, verify-restore
 ```
 
 ### Folder decisions
@@ -104,10 +120,15 @@ prisma/
 - `npm test` — unit tests; needs no database
 - `npm run test:integration` — database-backed tests; refuses a non-local `DATABASE_URL`
 - `npm run lint` — ESLint
-- `npm run typecheck` — `tsc --noEmit` (also runs on pre-commit)
-- `npx prettier --write .` — format
-- Husky runs lint on pre-commit
-- Branch from `main`, conventional commit messages (`feat:`, `fix:`, `chore:`)
+- `npm run typecheck` — `tsc --noEmit`
+- `npm run db:seed` — demo data; **wipes application data** and needs the
+  acknowledgement in `.env.example`
+- Husky's pre-commit runs lint-staged (ESLint `--fix` and Prettier on staged
+  files) and then the typecheck
+- CI (`.github/workflows/ci.yml`) runs lint, typecheck, unit tests,
+  migrations against Postgres 16, integration tests and the build
+- Branch from `main` as `<type>/<short-name>`, conventional commit messages
+  (`feat:`, `fix:`, `chore:`)
 
 ## Deployment (Vercel + Supabase)
 
@@ -124,6 +145,13 @@ database on your laptop, so production needs a hosted one.
    | `AUTH_SECRET`                                                            | `openssl rand -base64 32`                                                  |
    | `AUTH_URL`                                                               | `https://<your-app>.vercel.app` (no trailing slash)                        |
    | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | from Cloudinary                                                            |
+   | `RESEND_API_KEY` / `EMAIL_FROM` / `STAFF_NOTIFICATION_EMAILS`            | from Resend; `EMAIL_FROM` on a verified domain                             |
+   | `CRON_SECRET`                                                            | `openssl rand -hex 32` — the cron endpoints refuse every call without it   |
+   | `NEXT_PUBLIC_CONTACT_*`                                                  | public phone, email, address and map link; empty ones are hidden           |
+   | `CSP_ENFORCE`                                                            | leave unset (report-only) until the CSP reports are clean, then `true`     |
+
+   `SITE_URL`, `SITE_INDEXING` and the payment variables are optional; see
+   `.env.example`.
 
    The pooled URL serves requests; the direct URL exists because
    migrations cannot run through PgBouncer.
@@ -152,6 +180,11 @@ database on your laptop, so production needs a hosted one.
    Seeding is deliberately not part of the build: the seed wipes the
    database, and a redeploy must never destroy real bookings. The seed refuses
    to run without the acknowledgement and both distinct 16+ character passwords.
+
+5. **Scheduled jobs** are declared in `vercel.json` and need `CRON_SECRET`:
+   `/api/cron/expired-requests` lapses booking requests nobody answered and
+   emails the customer; `/api/cron/sweep-rate-limits` deletes expired
+   rate-limit windows.
 
 ### Backup and restore
 

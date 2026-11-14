@@ -120,7 +120,7 @@ after with `next experimental-analyze`. Effort: small config change, medium veri
 **Severity: high · Confirmed.** The 211 KiB gzip floor and the sub-40 KiB spread across nine
 admin routes are the evidence. `AdminShell` imports `ReservationDetailProvider`, which pulls
 in the reservation, customer, vehicle, inspection, extension, image and drawer modules
-([Phase 2 §2.2](docs/audit/PHASE-2-CODE-QUALITY.md)).
+([Phase 2 §2.2](PHASE-2-CODE-QUALITY.md)).
 
 **There are zero dynamic imports in the entire application** — I checked; the only
 `await import()` is in a test file.
@@ -287,7 +287,7 @@ It arrives with more _users_, not more rows.
 `DATABASE_URL` is documented as the pooled Supabase URL with **`connection_limit=1`**. Every
 admin page render issues 11–19 queries, nothing is cached, and two public endpoints
 (`/api/vehicles`, `/api/availability`) are unauthenticated and **unrate-limited**
-([Phase 4 SEC-3](docs/audit/PHASE-4-SECURITY.md)).
+([Phase 4 SEC-3](PHASE-4-SECURITY.md)).
 
 At 10× concurrent usage the queue in front of that single connection is the bottleneck for
 everything — including sign-in, which needs the same pool. **This is already the binding

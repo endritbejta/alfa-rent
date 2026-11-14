@@ -773,10 +773,25 @@ button:not(:disabled) {
 }
 
 /*
- * Printed pages (the vehicle handover sheet): A4 with margins the printer
+ * Printed pages: A4 with margins the printer
  * can reach. Only the print dialog reads this; the screen is unaffected.
  */
 @page {
   size: A4;
   margin: 14mm;
+}
+
+/*
+ * The handover sheet prints on a page of its own with no margin. Browsers
+ * draw their header and footer (date, title, URL) inside the page margin,
+ * so with none there is nowhere to draw them and the sheet carries no
+ * browser chrome; it pads itself to the same 14 mm instead.
+ */
+@page handover-sheet {
+  size: A4;
+  margin: 0;
+}
+
+.handover-sheet-page {
+  page: handover-sheet;
 }

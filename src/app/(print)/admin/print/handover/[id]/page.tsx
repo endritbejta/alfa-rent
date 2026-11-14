@@ -13,7 +13,10 @@ import {
   getHandoverRecord,
   type HandoverRecord,
 } from "@/services/reservation.service";
-import { formatRentalPeriod } from "@/app/(dashboard)/admin/reservations/format-day";
+import {
+  formatDay,
+  formatRentalPeriod,
+} from "@/app/(dashboard)/admin/reservations/format-day";
 import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +27,13 @@ export const metadata: Metadata = {
 };
 
 /**
+ * The sheet is paper, not themed UI: black on white in either theme, on
+ * screen and printed. So its colours are fixed values — the brand red and a
+ * neutral grey scale — rather than the theme tokens, which turn dark.
+ */
+const RED = "text-[#dc2028]";
+
+/**
  * The vehicle handover sheet: a printed page the customer signs to confirm
  * they received the car in the condition written on it — and, once it is
  * back, that they returned it in the condition recorded then.
@@ -32,9 +42,18 @@ export const metadata: Metadata = {
  * page with no sidebar, but still under /admin, so the proxy's session
  * perimeter covers it, and the page checks the user itself as well.
  *
- * Filled from the pickup (or return) inspection when one has been recorded.
- * Before that, the condition fields are blank lines to fill in by hand at the
- * counter, so the sheet can be printed ahead of the handover.
+ * Filled from the pickup (or return) inspection when one has been recorded,
+ * down to the names and the date beside each signature, so the customer only
+ * signs. Before that, the condition fields are blank lines to fill in by hand
+ * at the counter, so the sheet can be printed ahead of the handover; the
+ * dates are then the booked day.
+ *
+ * A paper document in the brand: the red "A" and the wordmark, a red rule,
+ * numbered sections and a fuel gauge — black on white on screen too, in
+ * either theme, since the screen is a preview of the paper. It prints on its
+ * own named page with no margin (globals.css, `@page handover-sheet`): the
+ * browser draws its date, title and URL in the page margin, so with none
+ * there is nowhere to draw them, and the sheet pads itself instead.
  */
 export default async function HandoverSheetPage({
   params,
@@ -72,14 +91,25 @@ export default async function HandoverSheetPage({
     format(businessWallClock(date), "d MMM yyyy, HH:mm", {
       locale: dateLocale,
     });
+  // Beside both signatures: the day of the handover, or the booked day when
+  // the sheet is printed ahead of it.
+  const signedOn = when
+    ? format(businessWallClock(when), "d MMM yyyy", { locale: dateLocale })
+    : formatDay(isPickup ? pickupDay : returnDay, dateLocale);
+  const reference = record.id.slice(-8).toUpperCase();
+  const contact = [
+    publicContact.address,
+    publicContact.phone,
+    publicContact.email,
+  ]
+    .filter(Boolean)
+    .join("  ·  ");
 
   return (
-    <main className="bg-background text-foreground min-h-screen print:bg-white print:text-black">
-      <div className="mx-auto max-w-[210mm] px-6 py-8 print:max-w-none print:p-0">
+    <main className="handover-sheet-page min-h-screen bg-[#e5e5e5]/60 print:min-h-0 print:bg-white">
+      <div className="mx-auto max-w-[210mm] px-4 py-8 print:max-w-none print:p-0">
         <div className="mb-6 flex items-center justify-between gap-4 print:hidden">
-          <p className="text-muted-foreground text-sm">
-            {t("handover.screenHint")}
-          </p>
+          <p className="text-sm text-[#525252]">{t("handover.screenHint")}</p>
           <PrintButton label={t("handover.print")} />
         </div>
 
@@ -89,94 +119,143 @@ export default async function HandoverSheetPage({
         <article
           data-print-sheet={record.id}
           data-print-type={type}
-          className="bg-card border p-8 text-[13px] leading-relaxed print:border-0 print:bg-transparent print:p-0"
+          className="relative flex min-h-[297mm] flex-col overflow-hidden bg-white px-[14mm] pt-[12mm] pb-[10mm] text-[12.5px] leading-relaxed text-[#171717] shadow-sm [print-color-adjust:exact] print:shadow-none"
         >
-          <header className="flex items-start justify-between gap-6 border-b-2 border-current pb-4">
-            <div>
-              <p className="font-display text-xl font-semibold tracking-tight">
-                ALFA RENT <span className="font-normal">a Car</span>
-              </p>
-              <p className="text-muted-foreground text-xs print:text-black">
-                {[
-                  publicContact.address,
-                  publicContact.phone,
-                  publicContact.email,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
+          {/* The red "A", very faint, as the paper's watermark. A plain
+              <img> throughout: loaded with the page, so it is there when
+              the print dialog opens. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/alfa-logo-red.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute -right-[18mm] -bottom-[18mm] w-[110mm] opacity-[0.035] select-none"
+          />
+
+          <header className="relative flex items-start justify-between gap-6">
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/alfa-logo-red.png"
+                alt=""
+                aria-hidden
+                width={226}
+                height={223}
+                className="h-12 w-12 object-contain"
+              />
+              <div>
+                <p className="font-display text-[22px] leading-none font-bold tracking-tight">
+                  ALFA <span className={RED}>RENT</span>{" "}
+                  <span className="text-[15px] font-medium text-[#737373]">
+                    a Car
+                  </span>
+                </p>
+                <p className="mt-1.5 text-[10.5px] whitespace-pre text-[#737373]">
+                  {contact}
+                </p>
+              </div>
             </div>
             <div className="text-right">
-              <h1 className="font-display text-lg font-semibold">
+              <p
+                className={`text-[10px] font-bold tracking-[0.16em] uppercase ${RED}`}
+              >
+                {isPickup ? t("print.pickup") : t("print.return")}
+              </p>
+              <h1 className="font-display mt-1 text-[17px] leading-tight font-semibold">
                 {isPickup
                   ? t("handover.titlePickup")
                   : t("handover.titleReturn")}
               </h1>
-              <p className="text-xs tabular-nums">
-                {t("handover.reference", {
-                  ref: record.id.slice(-8).toUpperCase(),
-                })}
+              <p className="mt-1.5 inline-block border border-[#d4d4d4] px-2 py-0.5 text-[10.5px] font-medium tabular-nums">
+                {t("handover.reference", { ref: reference })}
               </p>
             </div>
           </header>
 
-          <section className="grid grid-cols-2 gap-x-8 gap-y-1 border-b py-4">
-            <Field label={t("handover.customer")} value={customerName} />
-            <Field label={t("handover.phone")} value={record.customer.phone} />
-            <Field label={t("handover.idDocument")} value={null} />
-            <Field label={t("handover.licence")} value={null} />
-          </section>
+          <div className="relative mt-5 h-[3px] bg-[#dc2028]" />
 
-          <section className="grid grid-cols-2 gap-x-8 gap-y-1 border-b py-4">
-            <Field
-              label={t("handover.vehicle")}
-              value={`${record.vehicle.brand} ${record.vehicle.model} (${record.vehicle.year})`}
-            />
-            <Field
-              label={t("handover.plate")}
-              value={record.vehicle.plate ?? null}
-            />
-            <Field
-              label={t("handover.period")}
-              value={`${formatRentalPeriod(pickupDay, returnDay, dateLocale)} · ${t(
-                "handover.days",
-                { count: rentalDays(record.pickupDate, record.returnDate) }
-              )}`}
-            />
-            <Field
-              label={
-                isPickup ? t("handover.handedOver") : t("handover.returnedAt")
-              }
-              value={when ? stamp(when) : null}
-            />
-          </section>
-
-          <section className="border-b py-4">
-            <h2 className="mb-3 text-xs font-semibold tracking-[0.14em] uppercase">
-              {t("handover.condition")}
-            </h2>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+          <Section number="01" title={t("handover.sectionCustomer")}>
+            <div className="grid grid-cols-2 gap-x-10">
+              <Field label={t("handover.customer")} value={customerName} />
               <Field
-                label={t("handover.mileage")}
-                value={
-                  inspection
-                    ? `${formatNumber(inspection.mileage, locale)} km`
-                    : null
-                }
+                label={t("handover.phone")}
+                value={record.customer.phone}
+              />
+              <Field label={t("handover.idDocument")} value={null} />
+              <Field label={t("handover.licence")} value={null} />
+            </div>
+          </Section>
+
+          <Section number="02" title={t("handover.sectionVehicle")}>
+            <div className="grid grid-cols-2 gap-x-10">
+              <Field
+                label={t("handover.vehicle")}
+                value={`${record.vehicle.brand} ${record.vehicle.model} (${record.vehicle.year})`}
               />
               <Field
-                label={t("handover.fuel")}
-                value={inspection ? `${inspection.fuelLevel}%` : null}
+                label={t("handover.plate")}
+                value={record.vehicle.plate ?? null}
+              />
+              <Field
+                label={t("handover.period")}
+                value={`${formatRentalPeriod(pickupDay, returnDay, dateLocale)} · ${t(
+                  "handover.days",
+                  { count: rentalDays(record.pickupDate, record.returnDate) }
+                )}`}
+              />
+              <Field
+                label={
+                  isPickup ? t("handover.handedOver") : t("handover.returnedAt")
+                }
+                value={when ? stamp(when) : null}
               />
             </div>
-            <Notes
-              label={t("handover.exterior")}
-              text={inspection?.exteriorNotes}
-            />
-            <Notes
-              label={t("handover.interior")}
-              text={inspection?.interiorNotes}
-            />
+          </Section>
+
+          <Section number="03" title={t("handover.condition")}>
+            {/* The two readings that settle most disputes, given room. */}
+            <div className="grid grid-cols-2 gap-px bg-[#e5e5e5]">
+              <Reading label={t("handover.mileage")}>
+                {inspection ? (
+                  <>
+                    {formatNumber(inspection.mileage, locale)}
+                    <span className="ml-1 text-[12px] font-medium text-[#737373]">
+                      km
+                    </span>
+                  </>
+                ) : null}
+              </Reading>
+              <Reading label={t("handover.fuel")}>
+                {inspection ? (
+                  <span className="flex items-center gap-3">
+                    <span>{inspection.fuelLevel}%</span>
+                    <span
+                      aria-hidden
+                      className="relative h-2 flex-1 bg-[#e5e5e5]"
+                    >
+                      <span
+                        className="absolute inset-y-0 left-0 bg-[#dc2028]"
+                        style={{ width: `${inspection.fuelLevel}%` }}
+                      />
+                    </span>
+                  </span>
+                ) : null}
+              </Reading>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-10">
+              <Notes
+                label={t("handover.exterior")}
+                text={inspection?.exteriorNotes}
+                recorded={!!inspection}
+                none={t("handover.noRemarks")}
+              />
+              <Notes
+                label={t("handover.interior")}
+                text={inspection?.interiorNotes}
+                recorded={!!inspection}
+                none={t("handover.noRemarks")}
+              />
+            </div>
             <Notes
               label={t("handover.damage")}
               text={
@@ -186,10 +265,12 @@ export default async function HandoverSheetPage({
                     : t("handover.noDamage")
                   : null
               }
+              recorded={!!inspection}
+              none={t("handover.noRemarks")}
             />
             {inspection && inspection.photos.length > 0 && (
               <div className="mt-3">
-                <p className="text-muted-foreground mb-2 text-xs print:text-black">
+                <p className="mb-1.5 text-[10.5px] text-[#737373]">
                   {t("handover.photos", { count: inspection.photos.length })}
                 </p>
                 <div className="grid grid-cols-6 gap-1.5">
@@ -201,14 +282,14 @@ export default async function HandoverSheetPage({
                       key={photo.id}
                       src={photo.url}
                       alt=""
-                      className="aspect-square w-full border object-cover"
+                      className="aspect-square w-full border border-[#e5e5e5] object-cover"
                     />
                   ))}
                 </div>
               </div>
             )}
             {inspection && (
-              <p className="text-muted-foreground mt-3 text-xs print:text-black">
+              <p className="mt-2.5 text-[10.5px] text-[#737373]">
                 {t("handover.recordedBy", {
                   name: inspection.createdBy.name,
                   signer: inspection.signerName,
@@ -216,36 +297,71 @@ export default async function HandoverSheetPage({
                 })}
               </p>
             )}
-          </section>
+          </Section>
 
-          <section className="py-5">
+          <Section number="04" title={t("handover.sectionStatement")} last>
             <p>
               {isPickup
                 ? t("handover.statementPickup", { name: customerName })
                 : t("handover.statementReturn", { name: customerName })}
             </p>
-            <p className="text-muted-foreground mt-2 text-xs print:text-black">
+            <p className="mt-1.5 text-[10.5px] text-[#737373]">
               {t("handover.statementNote")}
             </p>
-          </section>
+          </Section>
 
-          <section className="grid grid-cols-2 gap-10 pt-6">
+          {/* Pushed to the foot of the page: the signatures sit where a
+              signature is expected, whatever the length of the notes. */}
+          <section className="relative mt-auto grid break-inside-avoid grid-cols-2 gap-12 pt-8">
             <Signature
               role={t("handover.customerSignature")}
               name={inspection?.signerName ?? customerName}
-              dateLabel={t("handover.date")}
-              nameLabel={t("handover.nameLabel")}
+              date={signedOn}
             />
             <Signature
               role={t("handover.staffSignature")}
               name={inspection?.createdBy.name ?? null}
-              dateLabel={t("handover.date")}
-              nameLabel={t("handover.nameLabel")}
+              date={signedOn}
             />
           </section>
+
+          <footer className="relative mt-8 flex items-center justify-between gap-4 border-t border-[#e5e5e5] pt-3 text-[10px] text-[#737373]">
+            <span>
+              <span className="font-semibold text-[#404040]">
+                ALFA <span className={RED}>RENT</span>
+              </span>{" "}
+              · {t("handover.thanks")}
+            </span>
+            <span className="tabular-nums">{reference}</span>
+          </footer>
         </article>
       </div>
     </main>
+  );
+}
+
+/** A numbered section with a quiet uppercase title. */
+function Section({
+  number,
+  title,
+  last = false,
+  children,
+}: {
+  number: string;
+  title: string;
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={`relative break-inside-avoid py-4 ${last ? "" : "border-b border-[#e5e5e5]"}`}
+    >
+      <h2 className="mb-2.5 flex items-baseline gap-2 text-[10.5px] font-bold tracking-[0.14em] uppercase">
+        <span className={`tabular-nums ${RED}`}>{number}</span>
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
 
@@ -253,57 +369,107 @@ export default async function HandoverSheetPage({
 function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex items-baseline gap-2 py-1">
-      <span className="text-muted-foreground shrink-0 text-xs print:text-black">
-        {label}:
-      </span>
+      <span className="shrink-0 text-[10.5px] text-[#737373]">{label}</span>
       {value ? (
-        <span className="font-medium">{value}</span>
+        <span className="font-semibold">{value}</span>
       ) : (
         <span
           aria-hidden
-          className="h-5 flex-1 border-b border-dotted border-current"
+          className="h-5 flex-1 border-b border-dotted border-[#a3a3a3]"
         />
       )}
     </div>
   );
 }
 
-/** Notes, or two blank lines for handwriting. */
-function Notes({ label, text }: { label: string; text?: string | null }) {
+/** A reading given weight: the label small, the figure large. */
+function Reading({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-[#fafafa] px-4 py-3">
+      <p className="text-[10px] font-semibold tracking-[0.1em] text-[#737373] uppercase">
+        {label}
+      </p>
+      <div className="font-display mt-1 h-7 text-[20px] leading-7 font-bold tabular-nums">
+        {children ?? (
+          <span
+            aria-hidden
+            className="block h-6 border-b border-dotted border-[#a3a3a3]"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Notes. Once the inspection is recorded, an empty note says so in words
+ * rather than leaving lines that invite writing after the fact; before it,
+ * two blank lines for handwriting.
+ */
+function Notes({
+  label,
+  text,
+  recorded,
+  none,
+}: {
+  label: string;
+  text?: string | null;
+  recorded: boolean;
+  none: string;
+}) {
   return (
     <div className="mt-2">
-      <p className="text-muted-foreground text-xs print:text-black">{label}:</p>
+      <p className="text-[10.5px] text-[#737373]">{label}</p>
       {text ? (
-        <p className="whitespace-pre-line">{text}</p>
+        <p className="font-medium whitespace-pre-line">{text}</p>
+      ) : recorded ? (
+        <p className="text-[#737373]">{none}</p>
       ) : (
         <div aria-hidden>
-          <div className="h-6 border-b border-dotted border-current" />
-          <div className="h-6 border-b border-dotted border-current" />
+          <div className="h-6 border-b border-dotted border-[#a3a3a3]" />
+          <div className="h-6 border-b border-dotted border-[#a3a3a3]" />
         </div>
       )}
     </div>
   );
 }
 
+/**
+ * Who signs and on what day, already written under the line; only the
+ * signature itself is left for the pen.
+ */
 function Signature({
   role,
   name,
-  dateLabel,
-  nameLabel,
+  date,
 }: {
   role: string;
   name: string | null;
-  dateLabel: string;
-  nameLabel: string;
+  date: string;
 }) {
   return (
     <div className="break-inside-avoid">
-      <div className="h-14 border-b border-current" />
-      <p className="mt-1 text-xs font-semibold">{role}</p>
-      <p className="text-xs">
-        {nameLabel}: {name ?? "______________________"}
+      <p className="text-[10px] font-bold tracking-[0.14em] text-[#737373] uppercase">
+        {role}
       </p>
-      <p className="mt-3 text-xs">{dateLabel}: ______________________</p>
+      <div className="mt-12 border-b border-[#171717]" />
+      <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[11px]">
+        {name ? (
+          <span className="font-semibold">{name}</span>
+        ) : (
+          <span
+            aria-hidden
+            className="inline-block h-4 w-36 border-b border-dotted border-[#a3a3a3]"
+          />
+        )}
+        <span className="text-[#737373] tabular-nums">{date}</span>
+      </div>
     </div>
   );
 }

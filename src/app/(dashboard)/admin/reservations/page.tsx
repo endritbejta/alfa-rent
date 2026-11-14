@@ -26,6 +26,9 @@ import { getI18n } from "@/lib/i18n/server";
 import { RESERVATION_STATUS_KEYS as STATUS_KEYS } from "@/lib/status-labels";
 import { lateReturnSummary } from "@/lib/late-return";
 import { earlyReturnSummary } from "@/lib/early-return";
+import { isDayKey } from "@/lib/analytics-period";
+import { rangeLabel } from "../analytics/params";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -49,18 +52,46 @@ function listVehicle(vehicle: {
 export default async function ReservationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    page?: string;
+    from?: string;
+    to?: string;
+    vehicleId?: string;
+  }>;
 }) {
   await requireUser();
-  const { t } = await getI18n();
-  const { status, page: rawPage } = await searchParams;
+  const { locale, t } = await getI18n();
+  const {
+    status,
+    page: rawPage,
+    from,
+    to,
+    vehicleId: rawVehicleId,
+  } = await searchParams;
+  // Set by the analytics page's links: reservations picked up in a period,
+  // optionally of one car. Ignored unless both days are real calendar days.
+  const pickupDays =
+    from && to && isDayKey(from) && isDayKey(to) && from <= to
+      ? { from, to }
+      : undefined;
+  const vehicleId =
+    rawVehicleId && /^[a-z0-9]{10,40}$/i.test(rawVehicleId)
+      ? rawVehicleId
+      : undefined;
   const statusFilter = STATUSES.includes(status as ReservationStatus)
     ? (status as ReservationStatus)
     : undefined;
   const page = parsePageParam(rawPage);
 
   const [reservations, insights] = await Promise.all([
-    getReservations({ status: statusFilter, page, perPage: 25 }),
+    getReservations({
+      status: statusFilter,
+      vehicleId,
+      pickupDays,
+      page,
+      perPage: 25,
+    }),
     getReservationInsights(),
   ]);
   const { items, total, perPage, totalPages } = reservations;
@@ -119,6 +150,31 @@ export default async function ReservationsPage({
         }}
         active={statusFilter}
       />
+
+      {(pickupDays || vehicleId) && (
+        <p className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
+          <span>
+            {pickupDays &&
+              t("analytics.filteredPickups", {
+                range: rangeLabel(pickupDays.from, pickupDays.to, locale),
+              })}
+            {vehicleId &&
+              items[0] &&
+              ` · ${items[0].vehicle.brand} ${items[0].vehicle.model}`}
+            {` · ${total}`}
+          </span>
+          <Link
+            href={
+              statusFilter
+                ? `/admin/reservations?status=${statusFilter}`
+                : "/admin/reservations"
+            }
+            className="hover:text-foreground underline underline-offset-4"
+          >
+            {t("analytics.clearFilter")}
+          </Link>
+        </p>
+      )}
 
       {/* Pending is a queue of decisions, so it renders as modules. */}
       {statusFilter === "PENDING" ? (

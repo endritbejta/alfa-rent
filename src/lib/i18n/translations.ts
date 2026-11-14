@@ -1207,6 +1207,220 @@ const en = {
   "audit.staff.resetPassword": "Reset the password",
   "audit.staff.signOutEverywhere": "Signed the account out everywhere",
   "audit.staff.changeOwnPassword": "Changed their own password",
+  // --- analytics dashboard -------------------------------------------------
+  "analytics.subtitle":
+    "Every figure below covers the selected period, read from the reservations themselves.",
+  "analytics.reportingPeriod": "Reporting period",
+  "analytics.previousPeriod": "Previous: {period}",
+  "analytics.nextPeriod": "Next: {period}",
+  "analytics.quickPeriods": "Quick periods",
+  "analytics.preset.thisMonth": "This month",
+  "analytics.preset.lastMonth": "Last month",
+  "analytics.preset.last3": "Last 3 months",
+  "analytics.preset.last6": "Last 6 months",
+  "analytics.preset.last12": "Last 12 months",
+  "analytics.preset.thisYear": "This year",
+  "analytics.preset.lastYear": "Last year",
+  "analytics.preset.all": "All time",
+  "analytics.compareWith": "Compare with",
+  "analytics.compare.prev": "Previous period",
+  "analytics.compare.yoy": "Same period last year",
+  "analytics.compare.none": "No comparison",
+  "analytics.comparedWith": "compared with {period} ({dates})",
+  "analytics.month": "Month",
+  "analytics.year": "Year",
+  "analytics.customFrom": "From",
+  "analytics.customTo": "To",
+  "analytics.apply": "Apply",
+  "analytics.inProgress":
+    "This period is still running. Earned figures cover days up to today, {today}; later days show as upcoming.",
+  "analytics.futurePeriod":
+    "This period has not started. Only confirmed bookings appear, as upcoming revenue.",
+  "analytics.export": "Export CSV",
+  "analytics.export.summary": "Financial summary",
+  "analytics.export.revenue": "Revenue breakdown",
+  "analytics.export.reservations": "Reservation statistics",
+  "analytics.export.vehicles": "Vehicle performance",
+  "analytics.overview": "Overview",
+  "analytics.kpi.earned": "Earned revenue",
+  "analytics.kpi.earnedNote": "{realised} completed · {accruing} in progress",
+  "analytics.kpi.reservations": "Reservations",
+  "analytics.kpi.reservationsNote": "by pickup day, every status",
+  "analytics.kpi.utilization": "Fleet utilisation",
+  "analytics.kpi.utilizationNote": "{rented} of {fleet} car-days rented",
+  "analytics.kpi.renters": "Renting customers",
+  "analytics.kpi.rentersNote": "{first} first-time · {returning} returning",
+  "analytics.group.financial": "Financial",
+  "analytics.group.reservations": "Reservations",
+  "analytics.group.customers": "Customers",
+  "analytics.group.fleet": "Fleet today",
+  "analytics.kpi.upcoming": "Upcoming revenue",
+  "analytics.kpi.perRental": "Average per rental",
+  "analytics.kpi.dailyRate": "Average daily rate",
+  "analytics.kpi.perVehicle": "Revenue per vehicle",
+  "analytics.kpi.cancelledValue": "Lost to cancellations",
+  "analytics.kpi.cancellationRate": "Cancellation rate",
+  "analytics.kpi.customerRecords": "Customer records",
+  "analytics.kpi.newRecords": "New customer records",
+  "analytics.kpi.firstTime": "First-time renters",
+  "analytics.kpi.returning": "Returning renters",
+  "analytics.kpi.repeatRate": "Repeat rate",
+  "analytics.kpi.rentalsPerCustomer": "Rentals per renter",
+  "analytics.kpi.multiRental": "Renters with 2+ rentals in period",
+  "analytics.kpi.everRepeat": "Repeat customers, all time",
+  "analytics.kpi.fleetTotal": "Vehicles in the fleet",
+  "analytics.kpi.available": "Available",
+  "analytics.kpi.onRent": "On rent now",
+  "analytics.kpi.averageFleet": "Average fleet in period",
+  "analytics.kpi.idleDays": "Idle car-days",
+  "analytics.kpi.fleetDays": "Car-days in fleet",
+  "analytics.kpi.fleetDaysNote": "days each car was in the fleet, up to today",
+  "analytics.kpi.rentedDays": "Rented car-days",
+  "analytics.kpi.averageDuration": "Average rental length",
+  "analytics.kpi.perMonth": "Reservations per month",
+  "analytics.kpi.lapsed": "Requests left unanswered",
+  "analytics.kpi.topFiveShare": "Share of the top 5 cars",
+  "analytics.kpi.earlyReturnAdjustment": "Reduced by early returns",
+  "analytics.thinSample": "few cases — read with care",
+  "analytics.ofCount": "{count} of {total}",
+  "analytics.noChange": "no change",
+  "analytics.insights": "What the figures say",
+  "analytics.insight.revenueMore":
+    "Earned revenue was {pct} higher than in {comparison}.",
+  "analytics.insight.revenueLess":
+    "Earned revenue was {pct} lower than in {comparison}.",
+  "analytics.insight.revenueMoreSoFar":
+    "So far, earned revenue is {pct} higher than in the whole of {comparison}.",
+  "analytics.insight.revenueLessSoFar":
+    "So far, earned revenue is {pct} below the whole of {comparison}; the period is not over.",
+  "analytics.insight.bestMonth":
+    "{month} was the strongest month, with {amount}.",
+  "analytics.insight.weakestMonth":
+    "{month} was the weakest month with any revenue, with {amount}.",
+  "analytics.insight.trendUp":
+    "Earned revenue rose across the period: its second half averaged at least 10% more than its first.",
+  "analytics.insight.trendDown":
+    "Earned revenue fell across the period: its second half averaged at least 10% less than its first.",
+  "analytics.insight.topVehicleShare":
+    "{vehicle} brought {pct} of the period's earned revenue.",
+  "analytics.insight.idleVehicles":
+    "{count} car(s) in the fleet for at least a week were never rented in this period.",
+  "analytics.insight.utilizationUp": "Utilisation rose from {from} to {to}.",
+  "analytics.insight.utilizationDown": "Utilisation fell from {from} to {to}.",
+  "analytics.insight.cancellations":
+    "{count} of {total} reservations were cancelled, worth {amount} as booked.",
+  "analytics.insight.returningShare":
+    "{pct} of this period's renters had rented before.",
+  "analytics.insight.returningCount":
+    "{count} of {total} renters had rented before — too few to call a rate.",
+  "analytics.insight.busiestWeekday":
+    "{weekday} is the most common pickup day ({count} of {total}).",
+  "analytics.insight.strongestYear":
+    "{year} is the strongest year on record, with {amount} earned.",
+  "analytics.revenue": "Revenue",
+  "analytics.granularity": "Chart granularity",
+  "analytics.grain.day": "Days",
+  "analytics.grain.week": "Weeks",
+  "analytics.grain.month": "Months",
+  "analytics.grain.year": "Years",
+  "analytics.revenueChart": "Revenue per rental day, {period}",
+  "analytics.series.realised": "Completed",
+  "analytics.series.accruing": "In progress",
+  "analytics.series.upcoming": "Upcoming",
+  "analytics.series.earned": "Earned",
+  "analytics.series.compare": "{period}",
+  "analytics.series.compareFirst": "First rentals, {period}",
+  "analytics.series.held": "Confirmed, active or completed",
+  "analytics.series.cancelled": "Cancelled",
+  "analytics.series.firstRentals": "First rentals",
+  "analytics.series.newRecords": "New customer records",
+  "analytics.byCategory": "Earned revenue by category",
+  "analytics.categorySub": "{utilization} utilisation · {count} car(s)",
+  "analytics.noRevenue": "No revenue in this period.",
+  "analytics.reservations": "Reservations",
+  "analytics.reservationsChart": "Reservations by pickup day, {period}",
+  "analytics.pickupWeekdays": "Pickups by weekday",
+  "analytics.noReservations": "No reservations in this period.",
+  "analytics.fleet": "Fleet and vehicles",
+  "analytics.utilizationChart": "Fleet utilisation, {period}",
+  "analytics.rank.revenue": "Highest revenue",
+  "analytics.rank.rentals": "Most rentals",
+  "analytics.rank.rentedDays": "Most rented days",
+  "analytics.rank.utilization": "Highest utilisation",
+  "analytics.rank.lowestUtilization": "Lowest utilisation",
+  "analytics.vehicles.caption": "Vehicle performance in the period",
+  "analytics.vehicles.vehicle": "Vehicle",
+  "analytics.vehicles.rentals": "Rentals",
+  "analytics.vehicles.rentedDays": "Rented / fleet days",
+  "analytics.vehicles.utilization": "Utilisation",
+  "analytics.vehicles.revenue": "Earned",
+  "analytics.vehicles.share": "Share",
+  "analytics.vehicles.averageValue": "Avg. rental",
+  "analytics.vehicles.averageDuration": "Avg. length",
+  "analytics.vehicles.upcomingShort": "upcoming",
+  "analytics.vehicles.inspect": "Inspect",
+  "analytics.vehicles.close": "Close",
+  "analytics.vehicles.empty": "No vehicles were in the fleet in this period.",
+  "analytics.vehicleRevenue": "Earned revenue over the period",
+  "analytics.vehicleDays": "Rented and idle days over the period",
+  "analytics.days": "{count} days",
+  "analytics.customers": "Customers",
+  "analytics.customersChart":
+    "First rentals and new customer records, {period}",
+  "analytics.topCustomers": "Customers who brought the most",
+  "analytics.noRenters": "Nobody rented in this period.",
+  "analytics.anonymised": "Anonymised customer",
+  "analytics.rentalsCount": "{count} rental(s)",
+  "analytics.seasonality": "Seasonality",
+  "analytics.seasonalityNote":
+    "Earned revenue per month across every year on record, whatever period is selected above. The strongest month of each year is in bold; select a month or year to open it.",
+  "analytics.total": "Total",
+  "analytics.definitions": "How each figure is calculated",
+  "analytics.comparisonTerm": "Comparison",
+  "analytics.chart.clickHint":
+    "Select to see the reservations picked up in it.",
+  "analytics.chart.showTable": "Show as a table",
+  "analytics.chart.period": "Period",
+  "analytics.def.earned":
+    "Completed plus in-progress revenue. Each reservation's charged amount is spread evenly over its rental days, and only the days inside the period count. Confirmed bookings that have not started are not earned.",
+  "analytics.def.realised":
+    "Completed rentals, at the final amount charged: an early return billed for the days used counts what was charged, never the original booking; a charged late return counts its late days.",
+  "analytics.def.accruing":
+    "Active rentals, for their days up to today. The amount can still change when the car comes back.",
+  "analytics.def.upcoming":
+    "Confirmed bookings in the period, plus the days of active rentals still ahead. Expected, not earned.",
+  "analytics.def.cancelledValue":
+    "The booked amount of reservations cancelled whose pickup day falls in the period. Pending requests that lapsed are not counted.",
+  "analytics.def.earlyReturn":
+    "For rentals picked up in the period and billed for the days used: the original booking less what was charged.",
+  "analytics.def.perRental":
+    "The mean amount charged for active or completed rentals picked up in the period.",
+  "analytics.def.dailyRate":
+    "Earned revenue divided by the rental days that earned it.",
+  "analytics.def.perVehicle":
+    "Earned revenue divided by the average number of cars in the fleet over the period's elapsed days.",
+  "analytics.def.reservations":
+    "Reservations whose pickup day falls in the period, in any status. A reservation counts once, in the period it starts.",
+  "analytics.def.cancellationRate":
+    "Cancelled reservations as a share of all reservations picked up in the period. Under ten reservations it is marked as a thin sample.",
+  "analytics.def.lapsed":
+    "Pending requests whose pickup day passed without a decision.",
+  "analytics.def.averageDuration":
+    "Mean rental days of confirmed, active and completed reservations: the days actually out once a rental is completed, else the booked days.",
+  "analytics.def.utilization":
+    "Rented car-days divided by car-days in the fleet, counting only days up to today. A car is rented from pickup through the day it came back; an overdue rental through today.",
+  "analytics.def.fleetDays":
+    "A car is in the fleet from the day its record was created (or its first rental, if earlier) until it was retired. Retirement is read from the audit log, else from the record's last update. A car later reactivated counts throughout, and service days are not subtracted, as their history is not recorded.",
+  "analytics.def.renters":
+    "Customers with an active or completed rental picked up in the period. A customer record is made by any booking request, so it is not a renter by itself. First-time renters had never rented before the period; returning renters had.",
+  "analytics.def.repeatRate":
+    "Returning renters as a share of all renters in the period. The all-time figure is customers with two or more rentals among those with at least one.",
+  "analytics.def.newRecords":
+    "Customer records created in the period, by any request, whether or not it became a rental.",
+  "analytics.def.comparison":
+    "The previous period is the month, year, or same number of months or days just before. The same period last year shifts every day back one year. Rates move in percentage points (pp). A period still running is compared with the comparison period in full.",
+  "analytics.filteredPickups": "Pickups {range}",
+  "analytics.clearFilter": "Clear",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -2425,6 +2639,223 @@ const sq: TranslationDictionary = {
   "audit.staff.resetPassword": "Rivendosi fjalëkalimin",
   "audit.staff.signOutEverywhere": "E nxori llogarinë nga të gjitha pajisjet",
   "audit.staff.changeOwnPassword": "Ndryshoi fjalëkalimin e vet",
+  // --- analytics dashboard -------------------------------------------------
+  "analytics.subtitle":
+    "Çdo shifër më poshtë mbulon periudhën e zgjedhur, e lexuar nga vetë rezervimet.",
+  "analytics.reportingPeriod": "Periudha e raportimit",
+  "analytics.previousPeriod": "E mëparshmja: {period}",
+  "analytics.nextPeriod": "Tjetra: {period}",
+  "analytics.quickPeriods": "Periudha të shpejta",
+  "analytics.preset.thisMonth": "Ky muaj",
+  "analytics.preset.lastMonth": "Muaji i kaluar",
+  "analytics.preset.last3": "3 muajt e fundit",
+  "analytics.preset.last6": "6 muajt e fundit",
+  "analytics.preset.last12": "12 muajt e fundit",
+  "analytics.preset.thisYear": "Ky vit",
+  "analytics.preset.lastYear": "Viti i kaluar",
+  "analytics.preset.all": "Gjithë kohën",
+  "analytics.compareWith": "Krahaso me",
+  "analytics.compare.prev": "Periudhën e mëparshme",
+  "analytics.compare.yoy": "Të njëjtën periudhë një vit më parë",
+  "analytics.compare.none": "Pa krahasim",
+  "analytics.comparedWith": "krahasuar me {period} ({dates})",
+  "analytics.month": "Muaji",
+  "analytics.year": "Viti",
+  "analytics.customFrom": "Nga",
+  "analytics.customTo": "Deri",
+  "analytics.apply": "Zbato",
+  "analytics.inProgress":
+    "Kjo periudhë është ende në vijim. Shifrat e fituara mbulojnë ditët deri sot, {today}; ditët e mëvonshme shfaqen si të ardhshme.",
+  "analytics.futurePeriod":
+    "Kjo periudhë nuk ka filluar. Shfaqen vetëm rezervimet e konfirmuara, si të ardhura të ardhshme.",
+  "analytics.export": "Eksporto CSV",
+  "analytics.export.summary": "Përmbledhja financiare",
+  "analytics.export.revenue": "Ndarja e të ardhurave",
+  "analytics.export.reservations": "Statistikat e rezervimeve",
+  "analytics.export.vehicles": "Performanca e automjeteve",
+  "analytics.overview": "Pasqyra",
+  "analytics.kpi.earned": "Të ardhurat e fituara",
+  "analytics.kpi.earnedNote": "{realised} të përfunduara · {accruing} në vijim",
+  "analytics.kpi.reservations": "Rezervimet",
+  "analytics.kpi.reservationsNote":
+    "sipas ditës së marrjes, të gjitha statuset",
+  "analytics.kpi.utilization": "Shfrytëzimi i flotës",
+  "analytics.kpi.utilizationNote":
+    "{rented} nga {fleet} ditë-automjeti me qira",
+  "analytics.kpi.renters": "Klientët që morën me qira",
+  "analytics.kpi.rentersNote":
+    "{first} për herë të parë · {returning} të rikthyer",
+  "analytics.group.financial": "Financiare",
+  "analytics.group.reservations": "Rezervimet",
+  "analytics.group.customers": "Klientët",
+  "analytics.group.fleet": "Flota sot",
+  "analytics.kpi.upcoming": "Të ardhurat e ardhshme",
+  "analytics.kpi.perRental": "Mesatarja për qira",
+  "analytics.kpi.dailyRate": "Tarifa mesatare ditore",
+  "analytics.kpi.perVehicle": "Të ardhurat për automjet",
+  "analytics.kpi.cancelledValue": "Humbur nga anulimet",
+  "analytics.kpi.cancellationRate": "Shkalla e anulimeve",
+  "analytics.kpi.customerRecords": "Regjistrat e klientëve",
+  "analytics.kpi.newRecords": "Regjistra të rinj klientësh",
+  "analytics.kpi.firstTime": "Qiramarrës për herë të parë",
+  "analytics.kpi.returning": "Qiramarrës të rikthyer",
+  "analytics.kpi.repeatRate": "Shkalla e rikthimit",
+  "analytics.kpi.rentalsPerCustomer": "Qira për qiramarrës",
+  "analytics.kpi.multiRental": "Qiramarrës me 2+ qira në periudhë",
+  "analytics.kpi.everRepeat": "Klientë të rikthyer, gjithë kohën",
+  "analytics.kpi.fleetTotal": "Automjete në flotë",
+  "analytics.kpi.available": "Të lira",
+  "analytics.kpi.onRent": "Me qira tani",
+  "analytics.kpi.averageFleet": "Flota mesatare në periudhë",
+  "analytics.kpi.idleDays": "Ditë-automjeti pa qira",
+  "analytics.kpi.fleetDays": "Ditë-automjeti në flotë",
+  "analytics.kpi.fleetDaysNote":
+    "ditët që çdo automjet ishte në flotë, deri sot",
+  "analytics.kpi.rentedDays": "Ditë-automjeti me qira",
+  "analytics.kpi.averageDuration": "Kohëzgjatja mesatare e qirasë",
+  "analytics.kpi.perMonth": "Rezervime në muaj",
+  "analytics.kpi.lapsed": "Kërkesa pa përgjigje",
+  "analytics.kpi.topFiveShare": "Pjesa e 5 automjeteve kryesore",
+  "analytics.kpi.earlyReturnAdjustment": "Zbritur nga kthimet e hershme",
+  "analytics.thinSample": "pak raste — lexojeni me kujdes",
+  "analytics.ofCount": "{count} nga {total}",
+  "analytics.noChange": "pa ndryshim",
+  "analytics.insights": "Çfarë thonë shifrat",
+  "analytics.insight.revenueMore":
+    "Të ardhurat e fituara ishin {pct} më të larta se në {comparison}.",
+  "analytics.insight.revenueLess":
+    "Të ardhurat e fituara ishin {pct} më të ulëta se në {comparison}.",
+  "analytics.insight.revenueMoreSoFar":
+    "Deri tani, të ardhurat e fituara janë {pct} më të larta se në të gjithë {comparison}.",
+  "analytics.insight.revenueLessSoFar":
+    "Deri tani, të ardhurat e fituara janë {pct} nën të gjithë {comparison}; periudha nuk ka mbaruar.",
+  "analytics.insight.bestMonth": "{month} ishte muaji më i fortë, me {amount}.",
+  "analytics.insight.weakestMonth":
+    "{month} ishte muaji më i dobët me të ardhura, me {amount}.",
+  "analytics.insight.trendUp":
+    "Të ardhurat e fituara u rritën gjatë periudhës: gjysma e dytë kishte mesatarisht të paktën 10% më shumë se e para.",
+  "analytics.insight.trendDown":
+    "Të ardhurat e fituara ranë gjatë periudhës: gjysma e dytë kishte mesatarisht të paktën 10% më pak se e para.",
+  "analytics.insight.topVehicleShare":
+    "{vehicle} solli {pct} të të ardhurave të fituara të periudhës.",
+  "analytics.insight.idleVehicles":
+    "{count} automjet(e) në flotë për të paktën një javë nuk u morën me qira asnjëherë në këtë periudhë.",
+  "analytics.insight.utilizationUp": "Shfrytëzimi u rrit nga {from} në {to}.",
+  "analytics.insight.utilizationDown": "Shfrytëzimi ra nga {from} në {to}.",
+  "analytics.insight.cancellations":
+    "{count} nga {total} rezervime u anuluan, me vlerë {amount} sipas rezervimit.",
+  "analytics.insight.returningShare":
+    "{pct} e qiramarrësve të kësaj periudhe kishin marrë me qira më parë.",
+  "analytics.insight.returningCount":
+    "{count} nga {total} qiramarrës kishin marrë me qira më parë — shumë pak për ta quajtur shkallë.",
+  "analytics.insight.busiestWeekday":
+    "{weekday} është dita më e zakonshme e marrjes ({count} nga {total}).",
+  "analytics.insight.strongestYear":
+    "{year} është viti më i fortë i regjistruar, me {amount} të fituara.",
+  "analytics.revenue": "Të ardhurat",
+  "analytics.granularity": "Detajimi i grafikut",
+  "analytics.grain.day": "Ditë",
+  "analytics.grain.week": "Javë",
+  "analytics.grain.month": "Muaj",
+  "analytics.grain.year": "Vite",
+  "analytics.revenueChart": "Të ardhurat sipas ditës së qirasë, {period}",
+  "analytics.series.realised": "Të përfunduara",
+  "analytics.series.accruing": "Në vijim",
+  "analytics.series.upcoming": "Të ardhshme",
+  "analytics.series.earned": "Të fituara",
+  "analytics.series.compare": "{period}",
+  "analytics.series.compareFirst": "Qiratë e para, {period}",
+  "analytics.series.held": "Të konfirmuara, aktive ose të përfunduara",
+  "analytics.series.cancelled": "Të anuluara",
+  "analytics.series.firstRentals": "Qiratë e para",
+  "analytics.series.newRecords": "Regjistra të rinj klientësh",
+  "analytics.byCategory": "Të ardhurat e fituara sipas kategorisë",
+  "analytics.categorySub": "{utilization} shfrytëzim · {count} automjet(e)",
+  "analytics.noRevenue": "Nuk ka të ardhura në këtë periudhë.",
+  "analytics.reservations": "Rezervimet",
+  "analytics.reservationsChart": "Rezervimet sipas ditës së marrjes, {period}",
+  "analytics.pickupWeekdays": "Marrjet sipas ditës së javës",
+  "analytics.noReservations": "Nuk ka rezervime në këtë periudhë.",
+  "analytics.fleet": "Flota dhe automjetet",
+  "analytics.utilizationChart": "Shfrytëzimi i flotës, {period}",
+  "analytics.rank.revenue": "Të ardhurat më të larta",
+  "analytics.rank.rentals": "Më shumë qira",
+  "analytics.rank.rentedDays": "Më shumë ditë me qira",
+  "analytics.rank.utilization": "Shfrytëzimi më i lartë",
+  "analytics.rank.lowestUtilization": "Shfrytëzimi më i ulët",
+  "analytics.vehicles.caption": "Performanca e automjeteve në periudhë",
+  "analytics.vehicles.vehicle": "Automjeti",
+  "analytics.vehicles.rentals": "Qira",
+  "analytics.vehicles.rentedDays": "Ditë me qira / në flotë",
+  "analytics.vehicles.utilization": "Shfrytëzimi",
+  "analytics.vehicles.revenue": "Të fituara",
+  "analytics.vehicles.share": "Pjesa",
+  "analytics.vehicles.averageValue": "Qiraja mes.",
+  "analytics.vehicles.averageDuration": "Kohëzgj. mes.",
+  "analytics.vehicles.upcomingShort": "të ardhshme",
+  "analytics.vehicles.inspect": "Shqyrto",
+  "analytics.vehicles.close": "Mbyll",
+  "analytics.vehicles.empty":
+    "Asnjë automjet nuk ishte në flotë në këtë periudhë.",
+  "analytics.vehicleRevenue": "Të ardhurat e fituara gjatë periudhës",
+  "analytics.vehicleDays": "Ditët me qira dhe pa qira gjatë periudhës",
+  "analytics.days": "{count} ditë",
+  "analytics.customers": "Klientët",
+  "analytics.customersChart":
+    "Qiratë e para dhe regjistrat e rinj të klientëve, {period}",
+  "analytics.topCustomers": "Klientët që sollën më shumë",
+  "analytics.noRenters": "Askush nuk mori me qira në këtë periudhë.",
+  "analytics.anonymised": "Klient i anonimizuar",
+  "analytics.rentalsCount": "{count} qira",
+  "analytics.seasonality": "Sezonaliteti",
+  "analytics.seasonalityNote":
+    "Të ardhurat e fituara për çdo muaj në të gjitha vitet e regjistruara, pavarësisht periudhës së zgjedhur më lart. Muaji më i fortë i çdo viti është me shkronja të theksuara; zgjidhni një muaj ose vit për ta hapur.",
+  "analytics.total": "Gjithsej",
+  "analytics.definitions": "Si llogaritet çdo shifër",
+  "analytics.comparisonTerm": "Krahasimi",
+  "analytics.chart.clickHint": "Zgjidhni për të parë rezervimet e marra në të.",
+  "analytics.chart.showTable": "Shfaq si tabelë",
+  "analytics.chart.period": "Periudha",
+  "analytics.def.earned":
+    "Të ardhurat e përfunduara plus ato në vijim. Shuma e faturuar e çdo rezervimi ndahet njëtrajtësisht në ditët e qirasë, dhe llogariten vetëm ditët brenda periudhës. Rezervimet e konfirmuara që nuk kanë filluar nuk janë të fituara.",
+  "analytics.def.realised":
+    "Qiratë e përfunduara, me shumën përfundimtare të faturuar: një kthim i hershëm i faturuar për ditët e përdorura llogarit atë që u faturua, kurrë rezervimin fillestar; një kthim i vonuar i faturuar llogarit ditët e vonesës.",
+  "analytics.def.accruing":
+    "Qiratë aktive, për ditët e tyre deri sot. Shuma mund të ndryshojë kur kthehet automjeti.",
+  "analytics.def.upcoming":
+    "Rezervimet e konfirmuara në periudhë, plus ditët e qirave aktive që ende vijnë. Të pritshme, jo të fituara.",
+  "analytics.def.cancelledValue":
+    "Shuma e rezervuar e rezervimeve të anuluara, dita e marrjes së të cilave bie në periudhë. Kërkesat në pritje që skaduan nuk llogariten.",
+  "analytics.def.earlyReturn":
+    "Për qiratë e marra në periudhë dhe të faturuara për ditët e përdorura: rezervimi fillestar minus shumën e faturuar.",
+  "analytics.def.perRental":
+    "Shuma mesatare e faturuar për qiratë aktive ose të përfunduara të marra në periudhë.",
+  "analytics.def.dailyRate":
+    "Të ardhurat e fituara pjesëtuar me ditët e qirasë që i sollën.",
+  "analytics.def.perVehicle":
+    "Të ardhurat e fituara pjesëtuar me numrin mesatar të automjeteve në flotë gjatë ditëve të kaluara të periudhës.",
+  "analytics.def.reservations":
+    "Rezervimet, dita e marrjes së të cilave bie në periudhë, në çdo status. Një rezervim llogaritet një herë, në periudhën kur fillon.",
+  "analytics.def.cancellationRate":
+    "Rezervimet e anuluara si pjesë e të gjitha rezervimeve të marra në periudhë. Nën dhjetë rezervime shënohet si mostër e vogël.",
+  "analytics.def.lapsed":
+    "Kërkesat në pritje, dita e marrjes së të cilave kaloi pa vendim.",
+  "analytics.def.averageDuration":
+    "Ditët mesatare të qirasë së rezervimeve të konfirmuara, aktive dhe të përfunduara: ditët reale jashtë pasi qiraja përfundon, përndryshe ditët e rezervuara.",
+  "analytics.def.utilization":
+    "Ditët-automjeti me qira pjesëtuar me ditët-automjeti në flotë, duke llogaritur vetëm ditët deri sot. Një automjet është me qira nga marrja deri në ditën e kthimit; një qira e vonuar deri sot.",
+  "analytics.def.fleetDays":
+    "Një automjet është në flotë nga dita kur u krijua regjistri i tij (ose qiraja e parë, nëse më herët) deri sa u tërhoq. Tërheqja lexohet nga regjistri i auditimit, përndryshe nga përditësimi i fundit. Një automjet i riaktivizuar llogaritet gjatë gjithë kohës, dhe ditët e servisit nuk zbriten, sepse historia e tyre nuk regjistrohet.",
+  "analytics.def.renters":
+    "Klientët me një qira aktive ose të përfunduar të marrë në periudhë. Një regjistër klienti krijohet nga çdo kërkesë rezervimi, prandaj vetvetiu nuk është qiramarrës. Qiramarrësit për herë të parë nuk kishin marrë kurrë me qira para periudhës; të rikthyerit po.",
+  "analytics.def.repeatRate":
+    "Qiramarrësit e rikthyer si pjesë e të gjithë qiramarrësve në periudhë. Shifra e gjithë kohës janë klientët me dy ose më shumë qira ndër ata me të paktën një.",
+  "analytics.def.newRecords":
+    "Regjistrat e klientëve të krijuar në periudhë, nga çdo kërkesë, pavarësisht nëse u bë qira.",
+  "analytics.def.comparison":
+    "Periudha e mëparshme është muaji, viti, ose i njëjti numër muajsh ose ditësh menjëherë para. E njëjta periudhë vitin e kaluar zhvendos çdo ditë një vit prapa. Shkallët ndryshojnë në pikë përqindjeje (pp). Një periudhë ende në vijim krahasohet me periudhën krahasuese të plotë.",
+  "analytics.filteredPickups": "Marrjet {range}",
+  "analytics.clearFilter": "Pastro",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

@@ -1293,7 +1293,7 @@ const en = {
   "analytics.group.financial": "Financial",
   "analytics.group.reservations": "Reservations",
   "analytics.group.customers": "Customers",
-  "analytics.group.fleet": "Fleet today",
+  "analytics.group.fleet": "Fleet",
   "analytics.kpi.upcoming": "Upcoming revenue",
   "analytics.kpi.perRental": "Average per rental",
   "analytics.kpi.dailyRate": "Average daily rate",
@@ -1464,6 +1464,26 @@ const en = {
   "analytics.comparedWithDates": "compared with {dates}",
   "analytics.csv.plate": "Plate",
   "analytics.csv.category": "Category",
+  "analytics.overviewNote": "The four figures that answer how the period went.",
+  "analytics.performance": "Business performance",
+  "analytics.performanceNote":
+    "Every supporting figure, grouped by what it measures.",
+  "analytics.fleetToday": "Today",
+  "analytics.fleetInPeriod": "In the period",
+  "analytics.details": "Detailed analysis",
+  "analytics.detailsNote":
+    "Each chart sits beside the breakdown that explains it. Select a bar to open the reservations behind it.",
+  "analytics.revenueNote":
+    "Money per rental day: completed, in progress and still to come, against the comparison period.",
+  "analytics.reservationsNote":
+    "Reservations by the day they start, and the weekdays customers pick cars up.",
+  "analytics.fleetNote":
+    "How much of the fleet's time was rented, which cars lead and lag, and every car's figures.",
+  "analytics.customersNote":
+    "Who rented for the first time, how many new customer records arrived, and who brought the most.",
+  "analytics.rankings": "Rankings",
+  "analytics.specificPeriod": "Specific period",
+  "analytics.customRange": "Custom date range",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -2771,7 +2791,7 @@ const sq: TranslationDictionary = {
   "analytics.group.financial": "Financiare",
   "analytics.group.reservations": "Rezervimet",
   "analytics.group.customers": "Klientët",
-  "analytics.group.fleet": "Flota sot",
+  "analytics.group.fleet": "Flota",
   "analytics.kpi.upcoming": "Të ardhurat e ardhshme",
   "analytics.kpi.perRental": "Mesatarja për qira",
   "analytics.kpi.dailyRate": "Tarifa mesatare ditore",
@@ -2942,6 +2962,26 @@ const sq: TranslationDictionary = {
   "analytics.comparedWithDates": "krahasuar me {dates}",
   "analytics.csv.plate": "Targa",
   "analytics.csv.category": "Kategoria",
+  "analytics.overviewNote": "Katër shifrat që tregojnë si shkoi periudha.",
+  "analytics.performance": "Performanca e biznesit",
+  "analytics.performanceNote":
+    "Çdo shifër mbështetëse, e grupuar sipas asaj që mat.",
+  "analytics.fleetToday": "Sot",
+  "analytics.fleetInPeriod": "Në periudhë",
+  "analytics.details": "Analiza e detajuar",
+  "analytics.detailsNote":
+    "Çdo grafik është pranë ndarjes që e shpjegon. Zgjidhni një shtyllë për të hapur rezervimet pas saj.",
+  "analytics.revenueNote":
+    "Paratë sipas ditës së qirasë: të përfunduara, në vijim dhe ende të ardhshme, krahasuar me periudhën krahasuese.",
+  "analytics.reservationsNote":
+    "Rezervimet sipas ditës kur fillojnë, dhe ditët e javës kur klientët marrin automjetet.",
+  "analytics.fleetNote":
+    "Sa nga koha e flotës ishte me qira, cilat automjete prijnë e cilat mbeten pas, dhe shifrat e çdo automjeti.",
+  "analytics.customersNote":
+    "Kush mori me qira për herë të parë, sa regjistra të rinj klientësh erdhën dhe kush solli më shumë.",
+  "analytics.rankings": "Renditjet",
+  "analytics.specificPeriod": "Periudhë e caktuar",
+  "analytics.customRange": "Interval i zgjedhur datash",
 };
 
 export const dictionaries: Record<Locale, TranslationDictionary> = { sq, en };

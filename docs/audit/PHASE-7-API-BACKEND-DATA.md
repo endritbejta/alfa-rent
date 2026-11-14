@@ -38,8 +38,8 @@ consistent part of the codebase.
 
 - **API-1 · No response carries a `Cache-Control` header.** Nowhere in `src/app/api` or
   `lib/api.ts`. Both public GETs return uncacheable responses, which compounds
-  [Phase 6 PERF-10](docs/audit/PHASE-6-PERFORMANCE-SCALABILITY.md) (nothing is cached) and
-  [Phase 4 SEC-3](docs/audit/PHASE-4-SECURITY.md) (neither is rate-limited). A
+  [Phase 6 PERF-10](PHASE-6-PERFORMANCE-SCALABILITY.md) (nothing is cached) and
+  [Phase 4 SEC-3](PHASE-4-SECURITY.md) (neither is rate-limited). A
   `s-maxage`/`stale-while-revalidate` header on `/api/vehicles` is the cheapest single
   mitigation for both. **Severity: medium.**
 - **API-2 · Validation errors report only the first problem.**
@@ -55,13 +55,13 @@ consistent part of the codebase.
 **There is not a single timeout, abort signal, or retry anywhere in the application.** I
 checked every outbound call site.
 
-| Call                                                                                                                                                                                                     | Timeout                                        | Retry | Consequence of a hang                                                                                                                                                |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fetch("/api/bookings")` — [booking-form.tsx:147](src/components/forms/booking-form.tsx:147)                                                                                                             | **none**                                       | none  | Request stalls until the browser gives up. Combined with [Phase 3 BUG-1](docs/audit/PHASE-3-BUGS-RELIABILITY.md) (no `catch`), the customer sees nothing either way. |
-| `fetch("/api/availability")` — [availability-widget.tsx:77](src/components/forms/availability-widget.tsx:77)                                                                                             | **none**                                       | none  | The `cancelled` flag protects _state_, but the request is never aborted, so `loading` stays true and the spinner never resolves.                                     |
-| `XMLHttpRequest` → Cloudinary — [media-grid.tsx:184](src/components/forms/media-grid.tsx:184), [inspection-photo-upload.tsx:64](<src/app/(dashboard)/admin/reservations/inspection-photo-upload.tsx:64>) | **none** (`xhr.timeout` defaults to 0 = never) | none  | See API-3 below.                                                                                                                                                     |
-| Cloudinary Node SDK (`destroy`, `rename`) — [cloudinary/index.ts:3](src/lib/cloudinary/index.ts:3)                                                                                                       | **not configured** (SDK default ~60 s)         | none  | See API-4 below.                                                                                                                                                     |
-| Prisma queries and `$transaction`                                                                                                                                                                        | **not configured**                             | none  | See API-5 below.                                                                                                                                                     |
+| Call                                                                                                                                                                                                     | Timeout                                        | Retry | Consequence of a hang                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fetch("/api/bookings")` — [booking-form.tsx:147](src/components/forms/booking-form.tsx:147)                                                                                                             | **none**                                       | none  | Request stalls until the browser gives up. Combined with [Phase 3 BUG-1](PHASE-3-BUGS-RELIABILITY.md) (no `catch`), the customer sees nothing either way. |
+| `fetch("/api/availability")` — [availability-widget.tsx:77](src/components/forms/availability-widget.tsx:77)                                                                                             | **none**                                       | none  | The `cancelled` flag protects _state_, but the request is never aborted, so `loading` stays true and the spinner never resolves.                          |
+| `XMLHttpRequest` → Cloudinary — [media-grid.tsx:184](src/components/forms/media-grid.tsx:184), [inspection-photo-upload.tsx:64](<src/app/(dashboard)/admin/reservations/inspection-photo-upload.tsx:64>) | **none** (`xhr.timeout` defaults to 0 = never) | none  | See API-3 below.                                                                                                                                          |
+| Cloudinary Node SDK (`destroy`, `rename`) — [cloudinary/index.ts:3](src/lib/cloudinary/index.ts:3)                                                                                                       | **not configured** (SDK default ~60 s)         | none  | See API-4 below.                                                                                                                                          |
+| Prisma queries and `$transaction`                                                                                                                                                                        | **not configured**                             | none  | See API-5 below.                                                                                                                                          |
 
 ### API-3 · A stalled photo upload blocks the inspection form with no explanation
 
@@ -94,12 +94,12 @@ blocking an unrelated button.
 `maxDuration` export** anywhere, so Vercel's default function limit applies.
 
 `syncVehicleImages` issues **up to 32 strictly sequential round trips** for an 8-photo
-gallery ([Phase 6 PERF-8](docs/audit/PHASE-6-PERFORMANCE-SCALABILITY.md)), each Cloudinary
+gallery ([Phase 6 PERF-8](PHASE-6-PERFORMANCE-SCALABILITY.md)), each Cloudinary
 call able to hang for the SDK's default before failing.
 
 **These two facts multiply.** The function is killed by the platform mid-loop, and because
 `syncVehicleImages` has **no transaction** (§3), the gallery is left half-reconciled —
-exactly the state [Phase 3 HL-1](docs/audit/PHASE-3-BUGS-RELIABILITY.md) describes. The
+exactly the state [Phase 3 HL-1](PHASE-3-BUGS-RELIABILITY.md) describes. The
 missing timeout is what turns that from a theoretical race into a predictable outcome under a
 slow Cloudinary.
 
@@ -137,7 +137,7 @@ sees "the system is busy, retry" instead of "an unexpected error occurred".
 Nothing retries. For most paths that is the right call — a failed booking should not be
 silently resubmitted. But **the rate limiter's single `$queryRaw`** is a transient-failure
 path that currently fails _closed_ for sign-in
-([Phase 3 BUG-3](docs/audit/PHASE-3-BUGS-RELIABILITY.md)); catching and failing open there is
+([Phase 3 BUG-3](PHASE-3-BUGS-RELIABILITY.md)); catching and failing open there is
 the fix, not a retry. Worth stating explicitly so "add retries everywhere" is not the
 conclusion drawn from this section.
 
@@ -182,7 +182,7 @@ row if the process dies between create and update.
 | `fuelLevel` 0–100, `mileage` ≥ 0                                                                   | **Database** — two CHECK constraints, mirrored in Zod                                                                                                                                         |
 | **`returnDate > pickupDate`**                                                                      | **Zod only.** No CHECK constraint. The exclusion constraint's `WHERE` clause excludes PENDING/COMPLETED/CANCELLED, so nothing at the database level prevents an inverted range on those rows. |
 | Reservation status machine                                                                         | **Application only** — `ALLOWED_TRANSITIONS`                                                                                                                                                  |
-| `Vehicle.status` consistency with reservations                                                     | **Nothing** — three writers, one unguarded ([Phase 3 BUG-14](docs/audit/PHASE-3-BUGS-RELIABILITY.md))                                                                                         |
+| `Vehicle.status` consistency with reservations                                                     | **Nothing** — three writers, one unguarded ([Phase 3 BUG-14](PHASE-3-BUGS-RELIABILITY.md))                                                                                                    |
 | Documented immutability of `RentalInspection`, `InspectionPhoto`, `PaymentEvent`, `Payment.amount` | **Convention only** — no trigger, no revoked privilege                                                                                                                                        |
 
 **API-7 · The most valuable addition here is a CHECK constraint on `returnDate > pickupDate`.**

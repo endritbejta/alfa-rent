@@ -198,7 +198,7 @@ the two image tables; sorting supported on one of four lists; eight unnamed page
 ## Confirmed bugs
 
 Twenty, each traced or executed. Full reproductions in
-[Phase 3](docs/audit/PHASE-3-BUGS-RELIABILITY.md). Summary:
+[Phase 3](PHASE-3-BUGS-RELIABILITY.md). Summary:
 
 | #   | Bug                                                                         | File                              | Sev      |
 | --- | --------------------------------------------------------------------------- | --------------------------------- | -------- |
@@ -252,22 +252,22 @@ limiter SQL behaves under Supabase's transaction pooler; whether Vercel replaces
 
 Each has its own phase document with full evidence.
 
-- **[Security](docs/audit/PHASE-4-SECURITY.md)** — 1 high, 5 medium, 5 low, 2 latent, 3 needing
+- **[Security](PHASE-4-SECURITY.md)** — 1 high, 5 medium, 5 low, 2 latent, 3 needing
   your environment. Eleven items verified sound, including no XSS surface, no SQL-injection
   surface, framework-covered CSRF, and correct capability-token comparison.
-- **[Architecture](docs/audit/PHASE-2-CODE-QUALITY.md)** — 6 high-severity, plus twelve items
+- **[Architecture](PHASE-2-CODE-QUALITY.md)** — 6 high-severity, plus twelve items
   explicitly protected from change.
-- **[Performance](docs/audit/PHASE-6-PERFORMANCE-SCALABILITY.md)** — 11 findings, all measured
+- **[Performance](PHASE-6-PERFORMANCE-SCALABILITY.md)** — 11 findings, all measured
   from the real build, plus a 10× projection distinguishing the concurrency wall from the
   data-volume walls, and six things I recommend _against_ optimising.
-- **[UX / Accessibility](docs/audit/PHASE-5-FRONTEND-UX-A11Y.md)** — 8 accessibility findings
+- **[UX / Accessibility](PHASE-5-FRONTEND-UX-A11Y.md)** — 8 accessibility findings
   with a computed contrast table validated against known reference values, and a correction to
   the prior audit's touch-target claim.
-- **[Testing gaps](docs/audit/PHASE-8-TESTING-DX.md)** — the 0/20 measurement, two structural
+- **[Testing gaps](PHASE-8-TESTING-DX.md)** — the 0/20 measurement, two structural
   blockers, and the four highest-value tests to write.
-- **[Technical debt](docs/audit/PHASE-9-TECH-DEBT-CONSISTENCY.md)** — frozen dependencies, ten
+- **[Technical debt](PHASE-9-TECH-DEBT-CONSISTENCY.md)** — frozen dependencies, ten
   unmarked workarounds with verdicts, and twelve explicit do-not-over-engineer rulings.
-- **[Cross-system](docs/audit/PHASE-10-CROSS-VERIFICATION.md)** — three findings visible only
+- **[Cross-system](PHASE-10-CROSS-VERIFICATION.md)** — three findings visible only
   in combination, nine removals, five upgrades.
 
 ---
@@ -496,4 +496,4 @@ already consistent. §"Things that should NOT be changed" exists for that reason
 ---
 
 _Audit complete. No application code, configuration, schema or data was modified.
-Handoff for continuation: `ALFA_RENT_AUDIT_HANDOFF.md`._
+Handoff for continuation: [`AUDIT-HANDOFF-2026-08-27.md`](AUDIT-HANDOFF-2026-08-27.md)._

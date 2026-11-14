@@ -291,7 +291,7 @@ Genuinely strong and correctly ordered: `npm ci` → `lint` → `tsc --noEmit` �
 `build`. Migrations are exercised against a real database on every push.
 
 **Two gaps:** the ESLint a11y rules are all severity 1, so they can never fail CI
-([Phase 5 A11Y-6](docs/audit/PHASE-5-FRONTEND-UX-A11Y.md)); and nothing verifies the
+([Phase 5 A11Y-6](PHASE-5-FRONTEND-UX-A11Y.md)); and nothing verifies the
 database objects that `schema.prisma` does not model (Phase 7 API-8), even though the
 infrastructure to do so is already running.
 
@@ -311,7 +311,7 @@ In the order they would hit it:
    boundary are excellent — but only if you find them before you hit it.
 5. **"Why did my `.test.tsx` not run?"** It is silently excluded (TEST-1). Nothing errors.
 6. **"Did my save work?"** No admin mutation gives success feedback
-   ([Phase 5 UX-1](docs/audit/PHASE-5-FRONTEND-UX-A11Y.md)) — so a developer testing their own
+   ([Phase 5 UX-1](PHASE-5-FRONTEND-UX-A11Y.md)) — so a developer testing their own
    change cannot tell whether it landed, which is how BUG-2 survived.
 7. **"Why is `setTimeout(…, 0)` everywhere?"** An ESLint rule forbids sync `setState` in an
    effect, and `requestAnimationFrame` was tried and silently broke things. Documented in

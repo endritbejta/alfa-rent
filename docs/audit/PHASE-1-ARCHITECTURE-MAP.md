@@ -13,6 +13,11 @@ executed. No application code, configuration, schema, or data was modified.
 > now fixed; several are stale in the opposite direction; and the three largest bodies of
 > work in the repo (i18n, light-theme standardisation, online payments) all landed _after_
 > the last audit and have never been reviewed. See §10.
+>
+> _Added 14 Nov 2026:_ `AUDIT_REPORT.md`, `PERFORMANCE_AUDIT.md` and both `plans/` files
+> have since been removed from the tree; every finding they held is reconciled in §10 below
+> and in this audit. Read them in git history, e.g.
+> `git show e5f7a02:AUDIT_REPORT.md`.
 
 ---
 

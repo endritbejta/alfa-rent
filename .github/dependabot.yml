@@ -1,0 +1,65 @@
+# Automated dependency updates (audit roadmap item 22).
+#
+# Dependabot rather than Renovate: it is built into GitHub, so there is no
+# third-party app to install or grant access to the repository.
+#
+# Security updates (PRs for advisories, outside this schedule) are a separate
+# switch in the repository's Settings → Code security; this file only
+# configures the scheduled version updates.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Belgrade
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    # Minor and patch updates arrive as two PRs a week at most, one for
+    # development tooling and one for what ships. Majors are not in a group,
+    # so each arrives on its own PR, to be read with its changelog.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+    ignore:
+      # Majors of the framework, the database client and the auth library are
+      # upgrades, not updates: each has changed APIs this codebase relies on
+      # (AGENTS.md: "This is NOT the Next.js you know"), Prisma's generator and
+      # migration behaviour guard the unmodelled safety objects, and Auth.js
+      # is on a v5 beta whose next step is a deliberate migration. They are
+      # done by hand, on their own branch. Minor and patch releases of these
+      # still come through the groups above.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint-config-next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      - dependency-name: "@prisma/client"
+        update-types: [version-update:semver-major]
+      - dependency-name: next-auth
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]

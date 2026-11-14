@@ -55,6 +55,8 @@ import {
   type ContactSnapshotColumns,
 } from "@/lib/booking-contact";
 import { cancelReasonRequiredError } from "@/lib/validations/reservation";
+import { normalizePhone } from "@/lib/validations/customer";
+import { assertWithinRequestCaps, busiestDayCount } from "@/lib/booking-caps";
 import type {
   AvailabilityInput,
   CreateBookingInput,
@@ -362,6 +364,8 @@ export async function createReservation(
         });
       }
 
+      await assertPublicRequestCaps(tx, input);
+
       // In the transaction, as on the staff path: a booking that fails from
       // here on rolls the new customer back with it (audit finding P3-5).
       const customer = await findOrCreateCustomerByEmail(tx, input.customer);
@@ -406,6 +410,68 @@ export async function createReservation(
     paymentAccessToken: paymentAccess.token,
     replayed: false,
   };
+}
+
+/**
+ * The caps on open website requests (see lib/booking-caps.ts), counted
+ * inside the booking's transaction and through its client: production has
+ * one pooled connection, and a query on the global client here would wait
+ * for the transaction holding it.
+ *
+ * A contact is matched the ways staff would recognise one person: the email
+ * on the request or on the customer record, case-insensitive, or the phone
+ * on either, reduced to the national number as the customer search does.
+ * Not serialised against a concurrent request from the same person, so two
+ * in the same instant can both pass; the cap is about a queue filling up,
+ * and the IP limiter already bounds a burst.
+ */
+async function assertPublicRequestCaps(
+  tx: Prisma.TransactionClient,
+  input: CreateBookingInput
+): Promise<void> {
+  const email = input.customer.email.trim().toLowerCase();
+  const phone = normalizePhone(input.customer.phone);
+  // Too short to identify anyone: "000000" would match every placeholder.
+  const phoneIds =
+    phone.length >= 6
+      ? (
+          await tx.$queryRaw<{ id: string }[]>`
+            SELECT r.id FROM reservations r
+            JOIN customers c ON c.id = r."customerId"
+            WHERE r.status = 'PENDING'
+              AND (
+                regexp_replace(regexp_replace(coalesce(r."contactPhone", ''), '\\D', '', 'g'), '^(00)?(383)?0*', '') = ${phone}
+                OR regexp_replace(regexp_replace(c.phone, '\\D', '', 'g'), '^(00)?(383)?0*', '') = ${phone}
+              )
+          `
+        ).map((row) => row.id)
+      : [];
+
+  const [openForContact, vehicleRequests] = await Promise.all([
+    tx.reservation.count({
+      where: {
+        ...actionableRequestWhere(),
+        OR: [
+          { contactEmail: { equals: email, mode: "insensitive" } },
+          { customer: { email } },
+          { id: { in: phoneIds } },
+        ],
+      },
+    }),
+    tx.reservation.findMany({
+      where: {
+        ...actionableRequestWhere(),
+        vehicleId: input.vehicleId,
+        ...sharesRentalDayWhere(input),
+      },
+      select: { pickupDate: true, returnDate: true },
+    }),
+  ]);
+
+  assertWithinRequestCaps({
+    openForContact,
+    busiestVehicleDay: busiestDayCount(input, vehicleRequests),
+  });
 }
 
 /**

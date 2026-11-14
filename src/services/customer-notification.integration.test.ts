@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import {
   afterAll,
   afterEach,
@@ -42,6 +42,7 @@ vi.mock("@/lib/i18n/server", async () =>
 );
 
 import { NextRequest } from "next/server";
+import { normalizeIp } from "@/lib/rate-limit";
 import { prisma } from "@/lib/db/prisma";
 import { businessDay } from "@/lib/business-time";
 import { createTestActor, removeTestActor } from "@/lib/testing/audit";
@@ -56,6 +57,19 @@ const { updateReservationStatusAction } =
 const suffix = randomUUID().slice(0, 8);
 const vehicleId = `mail-vehicle-${suffix}`;
 const emailFor = (who: string) => `mail-${who}-${suffix}@example.test`;
+/*
+ * One number per person and run: the public path caps open requests per
+ * phone across the whole database (audit P2-1b), so a number every test
+ * shared would trip it after three bookings.
+ */
+const runDigits = randomInt(1_000, 9_999);
+const phones = new Map<string, string>();
+const phoneFor = (who: string) => {
+  if (!phones.has(who)) {
+    phones.set(who, `+383 44 ${runDigits} ${100 + phones.size}`);
+  }
+  return phones.get(who)!;
+};
 const CRON_SECRET = `cron-${suffix}`;
 let staffId = "";
 let ipCounter = 0;
@@ -92,7 +106,8 @@ function book(
 ) {
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    "x-forwarded-for": `198.51.100.${++ipCounter}-${suffix}`,
+    // A /64 of this run's own per request: the limiter keys IPv6 by /64.
+    "x-forwarded-for": `2001:${suffix.slice(0, 4)}:${suffix.slice(4, 8)}:${(++ipCounter).toString(16)}::1`,
   };
   if (locale) headers.cookie = `alfa-locale=${locale}`;
   if (key) headers["Idempotency-Key"] = key;
@@ -108,7 +123,7 @@ function book(
           firstName: "Mira",
           lastName: "Mail",
           email: emailFor(who),
-          phone: "+383 44 000 777",
+          phone: phoneFor(who),
         },
       }),
     })
@@ -179,7 +194,16 @@ afterAll(async () => {
   await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
   await prisma.vehicle.deleteMany({ where: { id: vehicleId } });
   await prisma.rateLimit.deleteMany({
-    where: { key: { startsWith: "bookings:198.51.100.", endsWith: suffix } },
+    where: {
+      key: {
+        startsWith: `bookings:${normalizeIp(
+          `2001:${suffix.slice(0, 4)}:${suffix.slice(4, 8)}::1`
+        )!
+          .split(":")
+          .slice(0, 3)
+          .join(":")}:`,
+      },
+    },
   });
   await removeTestActor(staffId);
   await prisma.$disconnect();

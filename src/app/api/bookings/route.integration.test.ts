@@ -42,14 +42,24 @@ vi.mock("@/services/customer-notification.service", () => ({
 
 import { prisma } from "@/lib/db/prisma";
 import { verifyPaymentAccessToken } from "@/lib/payments/access-token";
+import { normalizeIp } from "@/lib/rate-limit";
+import { createManualReservation } from "@/services/reservation.service";
+import { createTestActor, removeTestActor } from "@/lib/testing/audit";
 import { POST } from "./route";
 
 const suffix = randomUUID().slice(0, 8);
 const vehicleId = `route-vehicle-${suffix}`;
 const email = `route-${suffix}@example.test`;
-/** Each test gets its own client address, so its own limiter bucket. */
+/**
+ * Each test gets its own client address, so its own limiter bucket: an IPv6
+ * /64 of this run's own, since the limiter keys IPv6 by /64 and a malformed
+ * address shares the one "unknown" bucket.
+ */
+const runPrefix = `2001:${suffix.slice(0, 4)}:${suffix.slice(4, 8)}`;
 let ip: string;
 let ipCounter = 0;
+const bucket = (address = ip) => `bookings:${normalizeIp(address)}`;
+const runBuckets = `bookings:${normalizeIp(`${runPrefix}::1`)!.split(":").slice(0, 3).join(":")}:`;
 
 const booking = {
   vehicleId,
@@ -88,7 +98,7 @@ function post(
 async function spendAllowance(count: number, minutesLeft: number) {
   await prisma.rateLimit.create({
     data: {
-      key: `bookings:${ip}`,
+      key: bucket(),
       count,
       expiresAt: new Date(Date.now() + minutesLeft * 60_000),
     },
@@ -118,7 +128,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  ip = `203.0.113.${++ipCounter}-${suffix}`;
+  ip = `${runPrefix}:${(++ipCounter).toString(16)}::1`;
   notifyStaffOfBookingRequest.mockClear();
   notifyCustomer.mockClear();
   // Each test counts its own writes from zero.
@@ -129,8 +139,11 @@ afterAll(async () => {
   await prisma.reservation.deleteMany({ where: { vehicleId } });
   await prisma.vehicle.deleteMany({ where: { id: vehicleId } });
   await prisma.customer.deleteMany({ where: { email } });
+  await prisma.customer.deleteMany({
+    where: { email: { startsWith: `cap-${suffix}-` } },
+  });
   await prisma.rateLimit.deleteMany({
-    where: { key: { startsWith: "bookings:203.0.113.", endsWith: suffix } },
+    where: { key: { startsWith: runBuckets } },
   });
   await prisma.$disconnect();
 });
@@ -301,9 +314,7 @@ describe("POST /api/bookings", () => {
     // assertion that the handler calls it, and calls it first.
     const response = await POST(post({ "sec-fetch-site": "cross-site" }));
     expect(response.status).toBe(403);
-    expect(
-      await prisma.rateLimit.count({ where: { key: `bookings:${ip}` } })
-    ).toBe(0);
+    expect(await prisma.rateLimit.count({ where: { key: bucket() } })).toBe(0);
     expect(await reservationsWritten()).toBe(0);
   });
 
@@ -419,5 +430,177 @@ describe("POST /api/bookings", () => {
         where: { email: racedEmail.toLowerCase() },
       });
     }
+  });
+
+  /**
+   * Audit P2-1b: the honeypot and the fill time. A refusal looks like a
+   * success to the script, and nothing is written or sent.
+   */
+  it.each([
+    ["a filled honeypot", { website: "https://spam.example", formMs: 60_000 }],
+    ["a form sent in under three seconds", { website: "", formMs: 400 }],
+  ])("quietly refuses %s", async (_why, signals) => {
+    const response = await POST(post({}, { ...booking, ...signals }));
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.success).toBe(true);
+    expect(Object.keys(body.data).sort()).toEqual([
+      "id",
+      "paymentAccessToken",
+      "status",
+      "totalPrice",
+    ]);
+    expect(await reservationsWritten()).toBe(0);
+    expect(notifyStaffOfBookingRequest).not.toHaveBeenCalled();
+    expect(notifyCustomer).not.toHaveBeenCalled();
+  });
+
+  it("books normally with the signals a person's form sends", async () => {
+    const response = await POST(
+      post({}, { ...booking, website: "", formMs: 45_000 })
+    );
+    expect(response.status).toBe(201);
+    expect(await reservationsWritten()).toBe(1);
+  });
+
+  describe("caps on open requests", () => {
+    const capCustomer = (tag: string, phone: string) => ({
+      firstName: "Cap",
+      lastName: "Tester",
+      email: `cap-${suffix}-${tag}@example.test`,
+      phone,
+    });
+    const days = (n: number) => ({
+      pickupDate: `2028-03-${String(n).padStart(2, "0")}T10:00:00.000Z`,
+      returnDate: `2028-03-${String(n).padStart(2, "0")}T10:00:00.000Z`,
+    });
+
+    it("refuses a fourth open request from one person, matched by email or by phone however typed", async () => {
+      const person = capCustomer("a", `+383 49 ${suffix.slice(0, 3)} 001`);
+      for (const n of [1, 3, 5]) {
+        const ok = await POST(
+          post({}, { ...booking, ...days(n), customer: person })
+        );
+        expect(ok.status).toBe(201);
+      }
+
+      const sameEmail = await POST(
+        post({}, { ...booking, ...days(7), customer: person })
+      );
+      expect(sameEmail.status).toBe(409);
+      expect((await sameEmail.json()).error.message).toMatch(
+        /3 booking requests/
+      );
+
+      // Another address, the same number written the way people say it.
+      const samePhone = await POST(
+        post(
+          {},
+          {
+            ...booking,
+            ...days(9),
+            customer: {
+              ...capCustomer("b", `049${suffix.slice(0, 3)}001`),
+            },
+          }
+        )
+      );
+      expect(samePhone.status).toBe(409);
+      expect(await reservationsWritten()).toBe(3);
+    });
+
+    it("refuses a sixth open request for one car on one day, from anyone", async () => {
+      for (let i = 0; i < 5; i++) {
+        const ok = await POST(
+          post(
+            { "x-forwarded-for": `${runPrefix}:ff0${i}::1` },
+            {
+              ...booking,
+              ...days(20),
+              customer: capCustomer(
+                `v${i}`,
+                `+383 45 ${suffix.slice(0, 3)} 10${i}`
+              ),
+            }
+          )
+        );
+        expect(ok.status).toBe(201);
+      }
+      const sixth = await POST(
+        post(
+          {},
+          {
+            ...booking,
+            pickupDate: "2028-03-18T10:00:00.000Z",
+            returnDate: "2028-03-22T10:00:00.000Z",
+            customer: capCustomer("v6", `+383 45 ${suffix.slice(0, 3)} 106`),
+          }
+        )
+      );
+      expect(sixth.status).toBe(409);
+      // A day the car is free is still bookable.
+      const otherDay = await POST(
+        post(
+          {},
+          {
+            ...booking,
+            ...days(21),
+            customer: capCustomer("v6", `+383 45 ${suffix.slice(0, 3)} 106`),
+          }
+        )
+      );
+      expect(otherDay.status).toBe(201);
+    });
+
+    it("never caps staff: a booking made in the admin goes through for someone already at the cap", async () => {
+      const person = capCustomer("staff", `+383 43 ${suffix.slice(0, 3)} 001`);
+      for (const n of [1, 3, 5]) {
+        await POST(post({}, { ...booking, ...days(n), customer: person }));
+      }
+      expect(
+        (await POST(post({}, { ...booking, ...days(7), customer: person })))
+          .status
+      ).toBe(409);
+
+      const customer = await prisma.customer.findUniqueOrThrow({
+        where: { email: person.email },
+      });
+      const actor = await createTestActor("booking-caps");
+      try {
+        const staffMade = await createManualReservation(
+          {
+            vehicleId,
+            customer: { kind: "existing", id: customer.id },
+            ...days(7),
+            pickupDate: new Date(days(7).pickupDate),
+            returnDate: new Date(days(7).returnDate),
+            status: "PENDING",
+          },
+          actor
+        );
+        expect(staffMade.status).toBe("PENDING");
+        expect(await reservationsWritten()).toBe(4);
+      } finally {
+        await prisma.reservation.deleteMany({ where: { vehicleId } });
+        await removeTestActor(actor);
+      }
+    });
+
+    it("answers in the storefront's language when the locale cookie is set", async () => {
+      const person = capCustomer("sq", `+383 46 ${suffix.slice(0, 3)} 001`);
+      for (const n of [1, 3, 5]) {
+        await POST(post({}, { ...booking, ...days(n), customer: person }));
+      }
+      const refused = await POST(
+        post(
+          { cookie: "alfa-locale=sq" },
+          { ...booking, ...days(7), customer: person }
+        )
+      );
+      expect(refused.status).toBe(409);
+      expect((await refused.json()).error.message).toMatch(
+        /^Ke tashmë 3 kërkesa/
+      );
+    });
   });
 });

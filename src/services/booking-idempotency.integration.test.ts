@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomInt, randomUUID } from "node:crypto";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { IdempotencyKeyReusedError } from "@/lib/errors";
 import { verifyPaymentAccessToken } from "@/lib/payments/access-token";
@@ -11,6 +11,17 @@ import { createTestActor, removeTestActor } from "@/lib/testing/audit";
 
 // Every staff write records who did it; this stands behind them here.
 let actor = "";
+/*
+ * Each test starts with none of this customer's requests open. The public
+ * path refuses a fourth open request per person (audit P2-1b), and these
+ * tests are about the key, not that cap; staff bookings are left alone.
+ */
+beforeEach(async () => {
+  await prisma.reservation.deleteMany({
+    where: { vehicleId, status: "PENDING", customer: { email } },
+  });
+});
+
 beforeAll(async () => {
   actor = await createTestActor("idempotency");
 });
@@ -30,6 +41,9 @@ const suffix = randomUUID().slice(0, 8);
 const vehicleId = `idem-vehicle-${suffix}`;
 const email = `idempotency-${suffix}@example.test`;
 const staffCustomerId = `idem-customer-${suffix}`;
+// This run's own number: the public path caps open requests per phone across
+// the whole database, so a number shared with other suites would trip it.
+const phone = `+383 44 ${randomInt(10_000_000, 99_999_999)}`;
 
 // Far enough ahead to be valid for as long as this test suite lives.
 const pickupDate = new Date("2027-09-01T10:00:00.000Z");
@@ -43,7 +57,7 @@ const booking = (overrides: Partial<{ pickupDate: Date }> = {}) => ({
     firstName: "Retry",
     lastName: "Tester",
     email,
-    phone: "+383 44 000 000",
+    phone,
   },
   ...overrides,
 });

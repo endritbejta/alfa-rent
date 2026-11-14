@@ -145,6 +145,10 @@ const en = {
   "availability.continue": "Continue to booking",
   "auth.metaTitle": "Staff Login",
   "toast.region": "Notifications",
+  "err.pendingLimitContact":
+    "You already have {count} booking requests waiting for an answer. We will be in touch soon; call us if it is urgent.",
+  "err.pendingLimitVehicle":
+    "This car already has several requests waiting for those dates. Choose other dates or call us.",
   "err.alreadyBooked": "Vehicle is already booked for the selected dates",
   "err.statusNotSettable":
     "A vehicle becomes rented when its pickup inspection is recorded, not by being set here.",
@@ -1206,6 +1210,16 @@ const en = {
   "audit.staff.reactivate": "Reactivated the account",
   "audit.staff.resetPassword": "Reset the password",
   "audit.staff.signOutEverywhere": "Signed the account out everywhere",
+  "email.signInAlert.subject": "Repeated failed sign-ins to {name}'s account",
+  "email.signInAlert.body":
+    "There have been {count} failed sign-in attempts to the account {email} in the last {minutes} minutes.",
+  "email.signInAlert.lastAddress": "Latest attempt from",
+  "email.signInAlert.time": "Time (UTC)",
+  "email.signInAlert.notLocked":
+    "The account has not been locked; its owner can still sign in.",
+  "email.signInAlert.advice":
+    "If the account holder did not make these attempts, reset the password under Staff and sign the account out everywhere.",
+  "audit.staff.failedSignIns": "Repeated failed sign-ins",
   "audit.staff.changeOwnPassword": "Changed their own password",
   // --- printed handover sheet ----------------------------------------------
   "handover.printPickup": "Print handover sheet",
@@ -1637,6 +1651,10 @@ const sq: TranslationDictionary = {
   "availability.continue": "Vazhdo te rezervimi",
   "auth.metaTitle": "Hyrja e Stafit",
   "toast.region": "Njoftimet",
+  "err.pendingLimitContact":
+    "Ke tashmë {count} kërkesa për rezervim që presin përgjigje. Do të të kontaktojmë së shpejti; na telefono nëse është urgjente.",
+  "err.pendingLimitVehicle":
+    "Kjo veturë ka tashmë disa kërkesa në pritje për këto data. Zgjidh data të tjera ose na telefono.",
   "err.alreadyBooked": "Vetura është e rezervuar për datat e zgjedhura",
   "err.statusNotSettable":
     "Vetura kalon në qira kur regjistrohet inspektimi i marrjes, jo duke u caktuar këtu.",
@@ -2701,6 +2719,17 @@ const sq: TranslationDictionary = {
   "audit.staff.reactivate": "Riaktivizoi llogarinë",
   "audit.staff.resetPassword": "Rivendosi fjalëkalimin",
   "audit.staff.signOutEverywhere": "E nxori llogarinë nga të gjitha pajisjet",
+  "email.signInAlert.subject":
+    "Kyçje të dështuara të përsëritura në llogarinë e {name}",
+  "email.signInAlert.body":
+    "Ka pasur {count} përpjekje të dështuara për t'u kyçur në llogarinë {email} gjatë {minutes} minutave të fundit.",
+  "email.signInAlert.lastAddress": "Përpjekja e fundit nga",
+  "email.signInAlert.time": "Koha (UTC)",
+  "email.signInAlert.notLocked":
+    "Llogaria nuk është bllokuar; pronari i saj mund të kyçet ende.",
+  "email.signInAlert.advice":
+    "Nëse këto përpjekje nuk i ka bërë pronari i llogarisë, rivendosni fjalëkalimin te Stafi dhe mbyllni të gjitha seancat e llogarisë.",
+  "audit.staff.failedSignIns": "Kyçje të dështuara të përsëritura",
   "audit.staff.changeOwnPassword": "Ndryshoi fjalëkalimin e vet",
   // --- printed handover sheet ----------------------------------------------
   "handover.printPickup": "Printo fletën e dorëzimit",

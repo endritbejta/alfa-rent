@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { PUBLIC_VEHICLES_TAG } from "@/services/vehicle.service";
+import { refreshStorefront } from "@/lib/storefront-cache";
 import type { ReservationStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth/guards";
 import { TooManyRequestsError } from "@/lib/errors";
@@ -105,16 +105,18 @@ export async function recordRentalInspectionAction(
   revalidatePath("/admin/vehicles");
   // A late charge or an early return's billing changes revenue.
   revalidatePath("/admin/analytics");
-  // A pickup inspection marks the vehicle RENTED and a return releases it,
-  // and the storefront shows that status.
-  updateTag(PUBLIC_VEHICLES_TAG);
+  // A pickup inspection marks the vehicle RENTED and a return releases it
+  // (an early one gives back the days it no longer needs), and the
+  // storefront shows both.
+  refreshStorefront();
   return undefined;
 }
 
 /**
  * A rental that happened but was never started, recorded in one step once
  * it is over. Same level as the inspections it stands in for. The vehicle's
- * status is untouched, so the storefront's tag stays valid.
+ * status is untouched, but the booking stops being CONFIRMED and its dates
+ * may be corrected, so the storefront's occupancy is refreshed all the same.
  */
 export async function recordPastRentalAction(
   reservationId: string,
@@ -138,6 +140,7 @@ export async function recordPastRentalAction(
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");
   revalidatePath("/admin/analytics");
+  refreshStorefront();
   return undefined;
 }
 
@@ -182,6 +185,9 @@ export async function updateReservationStatusAction(
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");
+  // A confirmation takes the car's days off the storefront; cancelling a
+  // confirmed booking gives them back.
+  refreshStorefront();
   return undefined;
 }
 
@@ -204,5 +210,7 @@ export async function extendReservationAction(
   revalidatePath("/admin/reservations");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/calendar");
+  // The new days are taken on the storefront too.
+  refreshStorefront();
   return undefined;
 }

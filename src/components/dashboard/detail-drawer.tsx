@@ -1,5 +1,7 @@
 "use client";
 
+import { createContext, useContext, useState } from "react";
+import { createPortal } from "react-dom";
 import { Drawer } from "@base-ui/react/drawer";
 import { X } from "lucide-react";
 import { useI18n } from "@/components/shared/locale-provider";
@@ -25,12 +27,32 @@ import { useMediaQuery } from "@/lib/use-media-query";
  * One axis per breakpoint: `sm:` resets the vertical offset explicitly, or
  * both translations would survive and the panel would arrive diagonally.
  */
+/**
+ * Where a body's sticky actions go: a slot under the scroll area, so the
+ * actions stay in reach however far down the record has been read. A body
+ * renders into it with <DrawerFooter>; the element only takes up room while
+ * something is in it.
+ */
+const FooterSlot = createContext<HTMLElement | null>(null);
+
+/**
+ * Portals its children into the open drawer's footer. A portal keeps them in
+ * the body's React tree — its state, its handlers, its dialogs — while
+ * placing them outside the scrolling content.
+ */
+export function DrawerFooter({ children }: { children: React.ReactNode }) {
+  const slot = useContext(FooterSlot);
+  return slot ? createPortal(children, slot) : null;
+}
+
 export function DetailDrawer({
   open,
   onClose,
   onClosed,
   title,
   subtitle,
+  meta,
+  footerInert = false,
   children,
 }: {
   open: boolean;
@@ -39,9 +61,18 @@ export function DetailDrawer({
   onClosed?: () => void;
   title: string;
   subtitle?: string;
+  /** Shown under the title in place of a subtitle: a status, say. */
+  meta?: React.ReactNode;
+  /**
+   * The footer is outside the body's DOM, so an `inert` the caller puts
+   * around the body does not reach it; this does.
+   */
+  footerInert?: boolean;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
+  // A callback ref into state, so the slot re-renders its users once mounted.
+  const [footer, setFooter] = useState<HTMLDivElement | null>(null);
   const wide = useMediaQuery("(min-width: 40rem)");
 
   return (
@@ -83,6 +114,7 @@ export function DetailDrawer({
                     {subtitle}
                   </Drawer.Description>
                 )}
+                {meta && <div className="mt-1">{meta}</div>}
               </div>
               <Drawer.Close
                 aria-label={t("common.close")}
@@ -93,8 +125,15 @@ export function DetailDrawer({
             </header>
             {/* The scroll body keeps clear of the home indicator. */}
             <div className="flex-1 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-              {children}
+              <FooterSlot.Provider value={footer}>
+                {children}
+              </FooterSlot.Provider>
             </div>
+            <div
+              ref={setFooter}
+              inert={footerInert}
+              className="shrink-0 border-t px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] empty:hidden"
+            />
           </Drawer.Popup>
         </Drawer.Viewport>
       </Drawer.Portal>

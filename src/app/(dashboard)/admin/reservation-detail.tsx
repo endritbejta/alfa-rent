@@ -25,10 +25,11 @@ import { ReservationBody } from "./reservation-body";
 import { VehicleDetailBody } from "./vehicle-detail-body";
 import { CustomerDetailBody } from "./customer-detail-body";
 import { DrawerSkeleton } from "./detail-primitives";
-import { vehicleLabel } from "@/lib/vehicle-label";
 import { useI18n } from "@/components/shared/locale-provider";
 import { reportError } from "@/lib/observability";
 import { PendingStatus } from "@/components/shared/pending-status";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { ReservationAttention } from "@/components/shared/reservation-attention";
 
 /** Marks a history entry the drawer pushed, so closing knows to pop it. */
 const DRAWER_ENTRY = "alfaDrawer";
@@ -207,9 +208,11 @@ export function ReservationDetailProvider({
             : `${body.data.firstName} ${body.data.lastName}`
           : t("admin.details");
 
+  // A reservation's car is the first thing in its body, so the header says
+  // where the booking stands instead of naming the car a second time.
   const subtitle =
     body?.kind === "reservation"
-      ? vehicleLabel(body.data.vehicle)
+      ? undefined
       : body?.kind === "vehicle"
         ? (body.data.vehicle.plate ?? String(body.data.vehicle.year))
         : body?.kind === "customer"
@@ -230,6 +233,24 @@ export function ReservationDetailProvider({
         onClosed={() => setLoaded(null)}
         title={title}
         subtitle={subtitle}
+        meta={
+          body?.kind === "reservation" ? (
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <StatusBadge status={body.data.status} dot />
+              {body.data.timing.attention && (
+                <>
+                  <span aria-hidden className="text-muted-foreground text-xs">
+                    ·
+                  </span>
+                  <ReservationAttention
+                    attention={body.data.timing.attention}
+                  />
+                </>
+              )}
+            </span>
+          ) : undefined
+        }
+        footerInert={revalidating}
       >
         {loading && kind && <DrawerSkeleton kind={kind} />}
         {message && (
@@ -251,6 +272,9 @@ export function ReservationDetailProvider({
         <div inert={revalidating} aria-busy={revalidating || undefined}>
           {body?.kind === "reservation" && (
             <ReservationBody
+              // A different booking starts on its first tab; a reload of the
+              // same one keeps the tab and any open form.
+              key={body.data.id}
               detail={body.data}
               onDone={close}
               // An extension rewrites the dates and total shown here, so the

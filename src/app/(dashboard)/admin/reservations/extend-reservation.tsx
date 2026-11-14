@@ -55,6 +55,9 @@ export function ExtendReservation({
   extension,
   expired = false,
   onExtended,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   reservationId: string;
   returnDate: Date;
@@ -66,10 +69,23 @@ export function ExtendReservation({
    */
   expired?: boolean;
   onExtended: () => void;
+  /**
+   * Controlled open state, for a parent that offers "Extend rental" from its
+   * own control (the drawer's action bar) and so hides this trigger. The form
+   * still renders here, where the parent places it.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
   const { locale, t } = useI18n();
   const dateLocale = locale === "sq" ? sq : enUS;
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (next: boolean) => {
+    if (openProp === undefined) setOwnOpen(next);
+    onOpenChange?.(next);
+  };
   const [value, setValue] = useState<Date | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -121,6 +137,7 @@ export function ExtendReservation({
   };
 
   if (!open) {
+    if (hideTrigger) return null;
     return (
       <div className="mt-3">
         <Button

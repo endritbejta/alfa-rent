@@ -677,6 +677,9 @@ const en = {
   "admin.lifetimeSpend": "Lifetime spend",
   "admin.dayRate": "Day rate",
   "admin.reservationHistory": "Reservation history ({count})",
+  "admin.tabDetails": "Details",
+  "admin.tabRecord": "Inspections & history",
+  "admin.daysOfBooked": "{count} of {booked} days",
   "admin.screenFailed": "This screen failed to load",
   "admin.screenFailedHelp":
     "Nothing you were working on has been lost. Try again — if it keeps happening, send us the reference below.",
@@ -2165,6 +2168,9 @@ const sq: TranslationDictionary = {
   "admin.lifetimeSpend": "Shpenzimet gjithsej",
   "admin.dayRate": "Çmimi ditor",
   "admin.reservationHistory": "Historia e rezervimeve ({count})",
+  "admin.tabDetails": "Detajet",
+  "admin.tabRecord": "Kontrollet & Historiku",
+  "admin.daysOfBooked": "{count} nga {booked} ditë",
   "admin.screenFailed": "Kjo faqe nuk u ngarkua",
   "admin.screenFailedHelp":
     "Asgjë nga puna jote nuk ka humbur. Provo përsëri — nëse vazhdon, na dërgo referencën më poshtë.",
